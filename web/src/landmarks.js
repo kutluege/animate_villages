@@ -10,6 +10,7 @@
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { facadeMaterial, lin } from './landmarks/facade.js';
 import { buildStation } from './landmarks/station.js';
+import { buildCevahir } from './landmarks/cevahir.js';
 import { obb, frame, prism, sectionLoft, loft, boxAlong, strip3, interpRect, slabAlong, treeGeos, personGeo, signTexture, wallPlane, arcPts, cleanPoly, centroid, signedArea, pointIn } from './landmarks/geom.js';
 
 export async function create(ctx) {
@@ -26,6 +27,8 @@ export async function create(ctx) {
   const glows = [];                   // { m, k, I }  → emissiveIntensity = lightsOn > k ? I : 0
   const blinkers = [];                // { m, period, phase, duty, I }
   const parts = new Map();            // material → [geometry]
+  const peopleGeos = [];              // kalabalık figürleri (vertex color)
+  const updaters = [];                // (state) => void, saf
   const add = (mat, geo) => { if (!geo) return; if (!parts.has(mat)) parts.set(mat, []); parts.get(mat).push(geo); };
   const L3 = (hex, mul) => lin(THREE, hex, mul);
 
@@ -541,75 +544,11 @@ export async function create(ctx) {
     }
   }
 
-  // ───────── Cevahir AVM ─────────
-  const cv = byKey('cevahir');
-  const cvFp = cv?.footprints?.[0];
-  if (cvFp) {
-    const poly = cleanPoly(cvFp.footprint);
-    const top = Math.max(cvFp.baseY + 34, maxGround(poly) + 22);
-    const m = facade({ name: 'cevahir', baseY: cvFp.baseY, seed: 101, floorH: 5.6, colW: 3.0, win: [0.05, 1, 0.1, 1],
-      glass: L3(0x6fa89a), glassRM: [0.08, 0.75], wall: L3(0x2b4a45), wallRM: [0.4, 0.4], tilt: 0.04, tint: 0.6,
-      lobbyH: 7, lobbyC: [1.5, 1.1, 0.7], occ: 0.26, darkFrac: 0.4, zone: 4, litA: [1, 0.85, 0.65], litB: [1, 0.95, 0.85] });
-    add(m, prism(poly, (x, z) => heightAt(x, z) - 3, top));
-    // cam çatı (~2500 m²): kütlenin ortasında kırma çatı + gece içeriden sıcak parıltı
-    const ob = obb(poly), fr = frame(ob.cx, ob.cz, ob.angle);
-    const roofGlass = std(0xa7babd, 0.1, 0.75, { emissive: 0xffc890, emissiveIntensity: 0 });
-    glows.push({ m: roofGlass, k: 0.15, I: 0.3 });
-    add(roofGlass, sectionLoft(fr, [
-      { y: top - 0.2, rect: [-34, 34, -18, 18] },
-      { y: top + 3.5, rect: [-30, 30, -14, 14] },
-      { y: top + 9, rect: [-22, 22, -3, 3] },
-    ]));
-    add(steel, sectionLoft(fr, [{ y: top - 0.5, rect: [-35, 35, -19, 19] }, { y: top + 0.3, rect: [-35, 35, -19, 19] }]));
-    // çatı kirişleri (kırma çatı boyunca)
-    for (let u = -30; u <= 30; u += 4) {
-      const k = Math.abs(u) <= 22 ? 1 : 0;
-      for (const sg of [-1, 1]) {
-        const v0 = sg * 18.2, v1 = sg * (k ? 3.2 : 14 - (Math.abs(u) - 22) * 0);
-        const yA = top + 0.1, yB = k ? top + 9.15 : top + 3.6;
-        const pA = fr(u, v0), pB = fr(u, v1);
-        add(darkSteel, loft([[[pA[0] - 0.15, yA, pA[1]], [pA[0] + 0.15, yA, pA[1]], [pB[0] + 0.15, yB, pB[1]], [pB[0] - 0.15, yB, pB[1]]],
-          [[pA[0] - 0.15, yA + 0.35, pA[1]], [pA[0] + 0.15, yA + 0.35, pA[1]], [pB[0] + 0.15, yB + 0.35, pB[1]], [pB[0] - 0.15, yB + 0.35, pB[1]]]], { top: true }));
-      }
-    }
-    // çatı tesisat kutuları (seed'li)
-    const r2 = ctx.rng('landmarks/cevahir-roof');
-    for (let i = 0; i < 26; i++) {
-      const u = (r2() - 0.5) * ob.L * 0.8, v = (r2() - 0.5) * ob.W * 0.8;
-      if (Math.abs(u) < 38 && Math.abs(v) < 22) continue;
-      const [x, z] = fr(u, v);
-      if (!pointIn(poly, x, z)) continue;
-      const w = 3 + r2() * 7, d = 2 + r2() * 5, hh = 1.5 + r2() * 2.5;
-      const f2 = frame(x, z, fr.angle);
-      add(i % 3 ? concrete : steel, prism(f2.rect(-w / 2, w / 2, -d / 2, d / 2), top - 0.2, top + hh));
-    }
-    // kuzey (metrobüs/D100 tarafı) beyaz giriş kulesi + İSTANBUL CEVAHİR tabelası
-    let best = null;
-    for (let i = 0; i < poly.length; i++) {
-      const p = poly[i], q = poly[(i + 1) % poly.length], dx = q[0] - p[0], dz = q[1] - p[1], len = Math.hypot(dx, dz);
-      const A = signedArea(poly);
-      const nx = (A > 0 ? dz : -dz) / len, nz = (A > 0 ? -dx : dx) / len;
-      const score = len * Math.max(0, -nz) * (1 + Math.max(0, -nx));
-      if (len > 12 && (!best || score > best.score)) best = { p, q, nx, nz, len, score };
-    }
-    if (best) {
-      const mx = (best.p[0] + best.q[0]) / 2, mz = (best.p[1] + best.q[1]) / 2;
-      const ent = facade({ name: 'cevahir-ent', baseY: cvFp.baseY, seed: 103, floorH: 5.6, colW: 2.0, win: [0.1, 0.9, 0.1, 0.95],
-        glass: L3(0x93b0ba), glassRM: [0.05, 0.9], wall: L3(0xe6e8e8), wallRM: [0.5, 0.05], tilt: 0.03, lobbyH: 14, lobbyC: [2.0, 1.5, 1.0], occ: 0.68, zone: 2 });
-      const tx = -best.nz, tz = best.nx;
-      const c0 = [mx + best.nx * 2 - tx * 9, mz + best.nz * 2 - tz * 9], c1 = [mx + best.nx * 2 + tx * 9, mz + best.nz * 2 + tz * 9];
-      const g = heightAt(mx, mz);
-      add(ent, boxAlong(c0, c1, 8, g - 3, top + 6));
-      const st = signTexture('İSTANBUL CEVAHİR', { color: '#ffffff', size: 0.5, letter: 0.06 });
-      root.add(new THREE.Mesh(wallPlane(mx + best.nx * 6.1, mz + best.nz * 6.1, best.nx, best.nz, top + 1.5, 16, 3.2, 0.2), signMat(st, 4, 0.12)));
-      const st2 = signTexture('CEVAHİR', { color: '#ffd38a', size: 0.7, letter: 0.1 });
-      const p3 = [best.p[0] + (best.q[0] - best.p[0]) * 0.18, best.p[1] + (best.q[1] - best.p[1]) * 0.18];
-      root.add(new THREE.Mesh(wallPlane(p3[0], p3[1], best.nx, best.nz, top - 5, 20, 4.4, 0.35), signMat(st2, 4.5, 0.2)));
-    }
-  }
+  // ───────── Cevahir AVM (landmarks/cevahir.js) ─────────
+  const cvFp = byKey('cevahir')?.footprints?.[0];
+  if (cvFp) buildCevahir({ THREE, ctx, heightAt, add, std, glow, signMat, root, facade, L3, steel, darkSteel, concrete, people: peopleGeos, updaters, glows }, cvFp);
 
   // ───────── Metrobüs durağı + üst geçit + İETT peronları (landmarks/station.js) ─────────
-  const peopleGeos = [];
   buildStation({ THREE, ctx, heightAt, add, std, glow, signMat, root, byKey, steel, darkSteel, concrete, railGlass, people: peopleGeos });
 
   // ───────── Metro girişleri — cam köşk + kırmızı M ─────────
@@ -698,11 +637,12 @@ export async function create(ctx) {
     update(state) {
       const L = state.lightsOn;
       for (const { m, ledK } of facades) {
-        m.userData.u.uLightsOn.value = L;
+        m.userData.u.uLightsOn.value = Math.min(1, L * (m.userData.boost || 1));
         m.userData.u.uT.value = state.t;
         m.userData.u.uLed.value = L > ledK ? 1 : 0;
       }
       for (const g of glows) g.m.emissiveIntensity = L > g.k ? g.I : 0;
+      for (const f of updaters) f(state);
       for (const b of blinkers) {
         const ph = (((state.t / b.period) + b.phase) % 1 + 1) % 1;
         const on = ph < b.duty ? 1 : 0.04;

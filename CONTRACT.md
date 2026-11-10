@@ -64,6 +64,10 @@ Tur 2 eklemeleri:
 - Veri kutusunun dışı: şehir ufukta aniden bitmesin diye city.js kutu dışına düşük ayrıntılı, **veriye dayanmayan**
   dolgu doku çizebilir (`userData.procedural = true`); yakın planda görünmemeli, simge yapı içermemeli.
 
+Tur 5 (kullanıcı yönü): video süresi artık sabit 36 sn değil; `edit.js`'teki `DURATION` belirler, üst sınır **50 sn**.
+Rota: açılış (Trump) → gün batımı yansıması → uzun alacakaranlık → metrobüs hattının üstü → mezarlık → Cevahir →
+Torun Center'a dönerken gece → kapanışta yine Trump.
+
 ## 4b. Işık anlaşması (modüller arası)
 - Doğrusal HDR iş akışı. Tone mapping, exposure ve bloom atmosferin; başka modül `renderer.toneMapping*` ayarlamaz.
 - Yayıcı yoğunlukları (bloom eşiği ≈ 1 varsayımıyla): yanan pencere ≈ 1.5–4, tabela/LED ≈ 3–6, sokak lambası ve

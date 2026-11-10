@@ -251,7 +251,7 @@ if (args.scene) {
     let sc = await open(), retries = 0;
     console.log(`\nsahne denetimi (atmo ${atmo}, ${SHZ} Hz, yarıçap ${SR} m): ${JSON.stringify(await sc.page.evaluate(() => window.__modules.modules))}`);
     const n = Math.round(D * SHZ);
-    let worst = { d: Infinity };
+    let worst = { d: Infinity }; const poleWarn = [];
     for (let i = 0; i <= n; i++) {
       const t = (i / n) * D;
       let r;
@@ -293,7 +293,23 @@ if (args.scene) {
           if (L > 1e-6) { rc.set(window.__crPrev, d.normalize()); rc.far = L; const h = rc.intersectObjects(near, false)[0]; if (h) seg = (h.object.parent?.name || '') + '/' + h.object.name; }
         }
         window.__crPrev = p;
-        return { best, seg };
+        // İnce dikey nesneler (direkler): yatayda POLE_D m'den yakın ve tepesi kamera hizasına uzanıyorsa uyarı
+        if (!window.__crPoles) {
+          const poles = [], m4 = new THREE.Matrix4(), v = new THREE.Vector3();
+          scene.traverse((o) => {
+            if (!o.isInstancedMesh || !/pole|mast/i.test(o.name + '/' + (o.parent?.name || ''))) return;
+            if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+            const bb = o.geometry.boundingBox;
+            for (let i = 0; i < o.count; i++) { o.getMatrixAt(i, m4); v.setFromMatrixPosition(m4).applyMatrix4(o.matrixWorld); poles.push([v.x, v.y + bb.min.y, v.y + bb.max.y, v.z, o.name]); }
+          });
+          window.__crPoles = poles;
+        }
+        let pole = null;
+        for (const [x, y0, y1, z, name] of window.__crPoles) {
+          const d = Math.hypot(x - p.x, z - p.z);
+          if (d < 8 && y1 > p.y - 2 && (!pole || d < pole.d)) pole = { d, name };
+        }
+        return { best, seg, pole };
       });
       } catch (e) {
         // Sayfa çökerse (GPU/bellek) yeniden aç ve aynı örnekten sürdür.
@@ -305,8 +321,11 @@ if (args.scene) {
       if (r.best.d < worst.d) worst = { ...r.best, t };
       if (r.best.d < SR) hits.push(`t=${t.toFixed(2)} sahne: ${r.best.name} ${r.best.d.toFixed(2)} m`);
       if (r.seg) hits.push(`t=${t.toFixed(2)} sahne: rota parçası ${r.seg} içinden geçiyor`);
+      if (r.pole) poleWarn.push(`t=${t.toFixed(2)} ${r.pole.name} yatayda ${r.pole.d.toFixed(1)} m`);
     }
     console.log(`sahne: en yakın yüzey ${worst.d.toFixed(2)} m (t=${worst.t?.toFixed(2)}, ${worst.name})`);
+    if (poleWarn.length) { console.log(`UYARI — kameraya 8 m'den yakın direk (kadrajı süpürebilir): ${poleWarn.length} örnek`); for (const w of poleWarn.slice(0, 12)) console.log('  ' + w); }
+    else console.log('direk yakınlığı: 8 m içinde kamera hizasına uzanan direk yok ✓');
   } finally { await env.close(); }
 }
 

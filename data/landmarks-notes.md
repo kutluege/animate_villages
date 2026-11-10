@@ -74,3 +74,13 @@ city.js yaya köprüsünü (w375233084) zaten çiziyor; bizim üst geçit onu ka
 - **Rezidans çatısı:** aynı fotoğrafta düz çatı + dar koyu teknik kutu + BMU; önceki 11 m eğik kesik 3 m'ye indirildi (prizmatik yüzlerin perspektifi). Kutu ölçüsü **tahmin**.
 - **Gece pencereleri (tahmin, gözlemsel):** ofis kuleleri kat bantları (~%24 kat tam aydınlık, ~%30 seyrek, kalan karanlık; kat bütünüyle kendi eşiğinde yanar), konut kuleleri ~%20 pencere, amber + perde arkası loş (0.4–1.0 çarpan), ~%13'ü TV mavisi (t ile hafif titreme). Koyu camlı Torun/Quasar 0.6–0.8 geçirgenlik çarpanıyla daha soluk. Konut pencereleri bilinçli olarak 0.9–2.0 (CONTRACT'ın 1.5–4 aralığının altında, "perde arkası loş").
 - 14–16 sn'deki ince dikey çizgi: landmarks'ta 60 m'yi aşan ince parça taraması temiz (yalnız Trump koyu yarısının 0.7 m dikey kanadı). Çizgi büyük olasılıkla kadrajın kenarına giren rezidans kulesinin köşesi (kurgu).
+
+## Tur 5 — Cevahir
+Doğrulanan (Wikipedia "Istanbul Cevahir"): 6 perakende katı + 4 katlı otopark (2.500 araç), 2.500 m² cam çatı ve üzerinde "dünyanın ikinci büyük saati" (rakamlar ~3 m; kaynakta "citation needed"), Büyükdere Cd. 22, mimar Minoru Yamasaki → Can Yavuzarslan, açılış 2005. Commons fotoğrafı: yeşil cam cephe, beyaz cam giriş kulesi, "İSTANBUL CEVAHİR" yazısı.
+TAHMİN:
+- Cam çatının yeri: kütlenin yönlü sınır kutusunun ortası, ~68×36 m taban (çokgen içinde kalacak biçimde küçültülür), kırma, sırt +9 m; saydamlık 0.32.
+- Atrium: cam çatının altında 3 galeri katı (5.6 m) görünür derinlik, 3.2 m galeri döşemeleri, ışıklı korkuluk halkaları, mağaza cepheleri, ~46 figür, 4 büfe. Gerçekte 6 kat; görünür kısım kısaltıldı.
+- Saat: cam çatıya asılı Ø13 m kadran, aşağı (atriuma) bakar; akrep/yelkovan `tod`'u gösterir. Yönü ve çapı doğrulanamadı.
+- Koridor ışıklıkları: atriumdan uzun/kısa eksen boyunca 4–4.5 m genişliğinde cam şeritler; çatı tesisat odaları (jaluzili) ve ~90 klima/fan ünitesi. Çatıda otopark **yok** (otopark binanın içinde/altında; doğrulanamadığı için çatıya araç konmadı).
+- Ana cephe: Büyükdere'ye (KB) bakan en uzun kenar; giriş kulesi orada, 24×9 m saçak ve altında gömme ışık, önünde ~48 figür ve yer ışıkları; yola bakan kenarların korniş ışığı; ikinci kenarda büyük "CEVAHİR" harfleri, iki reklam ekranı (içerik jenerik).
+- Gece: AVM erken yanar (`lightsOn` × 2.2–2.5 hızlandırıcı, k ≈ 0.02–0.03); zemin katı mağazaları sıcak, cam cephe çoğunlukla koyu (fotoğrafta alacakaranlıkta da koyu).

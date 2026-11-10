@@ -28,3 +28,11 @@ ve süre o tura ait görünüyor). Kesin maliyet için `/cost` esas alınmalı.
 | 17 | 3 | Atmosfer B (devam) | 291.641 | 19 | 346 |
 | 18 | 3 | Şehir dokusu (devam) | 470.759 | 23 | 365 |
 | 19 | 3 | Simge yapılar (devam) | 425.561 | 29 | 442 |
+| 20 | 3 | Kamera/kurgu (devam) | 328.657 | 42 | 1304 |
+| 21 | 3 | Denetçi 3 | 109.692 | 34 | 271 |
+| 22 | 4 | Atmosfer B (devam) | 308.979 | 13 | 154 |
+| 23 | 4 | Şehir dokusu (devam) | 545.203 | 29 | 498 |
+| 24 | 4 | Kamera/kurgu (devam) | 375.469 | 33 | 914 |
+| 25 | 4 | Şehir dokusu (rötuş) | 574.591 | 20 | 214 |
+| 26 | 4 | Denetçi 4 (final MP4) | 71.064 | 18 | 102 |
+| 27 | 5 | Kamera/kurgu (rötuş + yeni tur) | 436.353 | 38 | 969 |

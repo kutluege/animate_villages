@@ -1,26 +1,29 @@
 // Kamera rotası + kurgu — "Mecidiyeköy'de bir gün, gündüzden geceye" (CONTRACT §6).
 // Saf modül: içe aktarma yok, durum yok. shotAt(t) yalnızca t'nin fonksiyonudur.
 //
-// Tek kesintisiz plan (kesme yok):
-//   A  0–4 sn    Viyadük tabliyesinin üstünde, metrobüs şeridi boyunca 50 m/s batıya; Trump kuleleri ilk kareden kadrajda.
-//   B  4–10 sn   Viyadük ucundan düşüp konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya.
-//   C  10–15 sn  Apartman denizinin üstünde alçak geçiş (batan güneş kadrajda), güneye kıvrılıp kuleye dönüş.
-//   D  15–20 sn  Batı cephesi karşısında nefes: alçalan güneş camda (ayna açısı check-route ile doğrulanır).
-//   E  20–36 sn  Geniş, sakin geri/yukarı çekilme — pencereler/lambalar yanar; doğuya bakan son kare:
-//                Trump ikizi + Torun Center, metrobüs/D100 ışık şeridi alttan kulelere; üstte ~%25 gök.
+// Tek kesintisiz plan (kesme yok), 50 sn:
+//   A  0–4      Metrobüs şeridinin üstünden, D100 trafiğinin hemen üstünde dik yukarı bakışla kulelerin dibine.
+//   B  4–10     Konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya.
+//   C  10–14    Apartman denizinin üstünde, batan güneş kadrajda; kuleye dönüş.
+//   D  14–17    Batı cephesi önünde yay: yansıma cam boyunca kayar.
+//   E  17–23    Alacakaranlık: Trump'tan dönüp metrobüs hattının üstünden doğuya.
+//   F  23–29    Güneye, mezarlıkların koyu selvileri üstünden Cevahir'e.
+//   G  29–35    Cevahir'in cam çatısı üstünden çapraz geçiş.
+//   H  35–42    Torun Center'a dönerken gece iner.
+//   I  42–50    Son dönüş: viyadük üstünden Trump ikizine; ışık şeridi gözü kulelere taşır, son 1.5 sn sakin.
 // Eğriler: konum/bakış/fov için zamana göre doğal kübik spline (C2: hız ve ivme sürekli); son uçta hız 0.
 // tod: pozitif genlikli quintic smootherstep'lerin toplamı → monoton ve C2.
 
-export const DURATION = 36;
+export const DURATION = 50;
 
 // [t, konum x,y,z, bakış x,y,z, fov(dikey, derece)]
 const KEYS = [
-  // A — metrobüs üst geçidinin hemen doğusundan, durağın kuzey kenarında, D100 trafiğinin hemen üstünde (yer+6 m) doğuya; Trump ikizi ilk karede dev
-  [0.0,   -80,   6.4, -52.5,     5,  56.0, -175,  77],
-  [1.2,   -30,   7.4, -56.5,    18,  68.0, -172,  78],
-  [2.5,     2,  11.5, -64.0,    40,  86.0, -162,  76],
-  // B — D100 üstünden yükselip konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya
-  [3.9,    36,  18.5, -84.0,    45,  86.0, -190,  73],
+  // A — metrobüs şeridinin üstünden (yer+5.5 m), D100'ü dik yukarı bakışla geçip kulelerin dibine
+  [0.0,   -14,   6.6, -46.5,    22,  41.0, -165,  74],
+  [1.2,    -8,  10.0, -62.0,    26,  58.0, -168,  72],
+  [2.6,     8,  15.5, -80.0,    32,  82.0, -175,  68],
+  [4.0,    34,  21.0, -96.0,    42,  85.0, -200,  70],
+  // B — konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya
   [5.6,    66,  27.0, -115.0,   45,  65.0, -240,  72],
   [6.7,    63,  29.0, -162.0,    5,  45.0, -255,  74],
   [7.9,    38,  32.0, -210.0,  -70,  38.0, -240,  74],
@@ -32,16 +35,23 @@ const KEYS = [
   [14.0, -180,  56.0, -186.0,   25,  80.0, -170,  54],
   [15.5, -190,  60.0, -150.0,   25,  82.0, -158,  48],
   [17.0, -182,  63.0, -108.0,   25,  80.0, -146,  50],
-  // E — geri ve aşağı çekilme (koridor boyunca batıya), ışıklar yanarken genişleyen kadraj
-  [19.5, -262,  58.0, -82.0,    60,  60.0, -140,  58],
-  [22.0, -360,  54.0, -60.0,   120,  30.0, -140,  68],
-  [24.0, -412,  55.0, -42.0,   170,  10.0, -145,  72],
-  // F — yükselip ileri (doğuya) süzülerek kapak kadrajına oturma
-  [27.0, -400,  70.0, -80.0,   220, -25.0, -155,  76],
-  [30.5, -350,  90.0, -140.0,  250, -45.0, -163,  79],
-  [33.5, -322,  99.4, -168.2,  261, -54.0, -167,  80],
-  [34.5, -320.3, 99.9, -169.8, 261.8, -54.8, -168, 80],
-  [36.0, -320,  100.0, -170.0, 262, -55.0, -168,  80],
+  // E — alacakaranlık: Trump'tan dönüp metrobüs hattının üstünden doğuya (hat kadrajın solunda)
+  [19.8, -150,  34.0, -44.0,    60,   4.0, -46,   62],
+  [22.6,  -62,  28.0, -28.0,   110,   4.0,  40,   64],
+  // F — güneye: mezarlıkların (Ermeni Katolik, Metamorfos) koyu selvileri üstünden Cevahir'e
+  [25.4,  -12,  40.0,  55.0,    60,   0.0, 330,   64],
+  [28.6,   12,  52.0, 175.0,    95,   8.0, 420,   62],
+  // G — Cevahir: cam çatının üstünden çapraz geçiş
+  [31.8,   45,  64.0, 290.0,   130,   5.0, 440,   62],
+  [35.0,  150,  72.0, 360.0,   330,  20.0, 380,   64],
+  // H — Torun Center'a dönerken gece
+  [38.4,  270,  80.0, 300.0,   600,  70.0, 140,   62],
+  [42.0,  400,  86.0, 200.0,   944,  70.0, -54,   62],
+  // I — son dönüş: viyadük üstüne, Trump ikizine; metrobüs/D100 ışık şeridi gözü kulelere taşır
+  [45.0,  440,  85.0,  90.0,   388,  45.0, -508,  63],
+  [47.6,  466,  85.0,   0.0,   -54,  20.0, -300,  65],
+  [48.6,  469.7, 85.0, -7.6,    21, -12.0, -141.6, 66],
+  [50.0,  470,  85.0, -8.0,     20, -12.5, -142,  66],
 ];
 
 // ───────── doğal kübik spline (başta doğal, sonda hız=0 kelepçeli) ─────────
@@ -84,9 +94,9 @@ const smoother = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * u * (u * (u * 6 - 15)
 const TOD_SEGS = [
   [1.15, 0.0, 13.5],  // 17:30 sıcak geç ikindi, alçak yandan güneş → ~18:45 altın saat
   [0.45, 10.0, 20.0], // altın saat → batış 19:20 (yay boyunca camda kayan yansıma)
-  [0.75, 17.5, 27.0], // batış → mavi saat 19:50 → ~20:00: lightsOn yükselişi geniş planda
-  [1.50, 24.0, 33.0], // → 21:30 tam gece
-];
+  [0.50, 18.0, 36.0], // alacakaranlık / mavi saat 19:20–19:50, yavaş: ilk pencereler, lambalar
+  [1.75, 36.0, 46.0], // Torun dönüşünde geceye → 21:30
+]
 export function todAt(t) {
   let v = 17.5 + 0.004 * t;
   for (const [A, s, e] of TOD_SEGS) v += A * smoother((t - s) / (e - s));
