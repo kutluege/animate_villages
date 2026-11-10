@@ -12,6 +12,7 @@ import { smooth } from './city/util.js';
 import { prepareLanduse, buildLanduse } from './city/landuse.js';
 import { buildFill } from './city/fill.js';
 import { proceduralInfill } from './city/infill.js';
+import { buildStreet } from './city/street.js';
 
 const SHOP_CLS = { primary: 0.9, secondary: 0.85, link: 0.6, minor: 0.4, path: 0.7 };
 
@@ -19,7 +20,7 @@ export async function create(ctx) {
   const t0 = performance.now();
   const root = new THREE.Group(); root.name = 'city';
   const U = {
-    uLightsOn: { value: 0 }, uT: { value: 0 }, uCarLight: { value: 0 }, uCarI: { value: 0 }, uStripI: { value: 0 },
+    uLightsOn: { value: 0 }, uDay: { value: 1 }, uT: { value: 0 }, uCarLight: { value: 0 }, uCarI: { value: 0 }, uStripI: { value: 0 },
   };
 
   // arazi kullanımı (data/landuse.json). ?cityLanduse=<url> yalnızca sınama için başka dosya yükler.
@@ -73,6 +74,8 @@ export async function create(ctx) {
   root.add(lamps.group);
   const props = buildProps(ctx, U, allFp, isInside);
   root.add(props.group);
+  const street = buildStreet(ctx, U, net, isInside);
+  root.add(street.group);
   const land = buildLanduse(ctx, LU, net, isInside);
   root.add(land.group);
   // dolgu: veri kutusu = bina izlerinin kapsamı
@@ -82,7 +85,7 @@ export async function create(ctx) {
   if (fill) root.add(fill.group);
 
   ctx.scene.add(root);
-  const stats = { buildings: blds.footprints.length, procedural: inf.list.length, procAreas: inf.perArea.map((a) => `${a.center.join(',')}:${a.count}`).join(' '), roads: net.roads.length, lamps: lamps.count, ...traffic.counts, ...props.counts, ...land.counts, ...(fill?.counts || {}), ms: Math.round(performance.now() - t0) };
+  const stats = { buildings: blds.footprints.length, procedural: inf.list.length, procAreas: inf.perArea.map((a) => `${a.center.join(',')}:${a.count}`).join(' '), roads: net.roads.length, lamps: lamps.count, ...traffic.counts, ...props.counts, ...land.counts, ...street.counts, ...(fill?.counts || {}), ms: Math.round(performance.now() - t0) };
   console.info('[city] hazır', JSON.stringify(stats));
   if (typeof window !== 'undefined') window.__city = { stats, root };
 
@@ -90,7 +93,7 @@ export async function create(ctx) {
     object3D: root,
     update(state) {
       const on = state.lightsOn;
-      U.uLightsOn.value = on;
+      U.uLightsOn.value = on; U.uDay.value = state.day ?? 1;
       U.uCarLight.value = 4 * smooth(0.0, 0.3, on);
       U.uCarI.value = 6 * smooth(0.0, 0.35, on);
       U.uStripI.value = 8;
@@ -98,6 +101,7 @@ export async function create(ctx) {
       lamps.update(state);
       props.update(state);
       fill?.update(state);
+      street.update(state);
     },
     dispose() {
       ctx.scene.remove(root);

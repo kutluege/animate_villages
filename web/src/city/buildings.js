@@ -81,6 +81,9 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
     fac *= mix(0.8, 1.0, smoothstep(0.0, 5.0, yRel));
     float streak = cityNoise(vec2(u * 0.9 + seg * 7.0, yRel * 0.04 + seed));
     fac *= mix(0.9, 1.04, streak);
+    // sıva yamaları / eski boya lekeleri
+    float pl = cityNoise(vec2(u * 0.33 + seed, yRel * 0.33));
+    fac *= mix(1.0, mix(0.9, 1.07, cityH(seed, floor(pl * 3.0), 3.0)), smoothstep(0.62, 0.7, pl));
     if (cat > 2.5 && cat < 3.5) {
       // inşaat: açık katlar
       float fy = yRel / fh, fv = fract(fy), dv = fwidth(fy);
@@ -129,8 +132,8 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
         float near = (1.0 - far) * (1.0 - blank);
         float wm = cityBox(fu, a0, a1, dd.x) * cityBox(fv, wlo, whi, dd.y);
         // söve (çerçeve taşı)
-        float sv = r2 > 0.35 && !office ? 0.05 : 0.0;
-        float fr = cityBox(fu, a0 - sv - 0.03, a1 + sv + 0.03, dd.x) * cityBox(fv, wlo - 0.02, whi + sv + 0.03, dd.y);
+        float sv = r2 > 0.35 && !office ? 0.03 : 0.0;
+        float fr = cityBox(fu, a0 - sv - 0.02, a1 + sv + 0.02, dd.x) * cityBox(fv, wlo - 0.015, whi + sv + 0.02, dd.y);
         fr = max(0.0, fr - wm);
         wm *= 1.0 - blank; fr *= 1.0 - blank;
         float avg = wW * (whi - wlo) * (1.0 - blank);
@@ -208,6 +211,22 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
         vec3 lcc = mix(lc, lc * vec3(1.0, 0.8, 0.55), curtMask * 0.6);
         float inside = mix(0.7, 1.15, lv) * (1.0 - reveal * 0.6);
         bEmit += lcc * I * curtGlow * on * wm * inside;
+      }
+      // reklam panosu (yan/kör cephelerde): pencereleri örter, gece aydınlık
+      float bbOn = step(cityH(seed, seg, 81.0), 0.08) * step(9.0, L) * step(13.0, top) * (office ? 0.0 : 1.0);
+      if (bbOn > 0.5) {
+        float bu0 = L * 0.12, bu1 = L * 0.88, by0 = max(z0 + 2.0, top * 0.42), by1 = top - 1.6;
+        float bb = cityBox(u, bu0, bu1, fwidth(u)) * cityBox(yRel, by0, by1, fwidth(yRel));
+        float fr2 = cityBox(u, bu0 - 0.25, bu1 + 0.25, fwidth(u)) * cityBox(yRel, by0 - 0.25, by1 + 0.25, fwidth(yRel)) - bb;
+        float bx = (u - bu0) / max(bu1 - bu0, 1.0), byy = (yRel - by0) / max(by1 - by0, 1.0);
+        vec3 adA = signCol(cityH(seed, seg, 82.0)), adB = signCol(cityH(seed, seg, 83.0));
+        vec3 ad = mix(adA * 0.7, adB * 0.6 + 0.05, step(0.55, bx + 0.25 * sin(byy * 3.0 + seed)));
+        float txt = cityBox(byy, 0.12, 0.3, fwidth(byy)) * step(0.3, cityH(floor(bx * 14.0), seg, 84.0)) * cityBox(bx, 0.06, 0.6, fwidth(bx));
+        ad = mix(ad, vec3(0.9), txt);
+        fac = mix(fac, vec3(0.12), max(fr2, 0.0));
+        fac = mix(fac, ad, bb);
+        bGlass *= 1.0 - bb; bEmit *= 1.0 - bb;
+        bEmit += ad * 1.6 * bb * smoothstep(0.05, 0.3, uLightsOn);
       }
       // zemin kat dükkânları
       if (shop > 0.5 && yRel < gH && yRel > -0.5 && L > 3.0) {

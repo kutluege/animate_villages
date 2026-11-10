@@ -6,7 +6,7 @@
 // şaderde hesaplanır; iz boyu = anlık hız × pozlama → duran araçta yalnızca nokta ışık.
 // Araç gövdeleri: yakın plan ayrıntılı (gövde/cam/tekerlek/far/stop), uzak plan basit kutu (LOD).
 import * as THREE from 'three';
-import { Builder, key, lin, miterNormals, smooth } from './util.js';
+import { Builder, GLSL_HASH, key, lin, miterNormals, smooth } from './util.js';
 
 const MOVING = new Set(['trunk', 'link', 'primary', 'secondary', 'minor']);
 const BOX = { x0: -800, x1: 800, z0: -720, z1: 820 };
@@ -162,13 +162,14 @@ function vehicleMaterial(U) {
     sh.uniforms.uCarLight = U.uCarLight; sh.uniforms.uLightsOn = U.uLightsOn;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
-attribute float aPart; attribute vec3 iInfo; flat varying float vPart; varying vec3 vInfo;`)
+attribute float aPart; attribute vec3 iInfo; flat varying float vPart; varying vec3 vInfo; varying vec3 vLoc; varying vec3 vLocN;`)
       .replace('#include <begin_vertex>', `#include <begin_vertex>
-vPart = floor(aPart + 0.5); vInfo = iInfo;
+vPart = floor(aPart + 0.5); vInfo = iInfo; vLoc = position; vLocN = normal;
 if (aPart > 5.5 && aPart < 6.5 && iInfo.x < 0.5) transformed = vec3(0.0, 0.8, 0.0);`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-uniform float uCarLight; uniform float uLightsOn; flat varying float vPart; varying vec3 vInfo;`)
+${GLSL_HASH}
+uniform float uCarLight; uniform float uLightsOn; flat varying float vPart; varying vec3 vInfo; varying vec3 vLoc; varying vec3 vLocN;`)
       .replace('#include <color_fragment>', `#include <color_fragment>
 float vGlass = 0.0, vRough = 0.32, vMetal = 0.3; vec3 vEm = vec3(0.0);
 {
@@ -189,6 +190,29 @@ float vGlass = 0.0, vRough = 0.32, vMetal = 0.3; vec3 vEm = vec3(0.0);
   else if (p < 6.5) { c = vec3(0.85, 0.7, 0.1); vEm = vec3(1.0, 0.8, 0.2) * 3.0 * uLightsOn; }
   else if (p < 7.5) { c = vec3(0.82, 0.82, 0.8); vRough = 0.35; vMetal = 0.15; }
   else { c = vec3(0.04); vRough = 0.9; vMetal = 0.0; }
+  if (vInfo.z > 0.5) {
+    // otobüs ayrıntısı: cam dikmeleri, sağ yan kapılar, bel çizgisi, ön hat göstergesi
+    float zl = vLoc.z;
+    vec2 fwz = vec2(fwidth(zl), fwidth(vLoc.y));
+    bool side = abs(vLocN.x) > 0.7, front = vLocN.z > 0.7;
+    if (side && p > 0.5 && p < 1.5) {
+      float pil = cityBox(fract(zl / 1.55), 0.0, 0.07, fwz.x / 1.55);
+      c = mix(c, vec3(0.03), pil); vGlass *= 1.0 - pil; vEm *= 1.0 - pil;
+    }
+    if (side && vLocN.x < 0.0 && vLoc.y > 0.3 && vLoc.y < 2.6) {
+      float hz = 4.6;
+      float door = cityBox(abs(zl - 0.0), -1.0, 0.65, fwz.x) + cityBox(zl, 2.3, 3.5, fwz.x) + cityBox(zl, -hz, -hz + 0.1, fwz.x) * 0.0;
+      door = clamp(door, 0.0, 1.0);
+      c = mix(c, vec3(0.06, 0.07, 0.08), door); vRough = mix(vRough, 0.1, door); vMetal = mix(vMetal, 0.6, door);
+      float seam = cityBox(abs(zl - 0.0), -1.0, 0.04, fwz.x) + cityBox(zl, 2.88, 2.92, fwz.x);
+      c = mix(c, vec3(0.02), clamp(seam, 0.0, 1.0) * door);
+    }
+    if (side && (p < 0.5 || p > 6.5)) c *= 1.0 - 0.6 * cityBox(vLoc.y, 1.0, 1.06, fwz.y);
+    if (front && vLoc.y > 2.62 && vLoc.y < 2.98) {
+      float led = cityBox(vLoc.x, -0.95, 0.95, fwidth(vLoc.x));
+      c = mix(c, vec3(0.12, 0.06, 0.01), led); vEm += vec3(1.0, 0.55, 0.08) * 3.0 * led * uLightsOn;
+    }
+  }
   diffuseColor.rgb = c;
 }`)
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>
@@ -198,7 +222,7 @@ metalnessFactor = vMetal;`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 totalEmissiveRadiance += vEm;`);
   };
-  m.customProgramCacheKey = () => 'city-vehicle-v2';
+  m.customProgramCacheKey = () => 'city-vehicle-v3';
   return m;
 }
 
@@ -416,6 +440,32 @@ export function buildTraffic(ctx, U, roadNet, isInside) {
         for (let s = 6; s < lane.L - 6; s += 5.6) { if (r() > 0.62) continue; parked.push({ lane, s, rev: sd < 0 && r() < 0.5 }); }
       }
     }
+  }
+  // örtüşen şeritler (OSM'de üst üste çizilmiş paralel yollar): aynı yönde ≥%30'u başka şeritle çakışan kısa şeridi at
+  {
+    const sorted = lanes.map((l, i) => [l, i]).sort((a, b) => b[0].L - a[0].L || a[1] - b[1]).map((x) => x[0]);
+    const g = new Map(), gk = (x, z) => `${Math.floor(x / 4)},${Math.floor(z / 4)}`;
+    const kept = [];
+    for (const l of sorted) {
+      const n = l.X.length; let hit = 0;
+      for (let i = 0; i < n; i++) {
+        const j = Math.min(i, n - 2), dx = l.X[j + 1] - l.X[j], dz = l.Z[j + 1] - l.Z[j], dl = Math.hypot(dx, dz) || 1;
+        const ix = Math.floor(l.X[i] / 4), iz = Math.floor(l.Z[i] / 4);
+        let found = false;
+        for (let a = ix - 1; a <= ix + 1 && !found; a++) for (let b = iz - 1; b <= iz + 1 && !found; b++) for (const q of g.get(`${a},${b}`) || []) {
+          if (Math.hypot(q[0] - l.X[i], q[1] - l.Z[i]) < 2.4 && Math.abs(q[3] - l.Y[i]) < 2 && (q[2][0] * dx + q[2][1] * dz) / dl > 0.75) { found = true; break; }
+        }
+        if (found) hit++;
+      }
+      if (hit / n > 0.3) continue;
+      kept.push(l);
+      for (let i = 0; i < n; i++) {
+        const j = Math.min(i, n - 2), dx = l.X[j + 1] - l.X[j], dz = l.Z[j + 1] - l.Z[j], dl = Math.hypot(dx, dz) || 1;
+        const k = gk(l.X[i], l.Z[i]); let a = g.get(k); if (!a) g.set(k, (a = [])); a.push([l.X[i], l.Z[i], [dx / dl, dz / dl], l.Y[i]]);
+      }
+    }
+    const keep = new Set(kept);
+    for (let i = lanes.length - 1; i >= 0; i--) if (!keep.has(lanes[i])) lanes.splice(i, 1);
   }
   // araçlar: her slot dolu (iz şaderiyle birebir); bazı slotlar otobüs
   const cars = [], buses = [];

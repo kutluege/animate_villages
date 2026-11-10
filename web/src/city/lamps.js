@@ -46,6 +46,13 @@ export function buildLamps(ctx, U, roadNet, isInside) {
       }
     }
   }
+  // viyadük altı asılı armatürler (direksiz; gece yanar, zemine havuz)
+  {
+    const ur = ctx.rng('city/lamp/under');
+    for (const u of roadNet.underLights || []) {
+      lamps.push({ cls: 'under', x: u.x, y: u.y, z: u.z, yaw: u.ang + Math.PI / 2, h: 0.14, arm: 0, k: 0.02 + ur() * 0.12, sodium: false, pool: 8, poolY: u.g + 0.45 });
+    }
+  }
   // Direk geometrisi: taban 0, +x yönünde kol; baş (arm, h)
   const pole = (h, arm) => {
     const b = new Builder();
@@ -62,7 +69,7 @@ export function buildLamps(ctx, U, roadNet, isInside) {
   const group = new THREE.Group(); group.name = 'city-lamps';
   const poleMat = new THREE.MeshStandardMaterial({ color: 0x4a4d50, roughness: 0.6, metalness: 0.5 });
   const poleSets = {};
-  for (const L of lamps) (poleSets[L.cls] ||= []).push(L);
+  for (const L of lamps) if (L.cls !== 'under') (poleSets[L.cls] ||= []).push(L);
   const poleMeshes = [];
   for (const [cls, arr] of Object.entries(poleSets)) {
     const sp = SPEC[cls];
@@ -87,7 +94,7 @@ export function buildLamps(ctx, U, roadNet, isInside) {
     const dirX = Math.sin(L.yaw), dirZ = Math.cos(L.yaw);
     q.setFromUnitVectors(new THREE.Vector3(1, 0, 0), new THREE.Vector3(dirX, 0, dirZ));
     m.compose(v.set(L.x, L.y, L.z), q, s.set(1, 1, 1));
-    L.poleMesh.setMatrixAt(L.poleIdx, m);
+    if (L.poleMesh) L.poleMesh.setMatrixAt(L.poleIdx, m);
     const hx = L.x + dirX * L.arm, hz = L.z + dirZ * L.arm;
     m.compose(v.set(hx, L.y + L.h - 0.14, hz), q, s.set(1, 1, 1));
     heads.setMatrixAt(i, m);

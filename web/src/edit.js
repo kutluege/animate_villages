@@ -15,14 +15,12 @@ export const DURATION = 36;
 
 // [t, konum x,y,z, bakış x,y,z, fov(dikey, derece)]
 const KEYS = [
-  // A — viyadük tabliyesinin altında, kuzey yol ekseninde (ayak çiftinin arası), gölgede; Trump ikizi tabliye kenarının altından ışıkta
-  [0.0,   332,  -2.0, -21.7,    40,  70.0, -148,  66],
-  [0.8,   292,   1.6, -33.0,    40,  78.0, -150,  66],
-  [1.7,   248,  10.5, -42.5,    40,  85.0, -150,  66],
-  [2.4,   210,  13.0, -47.5,    40,  90.0, -158,  67],
-  // B — Mecidiyeköy Yolu üstünden yükselip konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya
-  [3.2,   168,  19.0, -60.0,    45,  95.0, -165,  68],
-  [4.4,   102,  24.0, -72.0,    50,  80.0, -200,  70],
+  // A — metrobüs üst geçidinin hemen doğusundan, durağın kuzey kenarında, D100 trafiğinin hemen üstünde (yer+6 m) doğuya; Trump ikizi ilk karede dev
+  [0.0,   -80,   6.4, -52.5,     5,  56.0, -175,  77],
+  [1.2,   -30,   7.4, -56.5,    18,  68.0, -172,  78],
+  [2.5,     2,  11.5, -64.0,    40,  86.0, -162,  76],
+  // B — D100 üstünden yükselip konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya
+  [3.9,    36,  18.5, -84.0,    45,  86.0, -190,  73],
   [5.6,    66,  27.0, -115.0,   45,  65.0, -240,  72],
   [6.7,    63,  29.0, -162.0,    5,  45.0, -255,  74],
   [7.9,    38,  32.0, -210.0,  -70,  38.0, -240,  74],

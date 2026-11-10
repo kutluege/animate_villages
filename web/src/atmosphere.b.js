@@ -45,18 +45,18 @@ const KEYS = [
   { e: 1.5, zen: ['#4a64a8', 0.62], hor: ['#eea888', 0.85], glow: ['#ff6420', 1.9], glowW: 2.6, anti: ['#c88aa0', 0.22], mie: ['#ff7428', 1.0],
     ground: ['#4a3c44', 0.8], sun: '#ff7430', sunI: 3.0, hemiS: '#a8a8d0', hemiG: '#5a3a36', hemiI: 0.45, envI: 0.75,
     exp: 1.08, fog: 0.00014, bloom: 0.30, bthr: 1.5, sat: 1.06, shT: '#f6f4ff', hiT: '#ffe8d4', con: 1.08, envSat: 0.6, fogSat: 0.5, city: 0 },
-  { e: -0.6, zen: ['#3a50a0', 0.5], hor: ['#d89a8c', 0.6], glow: ['#ff7428', 1.9], glowW: 2.6, anti: ['#a87aa8', 0.18], mie: ['#ff5a20', 0.45],
+  { e: -0.6, zen: ['#6c89ff', 0.1639], hor: ['#d89a8c', 0.6], glow: ['#ff7428', 1.9], glowW: 2.6, anti: ['#a87aa8', 0.18], mie: ['#ff5a20', 0.45],
     ground: ['#3a3040', 0.7], sun: '#ff5a26', sunI: 2.0, hemiS: '#9a9ad0', hemiG: '#4a3c40', hemiI: 0.5, envI: 0.7,
     exp: 1.22, fog: 0.00015, bloom: 0.45, bthr: 1.3, sat: 1.06, shT: '#f2f0ff', hiT: '#ffe4d8', con: 1.08, envSat: 0.6, fogSat: 0.5, city: 0 },
-  { e: -3, zen: ['#2a46a0', 0.36], hor: ['#b07890', 0.4], glow: ['#e8604a', 0.7], glowW: 2.0, anti: ['#5a5aa0', 0.15], mie: ['#000000', 0],
+  { e: -3, zen: ['#6f86ff', 0.1111], hor: ['#ffbcd3', 0.1481], glow: ['#e8684a', 0.6], glowW: 2.0, anti: ['#6a6a90', 0.12], mie: ['#000000', 0],
     ground: ['#2c2a44', 0.6], sun: '#ff4a30', sunI: 0, hemiS: '#7080c8', hemiG: '#3c3050', hemiI: 0.6, envI: 0.75,
     exp: 1.35, fog: 0.00017, bloom: 0.62, bthr: 1.2, sat: 1.05, shT: '#eef0ff', hiT: '#ffe2d8', con: 1.08, envSat: 0.65, fogSat: 0.55, city: 0.02 },
-  { e: -6, zen: ['#2450c0', 0.22], hor: ['#5070c0', 0.24], glow: ['#9c3aa8', 0.26], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
-    ground: ['#1e2440', 0.55], sun: '#ff4a30', sunI: 0, hemiS: '#6a80c8', hemiG: '#4a3a40', hemiI: 0.9, envI: 0.85,
-    exp: 1.4, fog: 0.0002, bloom: 0.6, bthr: 1.3, sat: 1.04, shT: '#cce4ff', hiT: '#ffe4d0', con: 1.08, envSat: 0.7, fogSat: 0.6, city: 0.05 },
-  { e: -10, zen: ['#16307a', 0.45], hor: ['#2e3c76', 0.3], glow: ['#4a2c80', 0.08], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+  { e: -6, zen: ['#7084ff', 0.08], hor: ['#e1c4ff', 0.0714], glow: ['#a05a70', 0.18], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+    ground: ['#1e2440', 0.55], sun: '#ff4a30', sunI: 0, hemiS: '#6a74a0', hemiG: '#4a3a40', hemiI: 0.9, envI: 0.85,
+    exp: 1.4, fog: 0.0002, bloom: 0.6, bthr: 1.3, sat: 1.03, shT: '#cce4ff', hiT: '#ffe4d0', con: 1.08, envSat: 0.7, fogSat: 0.6, city: 0.05 },
+  { e: -10, zen: ['#5d7aff', 0.0648], hor: ['#b5b5ff', 0.0458], glow: ['#4a3a6a', 0.06], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
     ground: ['#20203a', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#4a5a88', hemiG: '#3a3028', hemiI: 1.2, envI: 1.05,
-    exp: 1.42, fog: 0.00022, bloom: 0.68, bthr: 1.5, sat: 1.1, shT: '#dce8f4', hiT: '#ffe2c8', con: 1.08, envSat: 0.75, fogSat: 0.85, city: 0.06 },
+    exp: 1.42, fog: 0.00022, bloom: 0.68, bthr: 1.5, sat: 1.04, shT: '#dce8f4', hiT: '#ffe2c8', con: 1.08, envSat: 0.75, fogSat: 0.85, city: 0.06 },
   { e: -15, zen: ['#0e2050', 0.75], hor: ['#2a3448', 0.5], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
     ground: ['#2a2228', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#3c4c60', hemiG: '#3a3028', hemiI: 1.4, envI: 1.0,
     exp: 1.38, fog: 0.00024, bloom: 0.72, bthr: 1.6, sat: 1.06, shT: '#e2ecf2', hiT: '#ffe0c0', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.08 },
@@ -276,9 +276,12 @@ const GradeShader = {
       // renk koruyan ton eşleme: parlak pencereler beyaza kırpılmasın, tonu kalsın
       float mx = max( max( c.r, c.g ), max( c.b, 1e-5 ) );
       vec3 cp = c * ( aces( vec3( mx ) ).g / mx );
-      c = mix( aces( c ), clamp( cp, 0.0, 1.0 ), 0.55 * smoothstep( 0.6, 3.0, mx ) );
+      // koyu tonlarda da oran koruyan eşleme: ACES tabanı düşük kanalları ezip alacakaranlığı saf kobalta çevirmesin
+      c = mix( aces( c ), clamp( cp, 0.0, 1.0 ), 0.55 * smoothstep( 0.6, 3.0, mx ) + 0.6 * ( 1.0 - smoothstep( 0.05, 0.35, mx ) ) );
       // kontrast: orta gri etrafında hafif S
-      c = clamp( ( c - 0.18 ) * uCon + 0.18, 0.0, 1.0 );
+      // kontrast parlaklıkta (oran korunur): koyu kanallar sıfıra kırpılıp doygunluk patlamasın
+      float Lc = max( dot( c, vec3( 0.2126, 0.7152, 0.0722 ) ), 1e-5 );
+      c = clamp( c * ( 0.18 * pow( Lc / 0.18, uCon ) / Lc ), 0.0, 1.0 );
       vec2 q = ( vUv - 0.5 ) * vec2( uAspect, 1.0 ) * 1.6;
       c *= 1.0 - uVignette * smoothstep( 0.35, 1.25, dot( q, q ) );
       c = vec3( lin2srgb( c.r ), lin2srgb( c.g ), lin2srgb( c.b ) );

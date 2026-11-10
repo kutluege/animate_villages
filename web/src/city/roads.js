@@ -106,6 +106,118 @@ roughnessFactor = rdRough;`);
   return m;
 }
 
+/** Viyadük betonu: kalıp izi, derz, su akıntısı, efloresans, dipte kir; ayak diplerinde afiş/grafiti. */
+function concreteMaterial(U) {
+  const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.92, metalness: 0 });
+  m.onBeforeCompile = (sh) => {
+    sh.uniforms.uDay = U.uDay;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+attribute float aG; varying float vG; varying vec3 vCWp; varying vec3 vCN;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+vG = aG; vCWp = (modelMatrix * vec4(position, 1.0)).xyz; vCN = normalize((modelMatrix * vec4(normal, 0.0)).xyz);`);
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform float uDay; varying float vG; varying vec3 vCWp; varying vec3 vCN;
+${GLSL_HASH}`)
+      .replace('#include <color_fragment>', `#include <color_fragment>
+vec3 cBounce = vec3(0.0);
+{
+  vec3 c = diffuseColor.rgb;
+  bool dark = c.r < 0.15;
+  float hgt = vCWp.y - vG;
+  float nv = cityNoise(vCWp.xz * 0.35 + vCWp.y * 0.21);
+  c *= mix(0.86, 1.08, nv);
+  if (!dark) {
+    if (abs(vCN.y) < 0.5) {
+      vec2 tg = normalize(vec2(-vCN.z, vCN.x) + 1e-5);
+      float u = dot(vCWp.xz, tg);
+      vec2 bp = vec2(u / 2.4, vCWp.y / 0.6), bw = fwidth(bp);
+      float boards = cityBox(fract(bp.y), 0.0, 0.05, bw.y) * 0.6 + cityBox(fract(bp.x), 0.0, 0.02, bw.x);
+      vec2 th = vec2(fract(u / 0.6), fract(vCWp.y / 0.6 + 0.5)), tw = fwidth(vec2(u / 0.6, vCWp.y / 0.6));
+      float ties = cityBox(th.x, 0.45, 0.55, tw.x) * cityBox(th.y, 0.45, 0.55, tw.y);
+      float fade = 1.0 - smoothstep(0.15, 0.5, max(bw.x, bw.y));
+      c *= 1.0 - (0.12 * clamp(boards, 0.0, 1.0) + 0.25 * ties) * fade;
+      float st = cityNoise(vec2(u * 2.2, vCWp.y * 0.07));
+      float streak = smoothstep(0.55, 0.85, st) * (0.6 + 0.4 * cityNoise(vec2(u * 9.0, 1.0)));
+      c *= 1.0 - 0.32 * streak;
+      c *= mix(0.62, 1.0, smoothstep(0.0, 2.8, hgt));
+      if (hgt > 0.35 && hgt < 2.9) {
+        float cell = floor(u / 1.6), cf = fract(u / 1.6);
+        float hp = cityH(cell, floor(vCWp.y * 0.01), 33.0);
+        if (hp < 0.32) {
+          float pm = cityBox(cf, 0.08, 0.92, fwidth(u / 1.6)) * cityBox(hgt, 0.9, 2.3, fwidth(hgt));
+          vec3 pc = mix(vec3(0.75, 0.73, 0.68), vec3(cityH(cell, 1.0, 5.0), cityH(cell, 2.0, 5.0), cityH(cell, 3.0, 5.0)) * 0.7, step(0.4, cityNoise(vec2(u * 3.0, hgt * 4.0))));
+          pc *= mix(0.7, 1.0, cityNoise(vec2(u * 6.0, hgt * 8.0)));
+          c = mix(c, pc, pm * 0.9);
+        } else if (hp < 0.55) {
+          float gm = smoothstep(0.58, 0.64, cityNoise(vec2(u * 1.3, hgt * 1.8) + cell)) * (1.0 - smoothstep(1.6, 2.6, hgt));
+          vec3 gc = vec3(cityH(cell, 4.0, 9.0), cityH(cell, 5.0, 9.0), cityH(cell, 6.0, 9.0));
+          gc = gc / max(max(gc.r, gc.g), max(gc.b, 0.01)) * 0.55;
+          c = mix(c, gc, gm * 0.85);
+        }
+      }
+    } else if (vCN.y < -0.5) {
+      vec2 bp = vCWp.xz / vec2(1.2, 0.3), bw = fwidth(bp);
+      float boards = cityBox(fract(bp.y), 0.0, 0.06, bw.y) * (1.0 - smoothstep(0.15, 0.5, bw.y));
+      c *= 1.0 - 0.1 * boards;
+      float eff = smoothstep(0.6, 0.8, cityNoise(vCWp.xz * 0.6 + 4.0));
+      c = mix(c, c * 1.18 + 0.03, eff * 0.6);
+      float wet = smoothstep(0.62, 0.78, cityNoise(vCWp.xz * vec2(0.15, 1.1) + 9.0));
+      c *= 1.0 - 0.25 * wet;
+    }
+  }
+  diffuseColor.rgb = c;
+  cBounce = c * 0.12 * uDay * (vCN.y < -0.5 ? 1.0 : 0.45);
+}`)
+      .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+totalEmissiveRadiance += cBounce;`);
+  };
+  m.customProgramCacheKey = () => 'city-concrete-v1';
+  return m;
+}
+
+const SIGN_TEXT = [['Zincirlikuyu', 'Beşiktaş'], ['Şişli', 'Mecidiyeköy'], ['Kağıthane', 'Çağlayan'], ['Levent', 'Gayrettepe'], ['Okmeydanı', 'Halıcıoğlu']];
+let _signTex = null;
+function signTexture() {
+  if (_signTex) return _signTex;
+  const W = 512, H = 1024, c = document.createElement('canvas');
+  c.width = W; c.height = H;
+  const g = c.getContext('2d');
+  SIGN_TEXT.forEach((t, i) => {
+    const y0 = (i * H) / 5;
+    g.fillStyle = '#1b4f9c'; g.fillRect(0, y0, W, H / 5);
+    g.strokeStyle = '#f2f2f2'; g.lineWidth = 6; g.strokeRect(10, y0 + 10, W - 20, H / 5 - 20);
+    g.fillStyle = '#f4f4f4'; g.font = 'bold 44px Arial, sans-serif'; g.textBaseline = 'middle';
+    g.fillText(t[0], 90, y0 + 62); g.fillText(t[1], 90, y0 + 140);
+    g.beginPath(); g.moveTo(40, y0 + 120); g.lineTo(60, y0 + 70); g.lineTo(80, y0 + 120); g.closePath(); g.fill();
+  });
+  _signTex = new THREE.CanvasTexture(c); _signTex.colorSpace = THREE.SRGBColorSpace; _signTex.anisotropy = 4;
+  return _signTex;
+}
+function signMesh(signs) {
+  const pos = [], nrm = [], uv = [], idx = [];
+  let n = 0;
+  for (const s of signs) {
+    const tx = -s.nz, tz = s.nx, w = 2.4, h = 0.95, k = s.seed % 5;
+    const v0 = 1 - (k + 1) / 5, v1 = 1 - k / 5;
+    const cx = s.x + s.nx * 0.06, cz = s.z + s.nz * 0.06;
+    // dışa bakan yüzde metin soldan sağa okunsun: teğet yönü normalden türetilir
+    for (const [a, b, uu, vv] of [[-w, -h, 1, v0], [w, -h, 0, v0], [w, h, 0, v1], [-w, h, 1, v1]]) {
+      pos.push(cx + tx * a, s.y - 1.0 + b * 0.92, cz + tz * a); nrm.push(s.nx, 0, s.nz); uv.push(uu, vv);
+    }
+    idx.push(n, n + 1, n + 2, n, n + 2, n + 3, n, n + 2, n + 1, n, n + 3, n + 2); n += 4;
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute(nrm, 3));
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(uv, 2));
+  g.setIndex(idx);
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ map: signTexture(), roughness: 0.5, metalness: 0.1, polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -2 }));
+  m.name = 'city-viaduct-signs'; m.castShadow = false; m.receiveShadow = true;
+  return m;
+}
+
 /** Tek çoklu çizgi için maks-yayılım (rampa): yığın tabanlı. */
 class MaxHeap {
   constructor() { this.a = []; }
@@ -259,7 +371,9 @@ export function buildRoads(ctx, U, opts = {}) {
 
   // ── 4. yapı: tabliye, ayaklar, istinat duvarları, bariyerler
   const S = new Builder();
-  const concrete = lin('a9a59c'), concreteD = lin('8c887f'), barrierC = lin('c3c0b8'), soffit = lin('a8a49b');
+  const concrete = lin('a7a9a8'), concreteD = lin('969897'), barrierC = lin('c6c7c4'), soffit = lin('acaead'), girderC = lin('a2a4a3'), pipeC = lin('3f4245');
+  const underLights = [], signs = [];
+  const pave = []; // viyadük altı zemin şeritleri
   function addBox(cx, y0, cz, ax, az, la, lw, y1, col) {
     // ax,az: boy ekseni (birim); la boy, lw en
     const bx = -az, bz = ax;
@@ -334,7 +448,7 @@ export function buildRoads(ctx, U, opts = {}) {
       if (!elevated(i)) { i++; continue; }
       let j = i; while (j + 1 < n && elevated(j + 1)) j++;
       const i0 = Math.max(0, i - 1), i1 = Math.min(n - 1, j + 1);
-      const deckT = isPath ? 0.8 : DECK_T;
+      const deckT = isPath ? 0.8 : 0.5;
       let pierAcc = 14 + ((r.base * 13) % 17);
       for (let k = i0; k < i1; k++) {
         const p = r.pts[k], q = r.pts[k + 1], np = r.nrm[k], nq = r.nrm[k + 1];
@@ -344,7 +458,7 @@ export function buildRoads(ctx, U, opts = {}) {
           const off = sd * (r.halfW + ov);
           const x0 = p[0] + np[0] * off, z0 = p[1] + np[1] * off, x1 = q[0] + nq[0] * off, z1 = q[1] + nq[1] * off;
           const nx = sd * (np[0] + nq[0]) / 2, nz = sd * (np[1] + nq[1]) / 2, nl = Math.hypot(nx, nz) || 1;
-          if (r.bridge) S.wall(x0, z0, x1, z1, yp - deckT, yp + 0.05, yq - deckT, yq + 0.05, nx / nl, nz / nl, concrete);
+          if (r.bridge) S.wall(x0, z0, x1, z1, yp - deckT - (isPath ? 0 : 1.0), yp + 0.05, yq - deckT - (isPath ? 0 : 1.0), yq + 0.05, nx / nl, nz / nl, concrete);
           else S.wall(x0, z0, x1, z1, Math.min(yp - deckT, r.ground[k] - 0.5), yp + 0.05, Math.min(yq - deckT, r.ground[k + 1] - 0.5), yq + 0.05, nx / nl, nz / nl, concreteD);
         }
         if (r.bridge) {
@@ -355,6 +469,36 @@ export function buildRoads(ctx, U, opts = {}) {
           const c = S.v(q[0] + nq[0] * o, yq - deckT, q[1] + nq[1] * o, 0, -1, 0, soffit);
           const d = S.v(q[0] - nq[0] * o, yq - deckT, q[1] - nq[1] * o, 0, -1, 0, soffit);
           S.quad(a, b, c, d, 0, -1, 0);
+          if (!isPath && r.elev[k] > 2.5) {
+            // boyuna kirişler (I-kesit yaklaşımı: gövde + alt başlık)
+            const nG = Math.max(2, Math.round((2 * r.halfW) / 2.6));
+            for (let gI = 0; gI < nG; gI++) {
+              const off = -r.halfW + 0.7 + (gI * (2 * r.halfW - 1.4)) / Math.max(1, nG - 1);
+              const yb0 = yp - deckT, yb1 = yq - deckT, D = 1.05;
+              for (const sd of [-1, 1]) {
+                const o2 = off + sd * 0.16;
+                S.wall(p[0] + np[0] * o2, p[1] + np[1] * o2, q[0] + nq[0] * o2, q[1] + nq[1] * o2, yb0 - D, yb0, yb1 - D, yb1, np[0] * sd, np[1] * sd, girderC);
+                const o3 = off + sd * 0.32;
+                S.wall(p[0] + np[0] * o3, p[1] + np[1] * o3, q[0] + nq[0] * o3, q[1] + nq[1] * o3, yb0 - D - 0.18, yb0 - D, yb1 - D - 0.18, yb1 - D, np[0] * sd, np[1] * sd, girderC);
+              }
+              const oa = off - 0.32, ob = off + 0.32;
+              const ga = S.v(p[0] + np[0] * oa, yb0 - D - 0.18, p[1] + np[1] * oa, 0, -1, 0, girderC), gb = S.v(p[0] + np[0] * ob, yb0 - D - 0.18, p[1] + np[1] * ob, 0, -1, 0, girderC);
+              const gc = S.v(q[0] + nq[0] * ob, yb1 - D - 0.18, q[1] + nq[1] * ob, 0, -1, 0, girderC), gd = S.v(q[0] + nq[0] * oa, yb1 - D - 0.18, q[1] + nq[1] * oa, 0, -1, 0, girderC);
+              S.quad(ga, gb, gc, gd, 0, -1, 0);
+            }
+            // enine diyafram + asılı armatür
+            r._dk = (r._dk || 0) + 1;
+            if (r._dk % 3 === 0) {
+              const segL2 = Math.hypot(q[0] - p[0], q[1] - p[1]) || 1;
+              addBox(p[0], yp - deckT - 0.85, p[1], (q[0] - p[0]) / segL2, (q[1] - p[1]) / segL2, 0.3, 2 * r.halfW - 0.5, yp - deckT, girderC);
+              if (r._dk % 6 === 0) underLights.push({ x: p[0], y: yp - deckT - 1.0, z: p[1], g: r.ground[k], ang: Math.atan2(q[1] - p[1], q[0] - p[0]) });
+            }
+            // levha: ana viyadük dış kenarında ara ara
+            if (r.viaduct && (k % 38) === 19) {
+              for (const sd of [-1, 1]) signs.push({ x: p[0] + np[0] * sd * (r.halfW + 0.42), z: p[1] + np[1] * sd * (r.halfW + 0.42), y: yp - deckT - 0.05, nx: np[0] * sd, nz: np[1] * sd, seed: k + (sd > 0 ? 1000 : 0) + r.base });
+            }
+            pave.push([r, k]);
+          }
           // ayaklar
           const segL = Math.hypot(q[0] - p[0], q[1] - p[1]);
           pierAcc += segL;
@@ -367,9 +511,11 @@ export function buildRoads(ctx, U, opts = {}) {
             else {
               const w = r.halfW * 2;
               if (w > 8) {
-                for (const sd of [-0.3, 0.3]) addBox(p[0] + np[0] * w * sd, g, p[1] + np[1] * w * sd, ax, az, 1.5, 1.5, top - 1.1, concreteD);
-              } else addBox(p[0], g, p[1], ax, az, 1.6, Math.max(1.6, w * 0.45), top - 1.1, concreteD);
-              addBox(p[0], top - 1.15, p[1], ax, az, 1.9, w + 0.4, top + 0.02, concrete);
+                for (const sd of [-0.3, 0.3]) addBox(p[0] + np[0] * w * sd, g, p[1] + np[1] * w * sd, ax, az, 1.5, 1.5, top - 2.38, concreteD);
+              } else addBox(p[0], g, p[1], ax, az, 1.6, Math.max(1.6, w * 0.45), top - 2.38, concreteD);
+              addBox(p[0], top - 2.4, p[1], ax, az, 1.9, w + 0.4, top - 1.2, concrete);
+              // drenaj borusu (ayağın yanında)
+              addBox(p[0] + np[0] * (w > 8 ? w * 0.3 + 0.9 : Math.max(1.6, w * 0.45) / 2 + 0.15), g + 0.3, p[1] + np[1] * (w > 8 ? w * 0.3 + 0.9 : Math.max(1.6, w * 0.45) / 2 + 0.15), ax, az, 0.2, 0.2, top - 1.25, pipeC);
             }
           }
         }
@@ -391,6 +537,14 @@ export function buildRoads(ctx, U, opts = {}) {
     }
   }
 
+  // viyadük altı zemin: kaldırım taşı döşeli geniş şerit (yollar bunun üstünde çizilir)
+  for (const [r, k] of pave) {
+    const p = r.pts[k], q = r.pts[k + 1], np = r.nrm[k], nq = r.nrm[k + 1], W = r.halfW + 8;
+    const ex = { aRd: [0, 0, 999, 1], aRd2: [5, 0, 0, 0] };
+    const V = (pt, n, o) => { const x = pt[0] + n[0] * o, z = pt[1] + n[1] * o; return B.walk.v(x, heightAt(x, z) + 0.1, z, 0, 1, 0, white, ex); };
+    B.walk.quad(V(p, np, -W), V(p, np, W), V(q, nq, W), V(q, nq, -W), 0, 1, 0);
+  }
+
   // ── 5. ağlar
   const group = new THREE.Group(); group.name = 'city-roads';
   const order = [['walk', 2], ['path', 3], ['road', 5], ['bus', 6]];
@@ -403,7 +557,12 @@ export function buildRoads(ctx, U, opts = {}) {
   }
   // Yükseltilmiş yol yüzeyleri gölge düşürsün diye tabliye yapısı gölge verir (yüzeyler değil).
   const sGeo = S.geometry();
-  const sMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
+  { // her köşe için zemin kotu (şader: kir, afiş, grafiti yüksekliği)
+    const P = sGeo.attributes.position, g = new Float32Array(P.count);
+    for (let i = 0; i < P.count; i++) g[i] = heightAt(P.getX(i), P.getZ(i));
+    sGeo.setAttribute('aG', new THREE.BufferAttribute(g, 1));
+  }
+  const sMat = concreteMaterial(U);
   const struct = new THREE.Mesh(sGeo, sMat); struct.name = 'city-viaduct'; struct.castShadow = true; struct.receiveShadow = true;
   group.add(struct);
   if (aoB.n) {
@@ -424,5 +583,6 @@ export function buildRoads(ctx, U, opts = {}) {
     busGrid.query(x, z, 12, (it) => { const d = (it[0] - x) ** 2 + (it[1] - z) ** 2; if (d < best) { best = d; y = it[2]; } });
     return y ?? heightAt(x, z) + YOFF.busway;
   }
-  return { group, roads, busY, lmSkip, meshes, dispose() { for (const m of [...meshes, struct]) { m.geometry.dispose(); m.material.dispose(); } } };
+  if (signs.length) group.add(signMesh(signs));
+  return { group, roads, busY, lmSkip, underLights, meshes, dispose() { for (const m of [...meshes, struct]) { m.geometry.dispose(); m.material.dispose(); } } };
 }
