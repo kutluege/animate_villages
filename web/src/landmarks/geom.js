@@ -196,7 +196,7 @@ export function personGeo(x, y, z, h, rot, rgbBody, rgbLegs, rgbHead = [0.55, 0.
 }
 
 /** Tabela dokusu (CanvasTexture). Yazı tipi: sistem sans-serif; aynı makinede kare kare aynı. */
-export function signTexture(text, { w = 1024, h = 256, color = '#ffffff', bg = null, font = 'bold', size = 0.62, letter = 0.06, stroke = null } = {}) {
+export function signTexture(text, { w = 1024, h = 256, color = '#ffffff', bg = null, font = 'bold', size = 0.62, letter = 0.06, stroke = null, family = '"Helvetica Neue", Arial, sans-serif' } = {}) {
   const cv = document.createElement('canvas');
   cv.width = w; cv.height = h;
   const g = cv.getContext('2d');
@@ -204,9 +204,9 @@ export function signTexture(text, { w = 1024, h = 256, color = '#ffffff', bg = n
   g.fillStyle = color;
   g.textAlign = 'center'; g.textBaseline = 'middle';
   let px = Math.floor(h * size);
-  g.font = `${font} ${px}px "Helvetica Neue", Arial, sans-serif`;
+  g.font = `${font} ${px}px ${family}`;
   if ('letterSpacing' in g) g.letterSpacing = `${Math.round(px * letter)}px`;
-  while (g.measureText(text).width > w * 0.92 && px > 8) { px -= 2; g.font = `${font} ${px}px "Helvetica Neue", Arial, sans-serif`; }
+  while (g.measureText(text).width > w * 0.92 && px > 8) { px -= 2; g.font = `${font} ${px}px ${family}`; }
   if (stroke) { g.strokeStyle = stroke; g.lineWidth = px * 0.06; g.strokeText(text, w / 2, h / 2 + px * 0.04); }
   g.fillText(text, w / 2, h / 2 + px * 0.04);
   const t = new THREE.CanvasTexture(cv);

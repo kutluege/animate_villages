@@ -15,30 +15,35 @@ export const DURATION = 36;
 
 // [t, konum x,y,z, bakış x,y,z, fov(dikey, derece)]
 const KEYS = [
-  // A — viyadük tabliyesi üstü, metrobüs şeridi boyunca, Trump kuleleri kadrajın sağ üstünde büyük
-  [0.0,   345,  12.0, -14.0,   120,  62.0, -128,  60],
-  [1.5,   270,  12.8, -16.5,    60,  80.0, -145,  63],
-  [3.0,   195,  16.5, -22.0,    40,  86.0, -135,  68],
-  // B — viyadük ucundan düşüp konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya
-  [4.9,   100,  24.0, -55.0,    55,  60.0, -185,  70],
-  [6.3,    66,  26.0, -115.0,   48,  62.0, -235,  72],
-  [7.4,    64,  28.0, -160.0,   10,  45.0, -255,  74],
-  [8.7,    38,  31.0, -210.0,  -70,  38.0, -240,  74],
-  [10.0,  -15,  34.0, -226.0, -140,  42.0, -200,  72],
-  // C — apartman denizinin üstünde alçak geçiş, güneye kıvrılıp batı cepheye dönüş
-  [11.8,  -92,  41.0, -219.0, -170,  52.0, -130,  66],
-  [13.6, -162,  52.0, -194.0,  -90,  70.0, -100,  56],
-  // D — gün batımı camda (batı cephesi, ayna açısı)
-  [15.2, -196,  60.0, -163.0,   25,  82.0, -158,  46],
-  [17.6, -210,  63.0, -158.0,   25,  80.0, -160,  45],
-  [20.0, -235,  70.0, -150.0,   40,  76.0, -160,  47],
-  // E — geniş ve sakin geri/yukarı çekilme: pencereler, lambalar, metrobüs ışık şeridi
-  [23.0, -310,  86.0, -134.0,  130,  30.0, -158,  58],
-  [26.5, -390, 101.0, -119.0,  220, -50.0, -154,  70],
-  [30.0, -428, 106.5, -113.5,  255, -95.0, -152,  76],
-  [33.0, -438, 107.8, -112.2,  261, -108.0, -152, 77.7],
-  [34.5, -439.6, 108.0, -112.0, 261.8, -110.0, -152, 78],
-  [36.0, -440, 108.0, -112.0,  262, -110.0, -152,  78],
+  // A — viyadük tabliyesinin altında, kuzey yol ekseninde (ayak çiftinin arası), gölgede; Trump ikizi tabliye kenarının altından ışıkta
+  [0.0,   332,  -2.0, -21.7,    40,  70.0, -148,  66],
+  [0.8,   292,   1.6, -33.0,    40,  78.0, -150,  66],
+  [1.7,   248,  10.5, -42.5,    40,  85.0, -150,  66],
+  [2.4,   210,  13.0, -47.5,    40,  90.0, -158,  67],
+  // B — Mecidiyeköy Yolu üstünden yükselip konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya
+  [3.2,   168,  19.0, -60.0,    45,  95.0, -165,  68],
+  [4.4,   102,  24.0, -72.0,    50,  80.0, -200,  70],
+  [5.6,    66,  27.0, -115.0,   45,  65.0, -240,  72],
+  [6.7,    63,  29.0, -162.0,    5,  45.0, -255,  74],
+  [7.9,    38,  32.0, -210.0,  -70,  38.0, -240,  74],
+  [9.1,   -15,  35.0, -226.0, -130,  45.0, -170,  72],
+  // C — apartman denizinin üstünde, batan güneşe doğru; güneye kıvrılırken kuleye dönüş (yayılmış)
+  [10.6,  -88,  42.0, -224.0, -150,  50.0, -130,  68],
+  [12.3, -150,  50.0, -213.0,  -90,  62.0,  -80,  64],
+  // D — batı cephesi önünde yay: yansıma cam boyunca kayar
+  [14.0, -180,  56.0, -186.0,   25,  80.0, -170,  54],
+  [15.5, -190,  60.0, -150.0,   25,  82.0, -158,  48],
+  [17.0, -182,  63.0, -108.0,   25,  80.0, -146,  50],
+  // E — geri ve aşağı çekilme (koridor boyunca batıya), ışıklar yanarken genişleyen kadraj
+  [19.5, -262,  58.0, -82.0,    60,  60.0, -140,  58],
+  [22.0, -360,  54.0, -60.0,   120,  30.0, -140,  68],
+  [24.0, -412,  55.0, -42.0,   170,  10.0, -145,  72],
+  // F — yükselip ileri (doğuya) süzülerek kapak kadrajına oturma
+  [27.0, -400,  70.0, -80.0,   220, -25.0, -155,  76],
+  [30.5, -350,  90.0, -140.0,  250, -45.0, -163,  79],
+  [33.5, -322,  99.4, -168.2,  261, -54.0, -167,  80],
+  [34.5, -320.3, 99.9, -169.8, 261.8, -54.8, -168, 80],
+  [36.0, -320,  100.0, -170.0, 262, -55.0, -168,  80],
 ];
 
 // ───────── doğal kübik spline (başta doğal, sonda hız=0 kelepçeli) ─────────
@@ -79,13 +84,13 @@ const CH = [1, 2, 3, 4, 5, 6, 7].map((j) => spline(T, KEYS.map((k) => k[j]), 0))
 const smoother = (u) => (u <= 0 ? 0 : u >= 1 ? 1 : u * u * u * (u * (u * 6 - 15) + 10));
 // [genlik (saat), başlangıç sn, bitiş sn]
 const TOD_SEGS = [
-  [2.15, 0.0, 14.5],  // 16:30 parlak ikindi → ~18:45 altın saat (açılış hızlı)
-  [0.50, 11.0, 23.5], // altın saat → batış 19:20 (camda yansıma, yavaş)
-  [0.60, 20.5, 29.0], // batış → mavi saat 19:50 → ~20:00: lightsOn yükselişi geniş planda
-  [1.75, 26.0, 34.0], // → 21:30 tam gece
+  [1.15, 0.0, 13.5],  // 17:30 sıcak geç ikindi, alçak yandan güneş → ~18:45 altın saat
+  [0.45, 10.0, 20.0], // altın saat → batış 19:20 (yay boyunca camda kayan yansıma)
+  [0.75, 17.5, 27.0], // batış → mavi saat 19:50 → ~20:00: lightsOn yükselişi geniş planda
+  [1.50, 24.0, 33.0], // → 21:30 tam gece
 ];
 export function todAt(t) {
-  let v = 16.5 + 0.005 * t;
+  let v = 17.5 + 0.004 * t;
   for (const [A, s, e] of TOD_SEGS) v += A * smoother((t - s) / (e - s));
   return v;
 }

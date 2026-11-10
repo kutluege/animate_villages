@@ -12,35 +12,63 @@ export function buildFill(ctx, U, box) {
   const inBox = (x, z, m) => x > box[0] - m && x < box[2] + m && z > box[1] - m && z < box[3] + m;
   const blds = [], glows = [];
   const pal = FACADE.map((h) => lin(h));
-  for (const [R0, R1, step] of [[0, 2200, 34], [2200, 4800, 50]]) {
-    for (let gx = -R1; gx < R1; gx += step) for (let gz = -R1; gz < R1; gz += step) {
-      const cx = gx + step / 2, cz = gz + step / 2;
-      const d = Math.max(Math.abs(cx), Math.abs(cz));
-      if (d < R0 || d >= R1) continue;
-      if (inBox(cx, cz, step * 0.2)) continue;
-      // caddeler: düzenli aralıkla boş şeritler (hafif açılı ızgara hissi için ofsetli)
-      const ax = Math.floor((gx + 7) / (step * 6)), az = Math.floor((gz - 11) / (step * 7));
-      const onAvenueX = ((gx + 7) % (step * 6) + step * 6) % (step * 6) < step * 0.6;
-      const onAvenueZ = ((gz - 11) % (step * 7) + step * 7) % (step * 7) < step * 0.6;
-      void ax; void az;
-      if (onAvenueX || onAvenueZ) {
-        if (r() < 0.6) glows.push([cx + (r() - 0.5) * step * 0.4, cz + (r() - 0.5) * step * 0.4, 1]);
-        continue;
-      }
-      if (r() < 0.1) continue; // açıklık
+  // Organik doku: mahalle (Voronoi) başına kendi yönü/adım ölçüsü olan ızgara; ışınsal ana arterler boş kalır
+  // ve dışa doğru lamba dizileriyle devam eder; yoğunluk kutudan uzaklaştıkça seyrelir.
+  const RMAX = 4800, DG = 640;
+  const dist0 = [];
+  for (let gx = -RMAX - DG; gx <= RMAX + DG; gx += DG) for (let gz = -RMAX - DG; gz <= RMAX + DG; gz += DG) {
+    const cx = gx + (r() - 0.5) * DG * 0.7, cz = gz + (r() - 0.5) * DG * 0.7;
+    const far = Math.hypot(cx, cz);
+    // yön: kısmen merkeze bakan (ışınsal), kısmen rastgele
+    const radial = Math.atan2(cz, cx);
+    const ang = r() < 0.5 ? radial + (r() - 0.5) * 0.3 : r() * Math.PI;
+    const step = (far < 2200 ? 30 : 38) + r() * 14;
+    dist0.push({ cx, cz, ang, step, av: 4 + Math.floor(r() * 4), bv: 5 + Math.floor(r() * 4), dens: 0.75 + r() * 0.25 });
+  }
+  const nearestD = (x, z) => {
+    let best = null, bd = 1e18;
+    for (const d of dist0) { const q = (d.cx - x) ** 2 + (d.cz - z) ** 2; if (q < bd) { bd = q; best = d; } }
+    return best;
+  };
+  // ana arterler: merkezden dışa ışınlar (kutudan çıkan büyük yolların devamı hissi)
+  const ART = [0.03, 1.62, 3.17, 4.71, 0.8, 2.35, 3.95, 5.5, 1.15, 4.3];
+  const onArterial = (x, z) => {
+    const a = Math.atan2(z, x), R = Math.hypot(x, z);
+    for (const t of ART) { let da = Math.abs(((a - t + Math.PI * 3) % (Math.PI * 2)) - Math.PI); if (da * R < 15) return true; }
+    return false;
+  };
+  for (const t of ART) for (let R = 900; R < RMAX; R += 42) {
+    const x = Math.cos(t) * R, z = Math.sin(t) * R;
+    if (inBox(x, z, 20)) continue;
+    glows.push([x + Math.sin(t) * 9, z - Math.cos(t) * 9, 1], [x - Math.sin(t) * 9, z + Math.cos(t) * 9, 1]);
+  }
+  const lowNoise = (x, z) => 0.5 + 0.25 * Math.sin(x * 0.0021 + 1.7) * Math.sin(z * 0.0017 + 0.3) + 0.25 * Math.sin((x + z) * 0.0013 + 2.1);
+  for (const d of dist0) {
+    const c = Math.cos(d.ang), sn = Math.sin(d.ang), st = d.step, R = DG * 0.95;
+    for (let i = -Math.ceil(R / st); i <= Math.ceil(R / st); i++) for (let j = -Math.ceil(R / st); j <= Math.ceil(R / st); j++) {
+      const lx = i * st, lz = j * st;
+      const cx = d.cx + c * lx - sn * lz, cz = d.cz + sn * lx + c * lz;
       const dist = Math.hypot(cx, cz);
-      const nb = step < 40 ? 1 + (r() < 0.45 ? 1 : 0) : 1;
+      if (dist > RMAX || inBox(cx, cz, st * 0.2)) continue;
+      if (nearestD(cx, cz) !== d) continue;
+      const onAv = (((i % d.av) + d.av) % d.av === 0) || (((j % d.bv) + d.bv) % d.bv === 0);
+      if (onAv) { if (r() < 0.35) glows.push([cx, cz, 1]); continue; }
+      if (onArterial(cx, cz)) continue;
+      const keep = d.dens * (1 - 0.45 * smooth(1800, RMAX, dist)) * (lowNoise(cx, cz) > 0.2 ? 1 : 0.3);
+      if (r() > keep) continue;
+      const nb = r() < 0.5 ? 2 : 1;
       for (let k = 0; k < nb; k++) {
-        const w = step * (nb > 1 ? 0.38 + r() * 0.12 : 0.55 + r() * 0.3), dd = step * (0.55 + r() * 0.3);
-        const ox = nb > 1 ? (k ? 1 : -1) * step * 0.22 : (r() - 0.5) * step * 0.12, oz = (r() - 0.5) * step * 0.12;
-        const tall = r() < (dist < 2500 ? 0.05 : 0.025);
-        const floors = tall ? 10 + Math.floor(r() * 5) : Math.max(2, Math.round(3 + r() * 5 - Math.max(0, (dist - 2500) / 1500)));
+        const w = st * (nb > 1 ? 0.36 + r() * 0.1 : 0.55 + r() * 0.28), dd = st * (0.5 + r() * 0.32);
+        const ox = nb > 1 ? (k ? 1 : -1) * st * 0.23 : (r() - 0.5) * st * 0.1, oz = (r() - 0.5) * st * 0.1;
+        const tall = r() < (dist < 2500 ? 0.04 : 0.02);
+        const base = dist < 1600 ? 4.5 : dist < 3000 ? 3.5 : 2.5;
+        const floors = tall ? 10 + Math.floor(r() * 5) : Math.max(2, Math.round(base + r() * 3.5));
         const H = floors * 3.1 + 0.6;
-        const x = cx + ox, z = cz + oz;
+        const x = cx + c * ox - sn * oz, z = cz + sn * ox + c * oz;
         if (inBox(x, z, Math.max(w, dd) * 0.6)) continue;
-        blds.push({ x, z, y: heightAt(x, z) - 2, w, d: dd, H: H + 2, rot: (r() - 0.5) * 0.12, col: pal[Math.floor(r() * pal.length)], seed: Math.floor(r() * 30000), k: r(), roof: r() });
+        blds.push({ x, z, y: heightAt(x, z) - 2, w, d: dd, H: H + 2, rot: -d.ang + (r() - 0.5) * 0.06, col: pal[Math.floor(r() * pal.length)], seed: Math.floor(r() * 30000), k: r(), roof: r() });
       }
-      if (r() < 0.25) glows.push([gx, gz, 0]);
+      if (r() < 0.18) glows.push([cx + c * st * 0.5, cz + sn * st * 0.5, 0]);
     }
   }
   const geo = new THREE.BoxGeometry(1, 1, 1).translate(0, 0.5, 0);

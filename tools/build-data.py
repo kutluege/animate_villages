@@ -652,6 +652,9 @@ def build_landuse(path):
         if not kind and e["type"] == "way" and e["id"] == 218230062:
             # Torun Center arsası: OSM'de yalnız landuse=commercial; zemin sert peyzaj/plaza kabulü TAHMİN
             kind, kind_est = "plaza", True
+        if not kind and t.get("amenity") in ("school", "hospital", "university", "kindergarten", "college"):
+            # kampüs/okul bahçesi: zemin türü OSM'de yok -> sert zemin kabulü TAHMİN (osm.amenity kullanımı söyler)
+            kind, kind_est = "plaza", True
         if not kind:
             continue
         for k, (outer, holes) in enumerate(poly_of(e)):

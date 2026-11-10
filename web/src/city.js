@@ -11,6 +11,7 @@ import { buildProps } from './city/props.js';
 import { smooth } from './city/util.js';
 import { prepareLanduse, buildLanduse } from './city/landuse.js';
 import { buildFill } from './city/fill.js';
+import { proceduralInfill } from './city/infill.js';
 
 const SHOP_CLS = { primary: 0.9, secondary: 0.85, link: 0.6, minor: 0.4, path: 0.7 };
 
@@ -54,13 +55,23 @@ export async function create(ctx) {
 
   const blds = buildBuildings(ctx, U, nearShopRoad);
   root.add(blds.mesh);
-  const isInside = footprintTester(blds.footprints, Grid);
+  const isInsideReal = footprintTester(blds.footprints, Grid);
+  // veri kutusu içi bina izi olmayan konut adaları → prosedürel apartmanlar (procedural: true)
+  const inf = proceduralInfill(ctx, net, isInsideReal, LU.areas.length ? LU : null, blds.footprints);
+  let procB = null;
+  if (inf.list.length) {
+    procB = buildBuildings(ctx, U, nearShopRoad, inf.list, 7001);
+    procB.mesh.name = 'city-buildings-procedural'; procB.mesh.userData.procedural = true;
+    root.add(procB.mesh);
+  }
+  const allFp = procB ? blds.footprints.concat(procB.footprints) : blds.footprints;
+  const isInside = footprintTester(allFp, Grid);
 
   const traffic = buildTraffic(ctx, U, net, isInside);
   root.add(traffic.group);
   const lamps = buildLamps(ctx, U, net, isInside);
   root.add(lamps.group);
-  const props = buildProps(ctx, U, blds.footprints, isInside);
+  const props = buildProps(ctx, U, allFp, isInside);
   root.add(props.group);
   const land = buildLanduse(ctx, LU, net, isInside);
   root.add(land.group);
@@ -71,7 +82,7 @@ export async function create(ctx) {
   if (fill) root.add(fill.group);
 
   ctx.scene.add(root);
-  const stats = { buildings: blds.footprints.length, roads: net.roads.length, lamps: lamps.count, ...traffic.counts, ...props.counts, ...land.counts, ...(fill?.counts || {}), ms: Math.round(performance.now() - t0) };
+  const stats = { buildings: blds.footprints.length, procedural: inf.list.length, procAreas: inf.perArea.map((a) => `${a.center.join(',')}:${a.count}`).join(' '), roads: net.roads.length, lamps: lamps.count, ...traffic.counts, ...props.counts, ...land.counts, ...(fill?.counts || {}), ms: Math.round(performance.now() - t0) };
   console.info('[city] hazır', JSON.stringify(stats));
   if (typeof window !== 'undefined') window.__city = { stats, root };
 

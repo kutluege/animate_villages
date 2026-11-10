@@ -166,15 +166,24 @@ export function buildLanduse(ctx, LU, roadNet, isInside) {
         if (!LU.inside(a, x, z) || LU.at(x, z) !== a || nearRoad(x, z, 1.6) || isInside(x, z, 0.5)) continue;
         stones.push({ x, z, y: heightAt(x, z), rot: a.rot + (r() - 0.5) * 0.08, h: 0.6 + r() * 0.7, kind: r(), tone: 0.75 + r() * 0.3 });
       }
-      // selviler: kümeler + yol kenarları
-      const nC = Math.round(a.area / 70);
-      for (let k = 0, got = 0; k < nC * 3 && got < nC && cypress.length < 6000; k++) {
+      // selviler: kümeler (gauss saçılım) + tekil ağaçlar; boy/en/eğim çeşitli
+      const nC = Math.round(a.area / 75);
+      const tryAdd = (x, z) => {
+        if (cypress.length >= 7000 || !LU.inside(a, x, z) || nearRoad(x, z, 0.8) || isInside(x, z, 1)) return false;
+        const young = r() < 0.15;
+        const h = young ? 3 + r() * 3 : 7 + r() * 11 * (0.6 + 0.4 * r());
+        cypress.push({ x, z, y: heightAt(x, z), h, w: (0.7 + r() * 0.7) * (young ? 0.7 : 1) * (0.8 + h / 40), d: 0.85 + r() * 0.3,
+          tx: (r() - 0.5) * 0.12, tz: (r() - 0.5) * 0.12, tone: 0.75 + r() * 0.45 });
+        return true;
+      };
+      const gauss = () => (r() + r() + r() - 1.5) / 1.5;
+      let got = 0;
+      for (let k = 0; k < nC && got < nC; k++) {
         const x = x0 + r() * (x1 - x0), z = z0 + r() * (z1 - z0);
-        const cl = 0.5 + 0.5 * Math.sin(x * 0.045 + 1.3) * Math.sin(z * 0.05 + 0.4);
-        if (r() > 0.25 + 0.6 * cl) continue;
-        if (!LU.inside(a, x, z) || nearRoad(x, z, 0.8) || isInside(x, z, 1)) continue;
-        cypress.push({ x, z, y: heightAt(x, z), h: 8 + r() * 9, w: 0.9 + r() * 0.6, tone: 0.8 + r() * 0.35 });
-        got++;
+        if (!LU.inside(a, x, z)) continue;
+        if (r() < 0.3) { if (tryAdd(x, z)) got++; continue; }
+        const n = 3 + Math.floor(r() * 12), sg = 3 + r() * 7;
+        for (let j = 0; j < n; j++) if (tryAdd(x + gauss() * sg, z + gauss() * sg)) got++;
       }
       // çevre duvarı (yol geçen yerlerde kapı)
       const ring = a.outer;
@@ -238,7 +247,8 @@ export function buildLanduse(ctx, LU, roadNet, isInside) {
     const im = new THREE.InstancedMesh(g, cm, cypress.length);
     im.name = 'city-cypress'; im.castShadow = true; im.receiveShadow = true;
     cypress.forEach((t, i) => {
-      m4.compose(v.set(t.x, t.y, t.z), q.setFromAxisAngle(Y, t.x * 3.1), sc.set(t.w, t.h, t.w));
+      q.setFromEuler(new THREE.Euler(t.tx, t.x * 3.1, t.tz));
+      m4.compose(v.set(t.x, t.y - 0.2, t.z), q, sc.set(t.w, t.h, t.w * t.d));
       im.setMatrixAt(i, m4);
       im.setColorAt(i, col.setRGB(0.028 * t.tone, 0.055 * t.tone, 0.03 * t.tone));
     });

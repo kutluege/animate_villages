@@ -5,7 +5,7 @@
   "terrain.json": 10308,
   "landmarks.json": 14500,
   "points.json": 47786,
-  "landuse.json": 31932
+  "landuse.json": 37949
  },
  "buildings": 2972,
  "heightSource": {
@@ -391,8 +391,8 @@
    "area_m2": 3269
   },
   "plaza": {
-   "n": 3,
-   "area_m2": 68594
+   "n": 22,
+   "area_m2": 222052
   },
   "water": {
    "n": 1,

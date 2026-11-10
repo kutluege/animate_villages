@@ -77,6 +77,9 @@ alanlar büyükten küçüğe sıralı (sonra çizilen üstte). 92 alan: cemeter
 Orijin güneyi (x −270…150, z 30…300) %82 mezarlık: Ermenî Kabristanı, Ermeni Katolik, Metamorfos Rum, İtalyan Musevî;
 Metamorfos Rum Kilisesi buildings.json'da (w761268822). Duvar/çit 36 çizgi (mezarlık çevre duvarı w52871994 dahil).
 **Torun Center arsası** OSM'de yalnız `landuse=commercial`; `plaza` olarak eklendi, `kindSource: "estimate"`.
+Tur 3: okul/hastane/üniversite kampüsleri (19 alan, `osm.amenity`) da `plaza` + `kindSource: "estimate"` (plaza toplam 22).
+Bilinen boşluk: x −418…−293, z −239…−115 (Çağlayan yönü) ham veride yalnız genel `landuse=residential` (w1414386347),
+yollar ve Çetin Emeç Parkı içeriyor; OSM'de de Overture/MS'de de bina yok → hiçbir şey uydurulmadı.
 Mezarlık içindeki 17 servis/patika yolu roads.json'da `kind: "path"`, `inCemetery: true`, `osmKind` = asıl tür.
 points.json'a ibadethane/tarihî düğümler (place_of_worship, historic) eklendi.
 

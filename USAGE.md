@@ -24,3 +24,7 @@ Orkestratörün kendi harcaması burada yok; oturum sonunda `/cost` ile ölçül
 Not: "(devam)" satırları aynı ajana geri gönderilen turlardır. Bu satırlardaki token değeri bildirimde gelen ham
 sayıdır; yalnızca o tura mı ait yoksa ajanın o ana kadarki toplamı mı olduğu bildirimden anlaşılmıyor (araç çağrısı
 ve süre o tura ait görünüyor). Kesin maliyet için `/cost` esas alınmalı.
+| 16 | 3 | Veri (devam) | 207.041 | 8 | 79 |
+| 17 | 3 | Atmosfer B (devam) | 291.641 | 19 | 346 |
+| 18 | 3 | Şehir dokusu (devam) | 470.759 | 23 | 365 |
+| 19 | 3 | Simge yapılar (devam) | 425.561 | 29 | 442 |

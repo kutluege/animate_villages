@@ -58,11 +58,11 @@ export async function create(ctx) {
   const pavingDark = std(0x6f6a64, 0.85, 0);
 
   // aviation (havacılık ikaz) — kırmızı, t'nin saf fonksiyonu olarak yanıp söner
-  const avGeo = new THREE.SphereGeometry(0.9, 10, 8);
+  const avGeo = new THREE.SphereGeometry(0.5, 10, 8);
   function aviation(points, phase) {
     const m = new THREE.MeshStandardMaterial({ color: 0x220000, emissive: 0xff1a10, emissiveIntensity: 0, roughness: 0.5 });
     blinkers.push({ m, period: 1.5, phase, duty: 0.42, I: 9 });
-    for (const [x, y, z] of points) { const s = new THREE.Mesh(avGeo, m); s.position.set(x, y + 0.9, z); root.add(s); }
+    for (const [x, y, z] of points) { const s = new THREE.Mesh(avGeo, m); s.position.set(x, y + 0.5, z); root.add(s); }
   }
   const rectCorners = (fr, r, y, inset = 0.6) => fr.rect(r[0] + inset, r[1] - inset, r[2] + inset, r[3] - inset).map(([x, z]) => [x, y, z]);
 
@@ -79,23 +79,23 @@ export async function create(ctx) {
       dark: facade({
         name: 'trump-dark', baseY: base, seed, floorH: 3.75, colW: 1.55, win: [0.07, 1, 0.3, 1],
         glass: L3(0x6d8398), glassRM: [0.035, 0.92], wall: L3(0x2b2e33), wallRM: [0.35, 0.55], tilt: 0.07,
-        occ: residential ? 0.32 : 0.42, darkFrac: residential ? 0.1 : 0.18, zone: residential ? 0 : 5,
+        occ: 0.2, darkFrac: residential ? 0.1 : 0.18, zone: residential ? 0 : 5, mode: residential ? 0 : 1, full: 0.24, sparse: 0.3, trans: 0.85, litI: residential ? [0.9, 2.0] : [1.2, 1.9],
         litA: residential ? [1.0, 0.7, 0.4] : [0.85, 0.92, 1.0], litB: residential ? [1.0, 0.85, 0.62] : [1.0, 0.94, 0.82],
       }),
       white: facade({
         name: 'trump-white', baseY: base, seed: seed + 5, floorH: 3.75, colW: 1.9, win: [0.06, 1, 0.3, 1],
         glass: L3(0x9cb6c2), glassRM: [0.04, 0.88], wall: L3(0xe4e7e8), wallRM: [0.45, 0.05], tilt: 0.05,
-        occ: residential ? 0.3 : 0.38, darkFrac: residential ? 0.1 : 0.2, zone: residential ? 0 : 4,
+        occ: 0.2, darkFrac: residential ? 0.1 : 0.2, zone: residential ? 0 : 4, mode: residential ? 0 : 1, full: 0.24, sparse: 0.3, trans: 0.9, litI: residential ? [0.9, 2.0] : [1.2, 1.9],
         litA: residential ? [1.0, 0.72, 0.44] : [0.88, 0.94, 1.0], litB: [1.0, 0.9, 0.72],
       }),
       core: facade({
         name: 'trump-core', baseY: base, seed: seed + 9, floorH: 3.75, colW: 1.2, win: [0.03, 1, 0.08, 1],
         glass: L3(0xa9c2cc), glassRM: [0.03, 0.95], wall: L3(0x9aa7ad), wallRM: [0.2, 0.7], tilt: 0.02,
-        occ: 0.45, darkFrac: 0.15, zone: 3, litA: [0.9, 0.95, 1.0], litB: [1.0, 1.0, 0.95], litI: [1.2, 2.2],
+        occ: 0.2, darkFrac: 0.15, zone: 3, mode: residential ? 0 : 1, full: 0.24, sparse: 0.3, litA: [0.9, 0.95, 1.0], litB: [1.0, 1.0, 0.95], litI: [1.0, 1.7],
       }),
     });
     const crownMat = facade({ name: 'trump-crown', baseY: 0, seed: 77, floorH: 4, colW: 2, win: [0, 0, 0, 0],
-      glass: L3(0x111418), wall: L3(0x15181c), wallRM: [0.35, 0.6], tilt: 0, occ: 0 });
+      glass: L3(0x111418), wall: L3(0x2a2e33), wallRM: [0.22, 0.7], tilt: 0, occ: 0 });
 
     const trumpLed = glow(0xfff1dc, 3.5, 0.2, 0x8a8a8a);
     const podLeaf = std(0x3e5a30, 0.92, 0), podBark = std(0x4b3c2f, 0.9, 0);
@@ -109,7 +109,7 @@ export async function create(ctx) {
       const M = tcfg(seed, base, residential);
       // koyu yarı: prizmatik yüzler — ortada dışa kırılır, üstte içe çekilir
       const darkTop = residential
-        ? (u) => roof - 11 * Math.min(1, Math.max(0, (-s - u) / (L / 2 - s)))   // eğik kesik çatı
+        ? (u) => roof - 3 * Math.min(1, Math.max(0, (-s - u) / (L / 2 - s)))   // hafif eğik çatı
         : () => roof - 15;
       const dS = [
         { y: y0, rect: [-L / 2, -s, -W / 2, W / 2] },
@@ -118,7 +118,7 @@ export async function create(ctx) {
       ];
       add(M.dark, sectionLoft(fr, dS));
       // beyaz yarı: dış ucu yukarı doğru içe kaçar (incelen siluet)
-      const whiteTop = residential ? roof - 6 : roof - 15;
+      const whiteTop = residential ? roof - 3 : roof - 14;
       const wS = [
         { y: y0, rect: [s, L / 2, -W / 2 + 0.4, W / 2 - 0.4] },
         { y: base + 0.6 * H, rect: [s, L / 2 - 1.2, -W / 2 + 0.2, W / 2 + 0.9] },
@@ -127,7 +127,7 @@ export async function create(ctx) {
       add(M.white, sectionLoft(fr, wS));
       // ── cephe kabartması (yakın planda düz ızgara kalmasın) ──
       const numS = (S, top) => S.map((q) => ({ y: typeof q.y === 'function' ? top : q.y, rect: q.rect }));
-      const dN = numS(dS, residential ? roof - 11 : roof - 15), wN = numS(wS, whiteTop);
+      const dN = numS(dS, residential ? roof - 3 : roof - 15), wN = numS(wS, whiteTop);
       const r3 = ctx.rng('landmarks/trump-relief-' + seed);
       const FH = 3.75;
       // beyaz yarı: her katta beyaz döşeme bandı (0.35 m taşar) + ritmik parapet/balkon panelleri (e-architect)
@@ -146,7 +146,7 @@ export async function create(ctx) {
         }
       }
       // koyu yarı: her katta bronz yatay kanat (kırık yüzleri izler), iki katta bir daha derin
-      for (let fl = 2, y = base + 2 * FH; y < (residential ? roof - 12 : roof - 16); fl++, y += FH) {
+      for (let fl = 2, y = base + 2 * FH; y < (residential ? roof - 4 : roof - 16); fl++, y += FH) {
         const r = interpRect(dN, y), e = fl % 2 ? 0.22 : 0.5;
         add(trumpBronze, prism(fr.rect(r[0] - e, r[1] - 0.05, r[2] - e, r[3] + e), y - 0.18, y + 0.18, { top: true, bottom: true }));
       }
@@ -160,59 +160,40 @@ export async function create(ctx) {
         }
       }
       // şeffaf orta kütle (çekirdeğin iki yanı ayrı birim — e-architect); rezidansta çatıdan cam bıçak gibi taşar
-      const coreTop = residential ? roof + 5 : roof - 15;
+      const coreTop = residential ? roof - 3 : roof - 14;
       add(M.core, prism(fr.rect(-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6), y0, coreTop));
       const av = [];
+      // cephe temizleme vinci (BMU) — iki kulenin tepesinde de fotoğrafta görülen yatay kol (Commons "Sunset over Mecidiyeköy", 2020)
+      const bmu = (u, v, y, len, ang) => {
+        const [x, z] = fr(u, v);
+        add(darkSteel, boxAlong([x - 0.5, z], [x + 0.5, z], 1.0, y, y + 2.2));
+        const a = fr.angle + ang, ex = x + Math.cos(a) * len, ez = z + Math.sin(a) * len;
+        add(darkSteel, boxAlong([x - Math.cos(a) * len * 0.35, z - Math.sin(a) * len * 0.35], [ex, ez], 0.5, y + 2.2, y + 2.8));
+        add(darkSteel, boxAlong([ex, ez], [ex + Math.cos(a) * 0.4, ez + Math.sin(a) * 0.4], 0.4, y + 1.2, y + 2.8));
+      };
       if (!residential) {
-        // ofis kulesinin koyu taç kutusu: dikey jaluzi kanatları, üst/alt ışık bandı, iki yüzde büyük TRUMP
+        // Ofis kulesinin koyu taç kutusu, ön yüzlerde "TRUMP / TOWERS" beyaz serif yazı (fotoğrafla doğrulandı:
+        // Commons "Sunset over Mecidiyeköy.jpg"); kutu kuleden dar, ~14 m. Jaluzi/LED çerçeve yok (doğrulanamadı).
         const cr = [-9, 7, -W / 2 + 2.2, W / 2 - 2.2];
-        add(crownMat, prism(fr.rect(...cr), roof - 16, roof));
-        for (const side of [-1, 1]) {
-          const v = side > 0 ? cr[3] : cr[2];
-          for (let u = cr[0] + 0.6; u < cr[1] - 0.3; u += 1.15) {
-            add(darkSteel, prism(fr.rect(u, u + 0.18, side > 0 ? v : v - 0.55, side > 0 ? v + 0.55 : v), roof - 15.5, roof - 9.8));
-          }
-          const u = side > 0 ? cr[1] : cr[0];
-          for (let w2 = cr[2] + 0.6; w2 < cr[3] - 0.3; w2 += 1.15) {
-            add(darkSteel, prism(fr.rect(side > 0 ? u : u - 0.55, side > 0 ? u + 0.55 : u, w2, w2 + 0.18), roof - 15.5, roof - 0.5));
-          }
-        }
-        const ring = (y, e) => fr.rect(cr[0] - e, cr[1] + e, cr[2] - e, cr[3] + e).map(([x, z]) => [x, y, z]);
-        for (const [y, e] of [[roof + 0.02, 0.0], [roof - 16.2, 0.4]]) { const rr = ring(y, e); for (let i = 0; i < 4; i++) add(trumpLed, strip3(rr[i], rr[(i + 1) % 4], 0.5, 0.35)); }
-        const tex = signTexture('TRUMP', { color: '#f3e6c4', size: 0.72, letter: 0.14 });
-        const sm = signMat(tex, 4.5, 0.15);
+        add(crownMat, prism(fr.rect(...cr), roof - 15, roof));
+        const tex = signTexture('TRUMP', { color: '#f4f1ea', size: 0.74, letter: 0.08, font: 'normal', w: 1024, h: 256, family: 'serif' });
+        const tex2 = signTexture('TOWERS', { color: '#f4f1ea', size: 0.7, letter: 0.3, font: 'normal', w: 1024, h: 256, family: 'serif' });
+        const sm = signMat(tex, 3.2, 0.15), sm2 = signMat(tex2, 3.2, 0.15);
         for (const sgn of [-1, 1]) {
           const [cx, cz] = fr((cr[0] + cr[1]) / 2, sgn > 0 ? cr[3] : cr[2]);
           const nx = -Math.sin(fr.angle) * sgn, nz = Math.cos(fr.angle) * sgn;
-          root.add(new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 5, 15, 4.6, 0.62), sm));
+          root.add(new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 4.6, 11, 2.75, 0.06), sm));
+          root.add(new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 7.2, 6.5, 1.6, 0.06), sm2));
         }
-        add(steel, boxAlong(fr(2, 0), fr(2.6, 0), 0.6, roof, roof + 9));
+        bmu((cr[0] + cr[1]) / 2, 0, roof, 9, Math.PI / 2 * 0.15);
         av.push(...rectCorners(fr, cr, roof));
-        const [mx, mz] = fr(2.3, 0); av.push([mx, roof + 9, mz]);
       } else {
-        // rezidans: eğik çatı kenarları cam parapetle yükselir (siluet bıçak gibi)
-        const pr = dN[dN.length - 1].rect;
-        const edge = (u, v) => { const [x, z] = fr(u, v); return [x, darkTop(u), z]; };
-        for (const v of [pr[2], pr[3]]) {
-          const a = edge(pr[0], v), b2 = edge(pr[1], v);
-          const [ix, iz] = [-Math.sin(fr.angle) * 0.12 * Math.sign(v), Math.cos(fr.angle) * 0.12 * Math.sign(v)];
-          const lo = [a, b2, [b2[0] - ix, b2[1], b2[2] - iz], [a[0] - ix, a[1], a[2] - iz]];
-          add(trumpParapet, loft([lo, lo.map((q) => [q[0], q[1] + 3.2, q[2]])], { top: true }));
-        }
-        av.push(...rectCorners(fr, [-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6], roof + 5, 0.2));
-        const [ax, az] = fr(-L / 2 + 3, 0);
-        av.push([ax, darkTop(-L / 2 + 3) + 3.2, az]);
-        const cb = fr.rect(-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6).map(([x, z]) => [x, roof + 5.02, z]);
-        for (let i = 0; i < 4; i++) add(trumpLed, strip3(cb[i], cb[(i + 1) % 4], 0.4, 0.3));
+        // Rezidans: düz çatı, kuleden dar koyu teknik kutu + BMU (fotoğraf); eğim yalnız hafif (prizmatik yüzlerin perspektifi)
+        const cb = [-L / 2 + 6, s + 1.2, -W / 2 + 3, W / 2 - 3.5];
+        add(crownMat, prism(fr.rect(...cb), roof - 4, roof + 1.5));
+        bmu((cb[0] + cb[1]) / 2, 0, roof + 1.5, 8, -Math.PI / 2 * 0.1);
+        av.push(...rectCorners(fr, cb, roof + 1.5, 0.3));
       }
-      // taç çizgisi: kütle üst kenarlarında ince sıcak-beyaz LED (gece kişiliği)
-      const dTop = [[-L / 2 + 1.8, -W / 2 + 1.0], [-s, -W / 2 + 1.0], [-s, W / 2 - 2.0], [-L / 2 + 1.8, W / 2 - 2.0]]
-        .map(([u, v]) => { const [x, z] = fr(u, v); return [x, darkTop(u) + (residential ? 3.25 : 0.05), z]; });
-      const wTop = [[s, -W / 2 + 1.2], [L / 2 - 5.5, -W / 2 + 1.2], [L / 2 - 5.5, W / 2 - 0.2], [s, W / 2 - 0.2]]
-        .map(([u, v]) => { const [x, z] = fr(u, v); return [x, whiteTop + 0.05, z]; });
-      for (const ring of [dTop, wTop]) for (let i = 0; i < 4; i++) add(trumpLed, strip3(ring[i], ring[(i + 1) % 4], 0.45, 0.4));
-      // çatı teknik katı
-      add(darkSteel, prism(fr.rect(3, 9, -3, 3), whiteTop - 0.5, whiteTop + 3.5));
       aviation(av, seed * 0.137);
       return { fr, L, W, roof };
     }
@@ -287,7 +268,7 @@ export async function create(ctx) {
       const m = facade({
         name: 'torun-office', baseY: base, seed: 41, floorH: 4.1, colW: 1.5, win: [0.06, 1, 0.24, 1],
         glass: L3(0x5c7090), glassRM: [0.04, 0.92], wall: L3(0x151b24), wallRM: [0.35, 0.6], tilt: 0.06,
-        ledEvery: 3, ledColor: [3.4, 2.1, 0.9], zone: 6, occ: 0.41, darkFrac: 0.28, litA: [0.86, 0.93, 1.0], litB: [1, 0.95, 0.85],
+        ledEvery: 3, ledColor: [3.4, 2.1, 0.9], zone: 6, occ: 0.41, darkFrac: 0.28, mode: 1, full: 0.2, sparse: 0.3, trans: 0.6, litI: [1.2, 2.0], litA: [0.86, 0.93, 1.0], litB: [1, 0.95, 0.85],
       }, 0.12);
       const stone = facade({ name: 'torun-crown', baseY: base, seed: 43, floorH: 4.1, colW: 3, win: [0.4, 0.6, 0.4, 0.6],
         glass: L3(0x2a2f36), wall: L3(0x5d5d5c), wallRM: [0.7, 0.05], tilt: 0, occ: 0 });
@@ -324,12 +305,12 @@ export async function create(ctx) {
       const stoneM = facade({
         name: 'torun-stone', baseY: base, seed, floorH: 3.6, colW: 3.2, win: [0.04, 0.96, 0.62, 0.9],
         glass: L3(0x4f5a66), glassRM: [0.06, 0.85], wall: L3(0x6e6c69), wallRM: [0.75, 0.02], tilt: 0.02,
-        occ: 0.32, darkFrac: 0.1, zone: 0, litA: [1, 0.68, 0.38], litB: [1, 0.84, 0.6],
+        occ: 0.2, darkFrac: 0.1, zone: 0, trans: 0.9, litI: [0.9, 1.9], litA: [1, 0.68, 0.38], litB: [1, 0.84, 0.6],
       });
       const glassM = facade({
         name: 'torun-resglass', baseY: base, seed: seed + 2, floorH: 3.6, colW: 1.5, win: [0.06, 1, 0.26, 1],
         glass: L3(0x5e7392), glassRM: [0.04, 0.92], wall: L3(0x161c25), wallRM: [0.35, 0.6], tilt: 0.06,
-        ledEvery: 3, ledColor: [3.4, 2.1, 0.9], occ: 0.32, darkFrac: 0.12, litA: [1, 0.7, 0.42], litB: [1, 0.88, 0.66],
+        ledEvery: 3, ledColor: [3.4, 2.1, 0.9], occ: 0.18, darkFrac: 0.12, trans: 0.65, litI: [0.9, 1.9], litA: [1, 0.7, 0.42], litB: [1, 0.88, 0.66],
       }, 0.14);
       const R = (u0, u1, v0, v1) => (f > 0 ? [u0, u1, v0, v1] : [-u1, -u0, v0, v1]);
       const S = R(-L / 2, -L / 2 + 0.45 * L, -W / 2, W / 2 - 0.3 * W);
@@ -432,7 +413,7 @@ export async function create(ctx) {
       const m = facade({
         name: 'quasar-fairmont', baseY: base, seed: 61, floorH: 3.9, colW: 1.6, win: [0.05, 1, 0.1, 1],
         glass: L3(0x5873a0), glassRM: [0.04, 0.92], wall: L3(0xaeb6bd), wallRM: [0.4, 0.3], tilt: 0.06,
-        occ: 0.34, darkFrac: 0.12, zone: 0, litA: [1, 0.74, 0.46], litB: [1, 0.88, 0.7],
+        occ: 0.3, darkFrac: 0.12, zone: 0, trans: 0.65, litI: [0.9, 1.9], litA: [1, 0.74, 0.46], litB: [1, 0.88, 0.7],
       });
       const main = [-L / 2, L / 2 - 0.36 * L, -W / 2 + 0.12 * W, W / 2 - 0.08 * W];
       const sec = [L / 2 - 0.42 * L, L / 2, -W / 2, W / 2 - 0.3 * W];
@@ -460,7 +441,7 @@ export async function create(ctx) {
       const m = facade({
         name: 'quasar-res', baseY: base, seed: 71, floorH: 3.7, colW: 1.7, win: [0.16, 1, 0.24, 1],
         glass: L3(0x7790ab), glassRM: [0.04, 0.9], wall: L3(0xc9ced2), wallRM: [0.45, 0.1], tilt: 0.05,
-        occ: 0.30, darkFrac: 0.1, litA: [1, 0.72, 0.45], litB: [1, 0.9, 0.72],
+        occ: 0.2, darkFrac: 0.1, trans: 0.8, litI: [0.9, 1.9], litA: [1, 0.72, 0.45], litB: [1, 0.9, 0.72],
       });
       const r = [-L / 2 + 2, L / 2 - 2, -W / 2 + 0.25 * W, W / 2 - 0.2 * W];
       const g1 = base + 0.36 * H, g2 = base + 0.7 * H, gh = 7.4;
@@ -485,7 +466,7 @@ export async function create(ctx) {
     }
     const lowM = facade({ name: 'torun-low', baseY: -12, seed: 85, floorH: 4, colW: 1.6, win: [0.08, 1, 0.3, 1],
       glass: L3(0x5a6b80), glassRM: [0.05, 0.9], wall: L3(0x3a3f45), wallRM: [0.4, 0.4], tilt: 0.04,
-      zone: 4, occ: 0.38, darkFrac: 0.3, litA: [0.86, 0.93, 1.0], litB: [1, 0.95, 0.85] });
+      zone: 4, occ: 0.38, darkFrac: 0.3, mode: 1, full: 0.25, sparse: 0.3, trans: 0.75, litI: [1.1, 1.8], litA: [0.86, 0.93, 1.0], litB: [1, 0.95, 0.85] });
     for (const id of ['way/728793803', 'way/728793805']) {
       const f = fps[id];
       if (f) add(lowM, prism(cleanPoly(f.footprint), f.baseY - 2, f.baseY + (f.height || 40)));
@@ -516,11 +497,11 @@ export async function create(ctx) {
     const H = 170.1, roof = base + H;
     const cream = facade({ name: 'sisli-cream', baseY: base, seed: 91, floorH: 3.25, colW: 3.1, win: [0.22, 0.78, 0.3, 0.86],
       glass: L3(0x2a3642), glassRM: [0.1, 0.8], wall: L3(0xe6dcc6), wallRM: [0.72, 0], tilt: 0.02,
-      occ: 0.34, darkFrac: 0.08, litA: [1, 0.7, 0.42], litB: [1, 0.86, 0.62] });
+      occ: 0.22, darkFrac: 0.08, litI: [0.9, 1.9], litA: [1, 0.7, 0.42], litB: [1, 0.86, 0.62] });
     const mauve = facade({ name: 'sisli-mauve', baseY: base, seed: 93, floorH: 3.25, colW: 3.1, win: [0.25, 0.75, 0.3, 0.86],
-      glass: L3(0x2a3642), glassRM: [0.1, 0.8], wall: L3(0x8d6f7d), wallRM: [0.7, 0], tilt: 0.02, occ: 0.32, litA: [1, 0.7, 0.42], litB: [1, 0.86, 0.62] });
+      glass: L3(0x2a3642), glassRM: [0.1, 0.8], wall: L3(0x8d6f7d), wallRM: [0.7, 0], tilt: 0.02, occ: 0.2, litI: [0.9, 1.9], litA: [1, 0.7, 0.42], litB: [1, 0.86, 0.62] });
     const pink = facade({ name: 'sisli-pink', baseY: base, seed: 95, floorH: 3.25, colW: 3.1, win: [0.25, 0.75, 0.3, 0.86],
-      glass: L3(0x2a3642), glassRM: [0.1, 0.8], wall: L3(0xc58b7c), wallRM: [0.7, 0], tilt: 0.02, occ: 0.32, litA: [1, 0.7, 0.42], litB: [1, 0.86, 0.62] });
+      glass: L3(0x2a3642), glassRM: [0.1, 0.8], wall: L3(0xc58b7c), wallRM: [0.7, 0], tilt: 0.02, occ: 0.2, litI: [0.9, 1.9], litA: [1, 0.7, 0.42], litB: [1, 0.86, 0.62] });
     // ana gövde: dikdörtgen + kuzey ucunda yarım silindir (fotoğraftaki kavisli yan)
     const mainPts = [[16, -11], [16, 11], ...arcPts(-8, 0, 11, Math.PI / 2, Math.PI * 1.5, 12)];
     add(cream, sectionLoft(fr, [{ y: base - 3, pts: mainPts }, { y: roof - 6, pts: mainPts }]));
@@ -718,6 +699,7 @@ export async function create(ctx) {
       const L = state.lightsOn;
       for (const { m, ledK } of facades) {
         m.userData.u.uLightsOn.value = L;
+        m.userData.u.uT.value = state.t;
         m.userData.u.uLed.value = L > ledK ? 1 : 0;
       }
       for (const g of glows) g.m.emissiveIntensity = L > g.k ? g.I : 0;

@@ -11,7 +11,7 @@ import { Builder, key, lin, miterNormals, smooth } from './util.js';
 const MOVING = new Set(['trunk', 'link', 'primary', 'secondary', 'minor']);
 const BOX = { x0: -800, x1: 800, z0: -720, z1: 820 };
 export const WAVE = 12;      // duruş dalgası hızı (m/s, geriye)
-const EXPOSURE = 2.4;        // iz pozlaması (s)
+const EXPOSURE = 3.6;        // iz pozlaması (s)
 const LOD_NEAR = 170;        // m
 
 // ───────────────────────── hareket profili (JS ve GLSL birebir) ─────────────────────────
@@ -180,7 +180,7 @@ float vGlass = 0.0, vRough = 0.32, vMetal = 0.3; vec3 vEm = vec3(0.0);
   #endif
   vec3 c = paint;
   if (p < 0.5) { c = paint; }
-  else if (p < 1.5) { c = vec3(0.012, 0.014, 0.018); vGlass = 1.0; vRough = 0.06; vMetal = 0.85;
+  else if (p < 1.5) { c = vec3(0.09, 0.105, 0.13); vGlass = 1.0; vRough = 0.08; vMetal = 0.55;
     vEm = vec3(0.75, 0.88, 1.0) * 2.4 * vInfo.z * uLightsOn; }
   else if (p < 2.5) { c = vec3(0.018); vRough = 0.85; vMetal = 0.0; }
   else if (p < 3.5) { c = vec3(0.75, 0.78, 0.8); vRough = 0.1; vMetal = 0.6; vEm = vec3(1.0, 0.93, 0.82) * uCarLight; }
@@ -292,7 +292,7 @@ function paint(r) {
 
 /** Şerit param seti: V (ort. hız), P (periyot), d (durma oranı). */
 const PARAM = {
-  trunk: { gap: [8.4, 10], V: [4.5, 6.2], P: [10, 16], d: [0.08, 0.25] },
+  trunk: { gap: [8.4, 10], V: [5.0, 6.8], P: [9, 15], d: [0.0, 0.06] },
   link: { gap: [10, 13], V: [4, 5.5], P: [12, 18], d: [0.12, 0.3] },
   primary: { gap: [9, 11.5], V: [3.5, 5], P: [16, 26], d: [0.2, 0.4] },
   secondary: { gap: [12, 17], V: [3.5, 5], P: [18, 28], d: [0.25, 0.45] },
@@ -355,18 +355,18 @@ ${GLSL_MOTION}`)
   for (int it = 0; it < 4; it++) { float bm = mod(b, L); b = s - trF(uT + bm / W + vL2.w, vL2); }
   float k0 = floor(b / slot);
   float head = 0.0, tail = 0.0;
-  for (int dk = -3; dk <= 3; dk++) {
+  for (int dk = -2; dk <= 5; dk++) {
     float k = k0 + float(dk);
     float i = mod(k, nC), m = floor(k / nC);
     float bi = (i + (fract(i * 0.618034 + js) - 0.5) * 0.2) * slot;
     float tau = uT + bi / W + vL2.w;
     float p = bi + m * L + trF(tau, vL2);
     float v = trV(tau, vL2);
-    float tl = clamp(v * uExp, 0.0, 30.0);
+    float tl = clamp(v * uExp, 0.0, 42.0);
     float dh = p + vH - s, dt = p - vH - s;
     // nokta ışık + hızla uzayan iz (yalnızca arkada)
-    head = max(head, exp(-dh * dh * 2.5) * 0.7 + (dh > 0.0 && dh < tl ? pow(1.0 - dh / tl, 1.3) * 0.75 : 0.0));
-    tail = max(tail, exp(-dt * dt * 2.5) * 0.8 + (dt > 0.0 && dt < tl ? pow(1.0 - dt / tl, 1.3) * 0.7 : 0.0));
+    head = max(head, exp(-dh * dh * 2.5) * 0.4 + (dh > 0.0 && dh < tl ? pow(1.0 - dh / tl, 0.7) * 0.8 : 0.0));
+    tail = max(tail, exp(-dt * dt * 2.5) * 0.55 + (dt > 0.0 && dt < tl ? pow(1.0 - dt / tl, 0.7) * 0.75 : 0.0));
   }
   float fw = smoothstep(-0.25, 0.25, vFacing);
   float prof = exp(-vX * vX * 3.0);
@@ -396,7 +396,7 @@ export function buildTraffic(ctx, U, roadNet, isInside) {
     const mk = (offs, rev) => {
       const lane = rev ? makeLane(reversed(ch.pts), reversed(ch.ys), Array.isArray(offs) ? reversed(offs) : offs) : makeLane(ch.pts, ch.ys, offs);
       lane.cls = ch.cls; lane.gap = rr(r, P.gap); lane.V = rr(r, P.V); lane.P = P.P[1] > 0 ? rr(r, P.P) : 0; lane.d = rr(r, P.d);
-      lane.phi = r() * 40; lane.js = r(); lane.seed = r(); lane.lampY = 0.72; lane.trailW = 0.75;
+      lane.phi = r() * 40; lane.js = r(); lane.seed = r(); lane.lampY = 0.72; lane.trailW = ch.cls === 'trunk' ? 1.05 : 0.8;
       lanes.push(lane);
     };
     if (ch.oneway) {

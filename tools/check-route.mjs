@@ -247,14 +247,17 @@ if (args.scene) {
   const atmo = args.atmo && args.atmo !== true ? String(args.atmo) : 'b';
   const env = await openBrowser();
   try {
-    const sc = await openScene(env, { query: { render: '1', w: 64, h: 114, q: 'draft', atmo }, width: 64, height: 114, log: false });
+    const open = () => openScene(env, { query: { render: '1', w: 64, h: 114, q: 'draft', atmo }, width: 64, height: 114, log: false });
+    let sc = await open(), retries = 0;
     console.log(`\nsahne denetimi (atmo ${atmo}, ${SHZ} Hz, yarıçap ${SR} m): ${JSON.stringify(await sc.page.evaluate(() => window.__modules.modules))}`);
     const n = Math.round(D * SHZ);
     let worst = { d: Infinity };
     for (let i = 0; i <= n; i++) {
       const t = (i / n) * D;
+      let r;
+      try {
       await sc.page.evaluate((tt) => window.__renderFrame(tt), t);
-      const r = await sc.page.evaluate(() => {
+      r = await sc.page.evaluate(() => {
         const { THREE, scene, camera } = window.__ctx;
         const p = camera.position.clone();
         if (!window.__crMeshes) {
@@ -265,7 +268,14 @@ if (args.scene) {
         const sph = new THREE.Sphere();
         const near = window.__crMeshes.filter((o) => {
           if (!o.visible) return false;
-          if (o.isInstancedMesh) return true;
+          if (o.isInstancedMesh) {
+            // Hareketli (trafik) her zaman; statik örneklerin toplu küresi bir kez hesaplanır.
+            if (/traffic|car|bus|metro|vehicle/i.test(o.name + '/' + (o.parent?.name || ''))) return true;
+            if (o.count > 20000) return false; // zemin taşları/dolgu gibi çok sayılı alçak ayrıntılar (bina hacimleri içinde ya da yerde)
+            if (!o.boundingSphere) o.computeBoundingSphere();
+            sph.copy(o.boundingSphere).applyMatrix4(o.matrixWorld);
+            return sph.distanceToPoint(p) < 80;
+          }
           if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
           sph.copy(o.geometry.boundingSphere).applyMatrix4(o.matrixWorld);
           return sph.distanceToPoint(p) < 80;
@@ -285,6 +295,13 @@ if (args.scene) {
         window.__crPrev = p;
         return { best, seg };
       });
+      } catch (e) {
+        // Sayfa çökerse (GPU/bellek) yeniden aç ve aynı örnekten sürdür.
+        if (++retries > 5) throw e;
+        console.log(`  [sahne] t=${t.toFixed(2)} sayfa düştü (${String(e.message).split('\n')[0]}) — yeniden açılıyor`);
+        await sc.page.close().catch(() => {});
+        sc = await open(); i--; continue;
+      }
       if (r.best.d < worst.d) worst = { ...r.best, t };
       if (r.best.d < SR) hits.push(`t=${t.toFixed(2)} sahne: ${r.best.name} ${r.best.d.toFixed(2)} m`);
       if (r.seg) hits.push(`t=${t.toFixed(2)} sahne: rota parçası ${r.seg} içinden geçiyor`);

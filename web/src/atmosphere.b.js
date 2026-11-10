@@ -37,35 +37,35 @@ const KEYS = [
     ground: ['#6a6762', 1.0], sun: '#fff0dc', sunI: 4.0, hemiS: '#d4d8e0', hemiG: '#a89884', hemiI: 0.75, envI: 1.15,
     exp: 0.88, fog: 0.00014, bloom: 0.10, bthr: 2.2, sat: 1.04, shT: '#ffffff', hiT: '#fff6ea', con: 1.0, envSat: 0.5, fogSat: 0.95, city: 0 },
   { e: 14, zen: ['#4a7ccc', 0.9], hor: ['#dcd8d4', 1.0], glow: ['#ffd9a8', 0.35], glowW: 4, anti: ['#c0b4d8', 0.08], mie: ['#ffe0b0', 0.4],
-    ground: ['#6a6460', 0.95], sun: '#ffe4bc', sunI: 4.2, hemiS: '#c8ccdc', hemiG: '#a08870', hemiI: 0.7, envI: 1.05,
-    exp: 0.9, fog: 0.00015, bloom: 0.12, bthr: 2.0, sat: 1.05, shT: '#fafaff', hiT: '#fff2e0', con: 1.02, envSat: 0.5, fogSat: 0.85, city: 0 },
-  { e: 5, zen: ['#2f4cb0', 0.8], hor: ['#f4b07a', 1.05], glow: ['#ff9a3a', 1.25], glowW: 3, anti: ['#b48cd0', 0.25], mie: ['#ffaa58', 0.8],
-    ground: ['#5a4c4c', 0.9], sun: '#ff9c44', sunI: 3.9, hemiS: '#a8a4d0', hemiG: '#6a4636', hemiI: 0.5, envI: 0.85,
-    exp: 0.98, fog: 0.00014, bloom: 0.18, bthr: 1.8, sat: 1.1, shT: '#f4f0ff', hiT: '#fff0da', con: 1.08, envSat: 0.6, fogSat: 0.55, city: 0 },
-  { e: 1.5, zen: ['#30449a', 0.62], hor: ['#e0a088', 0.8], glow: ['#ff6420', 1.9], glowW: 2.6, anti: ['#a874c0', 0.34], mie: ['#ff7428', 1.0],
-    ground: ['#4a3c44', 0.8], sun: '#ff7430', sunI: 3.0, hemiS: '#9a94d0', hemiG: '#5a3a36', hemiI: 0.55, envI: 0.75,
-    exp: 1.08, fog: 0.00014, bloom: 0.30, bthr: 1.5, sat: 1.1, shT: '#f2eeff', hiT: '#ffe8d4', con: 1.08, envSat: 0.6, fogSat: 0.5, city: 0 },
-  { e: -0.6, zen: ['#2a3c9c', 0.5], hor: ['#9a7aa8', 0.55], glow: ['#ff6a20', 2.0], glowW: 2.6, anti: ['#8c5cb0', 0.22], mie: ['#ff5a20', 0.45],
-    ground: ['#3a3040', 0.7], sun: '#ff5a26', sunI: 2.0, hemiS: '#8a88c8', hemiG: '#4a3c40', hemiI: 0.6, envI: 0.7,
-    exp: 1.22, fog: 0.00015, bloom: 0.45, bthr: 1.3, sat: 1.1, shT: '#eeeaff', hiT: '#ffe4d8', con: 1.08, envSat: 0.6, fogSat: 0.5, city: 0 },
-  { e: -3, zen: ['#2036a0', 0.36], hor: ['#8a5a9a', 0.38], glow: ['#e8406a', 0.75], glowW: 2.0, anti: ['#4c4ca8', 0.22], mie: ['#000000', 0],
-    ground: ['#2c2a44', 0.6], sun: '#ff4a30', sunI: 0, hemiS: '#6a78d0', hemiG: '#3c3050', hemiI: 0.7, envI: 0.75,
-    exp: 1.35, fog: 0.00017, bloom: 0.62, bthr: 1.2, sat: 1.08, shT: '#e6ecff', hiT: '#ffe2d8', con: 1.08, envSat: 0.65, fogSat: 0.55, city: 0.02 },
-  { e: -6, zen: ['#2450c0', 0.22], hor: ['#4a68d0', 0.24], glow: ['#9c3aa8', 0.26], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
-    ground: ['#1e2440', 0.55], sun: '#ff4a30', sunI: 0, hemiS: '#6a84d8', hemiG: '#4a3a40', hemiI: 0.9, envI: 0.85,
-    exp: 1.4, fog: 0.0002, bloom: 0.6, bthr: 1.3, sat: 1.06, shT: '#cce4ff', hiT: '#ffe4d0', con: 1.08, envSat: 0.7, fogSat: 0.6, city: 0.05 },
-  { e: -10, zen: ['#12309a', 0.45], hor: ['#2e3c86', 0.3], glow: ['#4a2c80', 0.08], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
-    ground: ['#20203a', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#2c5ed0', hemiG: '#4a3828', hemiI: 1.35, envI: 1.05,
-    exp: 1.45, fog: 0.00022, bloom: 0.68, bthr: 1.5, sat: 1.20, shT: '#c8eaff', hiT: '#ffe2c8', con: 1.08, envSat: 0.75, fogSat: 0.85, city: 0.06 },
-  { e: -15, zen: ['#0c2466', 0.75], hor: ['#2a3a64', 0.5], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
-    ground: ['#2a2228', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#26648c', hemiG: '#4a3420', hemiI: 1.5, envI: 1.0,
-    exp: 1.5, fog: 0.00024, bloom: 0.72, bthr: 1.6, sat: 1.18, shT: '#c4ecff', hiT: '#ffe0c0', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.08 },
-  { e: -22, zen: ['#0a1e56', 0.95], hor: ['#1e3a5a', 0.6], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
-    ground: ['#30241c', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#1f6a88', hemiG: '#4a3420', hemiI: 1.5, envI: 1.0,
-    exp: 1.5, fog: 0.00025, bloom: 0.72, bthr: 1.6, sat: 1.18, shT: '#c0ecff', hiT: '#ffdcb8', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.08 },
-  { e: -90, zen: ['#0a1e56', 0.95], hor: ['#1e3a5a', 0.6], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
-    ground: ['#30241c', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#1f6a88', hemiG: '#4a3420', hemiI: 1.5, envI: 1.0,
-    exp: 1.5, fog: 0.00025, bloom: 0.72, bthr: 1.6, sat: 1.18, shT: '#c0ecff', hiT: '#ffdcb8', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.08 },
+    ground: ['#6a6460', 0.95], sun: '#ffd8a8', sunI: 4.8, hemiS: '#c8ccdc', hemiG: '#a08870', hemiI: 0.4, envI: 0.62,
+    exp: 0.9, fog: 0.00012, bloom: 0.16, bthr: 1.8, sat: 1.05, shT: '#fafaff', hiT: '#fff2e0', con: 1.06, envSat: 0.6, fogSat: 0.85, city: 0 },
+  { e: 5, zen: ['#5a78b8', 0.8], hor: ['#f4b890', 1.05], glow: ['#ff9a40', 1.1], glowW: 3, anti: ['#d8a0a8', 0.18], mie: ['#ffaa58', 0.8],
+    ground: ['#5a4c4c', 0.9], sun: '#ff9c44', sunI: 4.4, hemiS: '#b8b4d0', hemiG: '#6a4636', hemiI: 0.4, envI: 0.62,
+    exp: 0.98, fog: 0.00012, bloom: 0.18, bthr: 1.8, sat: 1.06, shT: '#f8f6ff', hiT: '#fff0da', con: 1.08, envSat: 0.6, fogSat: 0.55, city: 0 },
+  { e: 1.5, zen: ['#4a64a8', 0.62], hor: ['#eea888', 0.85], glow: ['#ff6420', 1.9], glowW: 2.6, anti: ['#c88aa0', 0.22], mie: ['#ff7428', 1.0],
+    ground: ['#4a3c44', 0.8], sun: '#ff7430', sunI: 3.0, hemiS: '#a8a8d0', hemiG: '#5a3a36', hemiI: 0.45, envI: 0.75,
+    exp: 1.08, fog: 0.00014, bloom: 0.30, bthr: 1.5, sat: 1.06, shT: '#f6f4ff', hiT: '#ffe8d4', con: 1.08, envSat: 0.6, fogSat: 0.5, city: 0 },
+  { e: -0.6, zen: ['#3a50a0', 0.5], hor: ['#d89a8c', 0.6], glow: ['#ff7428', 1.9], glowW: 2.6, anti: ['#a87aa8', 0.18], mie: ['#ff5a20', 0.45],
+    ground: ['#3a3040', 0.7], sun: '#ff5a26', sunI: 2.0, hemiS: '#9a9ad0', hemiG: '#4a3c40', hemiI: 0.5, envI: 0.7,
+    exp: 1.22, fog: 0.00015, bloom: 0.45, bthr: 1.3, sat: 1.06, shT: '#f2f0ff', hiT: '#ffe4d8', con: 1.08, envSat: 0.6, fogSat: 0.5, city: 0 },
+  { e: -3, zen: ['#2a46a0', 0.36], hor: ['#b07890', 0.4], glow: ['#e8604a', 0.7], glowW: 2.0, anti: ['#5a5aa0', 0.15], mie: ['#000000', 0],
+    ground: ['#2c2a44', 0.6], sun: '#ff4a30', sunI: 0, hemiS: '#7080c8', hemiG: '#3c3050', hemiI: 0.6, envI: 0.75,
+    exp: 1.35, fog: 0.00017, bloom: 0.62, bthr: 1.2, sat: 1.05, shT: '#eef0ff', hiT: '#ffe2d8', con: 1.08, envSat: 0.65, fogSat: 0.55, city: 0.02 },
+  { e: -6, zen: ['#2450c0', 0.22], hor: ['#5070c0', 0.24], glow: ['#9c3aa8', 0.26], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+    ground: ['#1e2440', 0.55], sun: '#ff4a30', sunI: 0, hemiS: '#6a80c8', hemiG: '#4a3a40', hemiI: 0.9, envI: 0.85,
+    exp: 1.4, fog: 0.0002, bloom: 0.6, bthr: 1.3, sat: 1.04, shT: '#cce4ff', hiT: '#ffe4d0', con: 1.08, envSat: 0.7, fogSat: 0.6, city: 0.05 },
+  { e: -10, zen: ['#16307a', 0.45], hor: ['#2e3c76', 0.3], glow: ['#4a2c80', 0.08], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+    ground: ['#20203a', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#4a5a88', hemiG: '#3a3028', hemiI: 1.2, envI: 1.05,
+    exp: 1.42, fog: 0.00022, bloom: 0.68, bthr: 1.5, sat: 1.1, shT: '#dce8f4', hiT: '#ffe2c8', con: 1.08, envSat: 0.75, fogSat: 0.85, city: 0.06 },
+  { e: -15, zen: ['#0e2050', 0.75], hor: ['#2a3448', 0.5], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+    ground: ['#2a2228', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#3c4c60', hemiG: '#3a3028', hemiI: 1.4, envI: 1.0,
+    exp: 1.38, fog: 0.00024, bloom: 0.72, bthr: 1.6, sat: 1.06, shT: '#e2ecf2', hiT: '#ffe0c0', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.08 },
+  { e: -22, zen: ['#0e1a3a', 0.95], hor: ['#2a3444', 0.55], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+    ground: ['#2a2420', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#3c4c5c', hemiG: '#3a3028', hemiI: 1.4, envI: 1.0,
+    exp: 1.35, fog: 0.00025, bloom: 0.72, bthr: 1.6, sat: 1.06, shT: '#e4eef4', hiT: '#ffdcb8', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.1 },
+  { e: -90, zen: ['#0e1a3a', 0.95], hor: ['#2a3444', 0.55], glow: ['#000000', 0], glowW: 2.0, anti: ['#000000', 0], mie: ['#000000', 0],
+    ground: ['#2a2420', 0.5], sun: '#ff4a30', sunI: 0, hemiS: '#3c4c5c', hemiG: '#3a3028', hemiI: 1.4, envI: 1.0,
+    exp: 1.35, fog: 0.00025, bloom: 0.72, bthr: 1.6, sat: 1.06, shT: '#e4eef4', hiT: '#ffdcb8', con: 1.08, envSat: 0.8, fogSat: 0.9, city: 0.1 },
 ];
 const COLOR_FIELDS = ['zen', 'hor', 'glow', 'anti', 'mie', 'ground'];      // [hex, yoğunluk]
 const TINT_FIELDS = ['sun', 'hemiS', 'hemiG', 'shT', 'hiT'];              // hex (doğrusal)
@@ -92,6 +92,7 @@ function palette(elev, out) {
   return out;
 }
 const CITY_GLOW = new THREE.Color('#d8905a');
+const tmpC = new THREE.Color();
 function makePalette() {
   const o = {};
   for (const f of [...COLOR_FIELDS, ...TINT_FIELDS]) o[f] = new THREE.Color();
@@ -170,6 +171,12 @@ function skyMaterial(uniforms, env) {
     fragmentShader: /* glsl */`
       ${SKY_GLSL}
       uniform vec3 uSunCol; uniform float uSunDisc;
+      uniform float uCloud; uniform vec3 uCloudLit; uniform vec3 uCloudShade;
+      float hash12( vec2 p ) { vec3 p3 = fract( vec3( p.xyx ) * 0.1031 ); p3 += dot( p3, p3.yzx + 33.33 ); return fract( ( p3.x + p3.y ) * p3.z ); }
+      float vnoise( vec2 p ) {
+        vec2 i = floor( p ), f = fract( p ); f = f * f * ( 3.0 - 2.0 * f );
+        return mix( mix( hash12( i ), hash12( i + vec2( 1.0, 0.0 ) ), f.x ), mix( hash12( i + vec2( 0.0, 1.0 ) ), hash12( i + vec2( 1.0, 1.0 ) ), f.x ), f.y );
+      }
       uniform vec3 uMoonCol; uniform float uMoon; uniform float uStars; uniform float uEnvSat;
       varying vec3 vDir;
       float hash13( vec3 p ) { p = fract( p * 0.1031 ); p += dot( p, p.zyx + 31.32 ); return fract( ( p.x + p.y ) * p.z ); }
@@ -181,6 +188,16 @@ function skyMaterial(uniforms, env) {
           c = mix( c, atmoSkyB.ground, smoothstep( 0.0, -0.18, dir.y ) );
         #endif
         float above = smoothstep( -0.012, 0.004, dir.y );
+        // ince yüksek bulut / iz (deterministik, yöne bağlı): düz gök duvarını kırar
+        if ( uCloud > 0.001 && dir.y > 0.015 ) {
+          vec2 q = dir.xz / ( dir.y + 0.08 );
+          vec2 r = mat2( 0.8, -0.6, 0.6, 0.8 ) * q * vec2( 0.8, 2.0 );
+          float n = 0.5 * vnoise( r * 1.3 ) + 0.25 * vnoise( r * 2.7 + 3.1 ) + 0.125 * vnoise( r * 5.9 + 7.7 ) + 0.0625 * vnoise( r * 11.0 + 1.3 );
+          float cov = smoothstep( 0.6, 0.9, n ) * smoothstep( 0.015, 0.14, dir.y ) * ( 0.55 + 0.45 * vnoise( q * 0.35 + 5.0 ) );
+          float smu = max( dot( dir, atmoSkyB.sunDir ), 0.0 );
+          vec3 cc = mix( uCloudShade, uCloudLit, 0.35 + 0.65 * smu * smu );
+          c = mix( c, cc, clamp( cov * uCloud, 0.0, 1.0 ) );
+        }
         // ay diski (+ hafif doku ve hale)
         float mmu = dot( dir, atmoSkyB.moonDir );
         float md = acos( clamp( mmu, -1.0, 1.0 ) );
@@ -256,7 +273,10 @@ const GradeShader = {
       c *= mix( uShadowTint, uHighTint, smoothstep( 0.02, 0.5, L ) );
       L = dot( c, vec3( 0.2126, 0.7152, 0.0722 ) );
       c = max( mix( vec3( L ), c, uSat ), 0.0 );
-      c = aces( c );
+      // renk koruyan ton eşleme: parlak pencereler beyaza kırpılmasın, tonu kalsın
+      float mx = max( max( c.r, c.g ), max( c.b, 1e-5 ) );
+      vec3 cp = c * ( aces( vec3( mx ) ).g / mx );
+      c = mix( aces( c ), clamp( cp, 0.0, 1.0 ), 0.55 * smoothstep( 0.6, 3.0, mx ) );
       // kontrast: orta gri etrafında hafif S
       c = clamp( ( c - 0.18 ) * uCon + 0.18, 0.0, 1.0 );
       vec2 q = ( vUv - 0.5 ) * vec2( uAspect, 1.0 ) * 1.6;
@@ -298,6 +318,7 @@ export async function create(ctx) {
     atmoSkyB: { value: sky },
     uSunCol: { value: new THREE.Color() }, uSunDisc: { value: 0 },
     uMoonCol: { value: new THREE.Color(0.85, 0.9, 1.0) }, uMoon: { value: 0 }, uStars: { value: 0 }, uEnvSat: { value: 1 },
+    uCloud: { value: 0 }, uCloudLit: { value: new THREE.Color() }, uCloudShade: { value: new THREE.Color() },
   };
   const domeGeo = new THREE.SphereGeometry(1, 96, 48);
   const dome = new THREE.Mesh(domeGeo, skyMaterial(skyU, false));
@@ -390,7 +411,7 @@ export async function create(ctx) {
   if (DEBUG === 'nan') { grade.material.defines.NAN_DEBUG = 1; grade.material.needsUpdate = true; }
 
   const pal = makePalette();
-  const moonCol = new THREE.Color('#a8c0ff');
+  const moonCol = new THREE.Color('#b8c8e8');
   const tmp = { v: new THREE.Vector3(), w: new THREE.Vector3(), m: new THREE.Matrix4(), mi: new THREE.Matrix4(), fwd: new THREE.Vector3() };
   let cur = null; // son update durumu (render için)
 
@@ -430,9 +451,13 @@ export async function create(ctx) {
     // visible hep true: ışık sayısı değişirse tüm malzemeler yeniden derlenir (≈1.5 sn takılma)
 
     skyU.uSunCol.value.copy(pal.sun);
-    skyU.uSunDisc.value = 60 * smooth(-1.2, 0.5, elev);
+    skyU.uSunDisc.value = 120 * smooth(-1.2, 0.5, elev);
     skyU.uMoon.value = smooth(-1, -6, elev);
     skyU.uStars.value = smooth(-9, -16, elev);
+    // bulut: gündüz belirgin, gece şehir parıltısıyla hafif
+    skyU.uCloud.value = 0.32 - 0.12 * smooth(-2, -12, elev);
+    skyU.uCloudLit.value.copy(pal.sun).multiplyScalar(pal.sunI * 0.16 * sunVis).add(tmpC.copy(pal.hor).multiplyScalar(0.9)).add(tmpC.copy(CITY_GLOW).multiplyScalar(pal.city * 0.6));
+    skyU.uCloudShade.value.copy(pal.zen).multiplyScalar(0.75).add(tmpC.copy(pal.hor).multiplyScalar(0.45)).add(tmpC.copy(CITY_GLOW).multiplyScalar(pal.city * 0.5));
 
     hemi.color.copy(pal.hemiS); hemi.groundColor.copy(pal.hemiG); hemi.intensity = pal.hemiI;
     scene.environmentIntensity = pal.envI;
@@ -478,7 +503,8 @@ export async function create(ctx) {
     camera.updateMatrixWorld();
     camera.getWorldDirection(tmp.fwd);
     const camPos = camera.position;
-    const dFar = 3200;
+    // alçak kamerada yakın plan çözünürlüğü için gölge mesafesini kısalt (havadan tüm sahne)
+    const dFar = Math.min(3200, Math.max(650, camera.position.y * 7 + 450));
     for (const [nx, ny] of ndc) {
       tmp.w.set(nx, ny, 0.5).unproject(camera).sub(camPos).normalize();
       const k = dFar / Math.max(0.05, tmp.w.dot(tmp.fwd));

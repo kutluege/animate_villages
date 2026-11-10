@@ -68,3 +68,9 @@
 
 Veri notu: `metrobus_station` (yeni düzen: w1305577747 / w1412628025) ve `bus_platforms` destekleniyor; eski düzende OSM'den sabit çizgilere düşülüyor. `quasar` ayrı anahtarı da okunuyor (iki düzen de sınandı: yeni düzen Playwright ile simüle edildi).
 city.js yaya köprüsünü (w375233084) zaten çiziyor; bizim üst geçit onu kapsayacak kotta, ama iki çizim üst üste — city.js bu yolu atlarsa daha temiz olur.
+
+## Tur 3
+- **TRUMP tacı doğrulandı:** Commons "Sunset over Mecidiyeköy.jpg" (2020, tam çözünürlük kırpıldı) ofis kulesinin tepesinde kuleden dar, koyu bir kutu ve üzerinde beyaz serif **"TRUMP / TOWERS"** yazısı gösteriyor; iki kulenin tepesinde de cephe temizleme vinci (BMU) kolu var. Kutu ~14 m (**tahmin**), yazı ölçüsü **tahmin**. Doğrulanamayan jaluzi kanatları, LED taç çerçeveleri, 9 m direk, rezidansın cam parapeti/cam bıçağı ve kule kenar LED'leri **kaldırıldı**.
+- **Rezidans çatısı:** aynı fotoğrafta düz çatı + dar koyu teknik kutu + BMU; önceki 11 m eğik kesik 3 m'ye indirildi (prizmatik yüzlerin perspektifi). Kutu ölçüsü **tahmin**.
+- **Gece pencereleri (tahmin, gözlemsel):** ofis kuleleri kat bantları (~%24 kat tam aydınlık, ~%30 seyrek, kalan karanlık; kat bütünüyle kendi eşiğinde yanar), konut kuleleri ~%20 pencere, amber + perde arkası loş (0.4–1.0 çarpan), ~%13'ü TV mavisi (t ile hafif titreme). Koyu camlı Torun/Quasar 0.6–0.8 geçirgenlik çarpanıyla daha soluk. Konut pencereleri bilinçli olarak 0.9–2.0 (CONTRACT'ın 1.5–4 aralığının altında, "perde arkası loş").
+- 14–16 sn'deki ince dikey çizgi: landmarks'ta 60 m'yi aşan ince parça taraması temiz (yalnız Trump koyu yarısının 0.7 m dikey kanadı). Çizgi büyük olasılıkla kadrajın kenarına giren rezidans kulesinin köşesi (kurgu).

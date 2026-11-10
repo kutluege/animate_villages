@@ -259,7 +259,7 @@ export function buildRoads(ctx, U, opts = {}) {
 
   // ── 4. yapı: tabliye, ayaklar, istinat duvarları, bariyerler
   const S = new Builder();
-  const concrete = lin('a9a59c'), concreteD = lin('8c887f'), barrierC = lin('c3c0b8'), soffit = lin('77746e');
+  const concrete = lin('a9a59c'), concreteD = lin('8c887f'), barrierC = lin('c3c0b8'), soffit = lin('a8a49b');
   function addBox(cx, y0, cz, ax, az, la, lw, y1, col) {
     // ax,az: boy ekseni (birim); la boy, lw en
     const bx = -az, bz = ax;

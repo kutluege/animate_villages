@@ -43,7 +43,7 @@ function obb(pts) {
 function makeMaterial(U) {
   const m = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, metalness: 0 });
   m.onBeforeCompile = (sh) => {
-    sh.uniforms.uLightsOn = U.uLightsOn;
+    sh.uniforms.uLightsOn = U.uLightsOn; sh.uniforms.uT = U.uT;
     sh.vertexShader = sh.vertexShader
       .replace('#include <common>', `#include <common>
 attribute vec4 aWin; attribute vec4 aBld; attribute vec4 aExt;
@@ -52,7 +52,7 @@ varying vec4 vWin; varying vec4 vBld; varying vec4 vExt; varying float vNy;`)
 vWin = aWin; vBld = aBld; vExt = aExt; vNy = normal.y;`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-uniform float uLightsOn;
+uniform float uLightsOn; uniform float uT;
 varying vec4 vWin; varying vec4 vBld; varying vec4 vExt; varying float vNy;
 ${GLSL_HASH}
 vec3 signCol(float h){
@@ -115,44 +115,99 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
       }
       // parapet / saçak bandı
       fac = mix(fac, fac * 0.84, cityBox(yRel, top - 0.7, top - 0.45, fwidth(yRel)));
+      // kat bazında boya farkı (sonradan boyanmış katlar)
+      if (!office && r4 > 0.45 && yRel > z0) fac *= mix(0.93, 1.06, cityH(seed, f, 13.0));
+      // parapet harpuştası (açık renkli üst kenar)
+      fac = mix(fac, fac * 1.18 + 0.03, cityBox(yRel, top - 0.16, top + 0.1, fwidth(yRel)) * (1.0 - far));
       if (rowOK && colOK) {
         float hw = cityH(seed * 8.0 + seg, col, f);
         float blank = office ? 0.0 : step(cityH(seed, seg * 41.0 + col, 77.0), 0.10);
         bool balc = !office && cityH(seed, seg * 41.0 + col, 91.0) < r5 * 0.55 && f >= 0.0;
         float wlo = balc ? 0.04 : sill, whi = balc ? 0.80 : sill + wh;
         float wW = balc ? min(0.9, ww + 0.12) : ww;
-        float wm = cityBox(fu, 0.5 - wW * 0.5, 0.5 + wW * 0.5, dd.x) * cityBox(fv, wlo, whi, dd.y);
-        float fr = cityBox(fu, 0.5 - wW * 0.5 - 0.035, 0.5 + wW * 0.5 + 0.035, dd.x) * cityBox(fv, wlo - 0.03, whi + 0.03, dd.y);
+        float a0 = 0.5 - wW * 0.5, a1 = 0.5 + wW * 0.5;
+        float near = (1.0 - far) * (1.0 - blank);
+        float wm = cityBox(fu, a0, a1, dd.x) * cityBox(fv, wlo, whi, dd.y);
+        // söve (çerçeve taşı)
+        float sv = r2 > 0.35 && !office ? 0.05 : 0.0;
+        float fr = cityBox(fu, a0 - sv - 0.03, a1 + sv + 0.03, dd.x) * cityBox(fv, wlo - 0.02, whi + sv + 0.03, dd.y);
         fr = max(0.0, fr - wm);
         wm *= 1.0 - blank; fr *= 1.0 - blank;
         float avg = wW * (whi - wlo) * (1.0 - blank);
         wm = mix(wm, avg, far); fr = mix(fr, 0.0, far);
-        float curtain = step(0.5, cityH(seed, col + seg * 50.0, f + 300.0));
-        float shut = step(0.88, cityH(seed, col + seg * 50.0, f + 333.0));
-        vec3 glassC = office ? mix(vec3(0.05, 0.07, 0.085), vec3(0.09, 0.11, 0.12), r5) : mix(vec3(0.03, 0.033, 0.036), vec3(0.42, 0.38, 0.32), curtain * 0.3);
-        glassC = mix(glassC, fac * 0.7, shut * (office ? 0.0 : 1.0));
-        fac = mix(fac, office ? fac * 0.7 : vec3(0.78, 0.78, 0.76), fr * 0.7);
+        float curtain = step(0.45, cityH(seed, col + seg * 50.0, f + 300.0));
+        float shut = step(0.9, cityH(seed, col + seg * 50.0, f + 333.0));
+        float cx = cityH(seed, col + seg * 50.0, f + 345.0); // perde açıklığı
+        // pencere içi yerel koordinat
+        float lu = clamp((fu - a0) / max(wW, 1e-3), 0.0, 1.0), lv = clamp((fv - wlo) / max(whi - wlo, 1e-3), 0.0, 1.0);
+        float curtMask = curtain * (step(lu, 0.22 + cx * 0.3) + step(0.78 - (1.0 - cx) * 0.3, lu)) ;
+        curtMask = clamp(curtMask, 0.0, 1.0);
+        vec3 glassC = office ? mix(vec3(0.05, 0.07, 0.085), vec3(0.09, 0.11, 0.12), r5) : vec3(0.035, 0.04, 0.045);
+        vec3 curtC = mix(vec3(0.62, 0.58, 0.5), vec3(0.75, 0.7, 0.62), cx);
+        glassC = mix(glassC, curtC, curtMask * 0.85 * near);
+        glassC = mix(glassC, fac * 0.65, shut * (office ? 0.0 : 1.0));
+        // girinti gölgesi: üst ve sol yüzlük koyu
+        float reveal = (1.0 - step(0.09, 1.0 - lv)) + (1.0 - step(0.06, lu));
+        reveal = clamp(reveal, 0.0, 1.0) * near * (office ? 0.3 : 1.0);
+        // kayıt (PVC) kasası: orta dikme + vasistas kayıtı
+        float mull = (cityBox(lu, 0.49, 0.51, dd.x / max(wW, 1e-3)) + cityBox(lv, 0.69, 0.715, dd.y / max(whi - wlo, 1e-3))) * near * (office ? 0.0 : 1.0) * (balc ? 0.0 : 1.0);
+        vec3 frameC = office ? fac * 0.7 : (r2 > 0.35 ? fac * 1.15 + 0.04 : vec3(0.74, 0.74, 0.72));
+        fac = mix(fac, frameC, fr * 0.8);
         fac = mix(fac, glassC, wm);
-        bGlass = wm * (1.0 - curtain * 0.4) * (1.0 - shut);
-        bMetal = office ? 0.55 : 0.15;
-        // balkon korkuluğu
+        fac = mix(fac, vec3(0.7, 0.7, 0.68), clamp(mull, 0.0, 1.0) * wm);
+        fac = mix(fac, fac * 0.35, reveal * wm);
+        bGlass = wm * (1.0 - curtMask * 0.6) * (1.0 - shut) * (1.0 - reveal);
+        bMetal = office ? 0.6 : 0.45;
+        if (!balc && !office) {
+          // denizlik (mermer) + altında gölge ve akıntı izi
+          float sl = cityBox(fu, a0 - 0.05, a1 + 0.05, dd.x) * cityBox(fv, wlo - 0.045, wlo - 0.005, dd.y) * near;
+          fac = mix(fac, vec3(0.62, 0.61, 0.58), sl);
+          float sh = cityBox(fu, a0 - 0.04, a1 + 0.04, dd.x) * cityBox(fv, wlo - 0.08, wlo - 0.045, dd.y) * near;
+          fac *= 1.0 - 0.35 * sh;
+          float drip = cityBox(fu, a0, a1, dd.x) * smoothstep(wlo - 0.45, wlo - 0.08, fv) * step(fv, wlo - 0.08) * near;
+          fac *= 1.0 - 0.1 * drip * cityH(seed, col, f + 400.0);
+          // klima dış ünitesi
+          if (cityH(seed, col + seg * 50.0, f + 500.0) < 0.2) {
+            float ax0 = a1 + 0.06, ax1 = a1 + 0.06 + 0.24;
+            float ac = cityBox(fu, ax0, ax1, dd.x) * cityBox(fv, wlo - 0.02, wlo + 0.2, dd.y) * near;
+            float gr = cityBox(fract((fu - ax0) / 0.024), 0.0, 0.4, dd.x / 0.024) * cityBox(fu, ax0 + 0.08, ax1 - 0.02, dd.x);
+            vec3 acC = mix(vec3(0.62, 0.62, 0.6), vec3(0.2), gr * 0.6);
+            fac = mix(fac, acC, ac);
+            float acs = cityBox(fu, ax0 + 0.01, ax1 + 0.01, dd.x) * cityBox(fv, wlo - 0.07, wlo - 0.02, dd.y) * near;
+            fac *= 1.0 - 0.4 * acs;
+          }
+        }
+        // balkon: çıkma döşeme + altındaki gölge + korkuluk
         if (balc) {
-          float rail = cityBox(fu, 0.5 - wW * 0.5 - 0.1, 0.5 + wW * 0.5 + 0.1, dd.x) * cityBox(fv, 0.0, 0.33, dd.y) * (1.0 - far) * (1.0 - blank);
-          vec3 railC = r3 > 0.5 ? fac * 0.85 + vec3(0.02) : vec3(0.07, 0.07, 0.075);
-          fac = mix(fac, railC, rail * 0.9);
+          float slabB = cityBox(fu, 0.02, 0.98, dd.x) * cityBox(fv, -0.01, 0.06, dd.y) * near;
+          fac = mix(fac, fac * 1.15 + 0.03, slabB);
+          if (f < nF - 1.0) fac *= 1.0 - 0.4 * cityBox(fu, 0.02, 0.98, dd.x) * cityBox(fv, 0.86, 1.0, dd.y) * near;
+          float rail = cityBox(fu, 0.03, 0.97, dd.x) * cityBox(fv, 0.06, 0.36, dd.y) * near;
+          float bars = r3 > 0.5 ? 1.0 : cityBox(fract(fu * 22.0), 0.0, 0.35, dd.x * 22.0);
+          vec3 railC = r3 > 0.5 ? fac * 0.85 + vec3(0.02) : vec3(0.06, 0.06, 0.065);
+          fac = mix(fac, railC, rail * mix(0.95, 0.9, bars) * (r3 > 0.5 ? 1.0 : 0.6 + 0.4 * bars));
           bGlass *= 1.0 - rail;
           wm *= 1.0 - rail * 0.75;
         }
-        // gece: pencere eşiği
-        float k = lt > 0.5 && lt < 1.5 ? (0.1 + kB * 0.3 + hw * 1.05) : (0.14 + kB * 0.5 + hw * 0.8);
+        // gece: seyrek, sıcak ağırlıklı, değişken parlaklık
+        float dark = step(0.86, kB) * 0.45;
+        float k = lt > 0.5 && lt < 1.5
+          ? (0.06 + kB * 0.25 + cityH(seed, f, 707.0) * 0.8 + hw * 0.12)
+          : (0.16 + kB * 0.55 + hw * 0.78 + dark);
         float on = smoothstep(k, k + 0.012, uLightsOn) * lightsGate;
         float tone = cityH(seed, col + seg * 50.0, f + 600.0);
         vec3 lc;
-        if (lt > 0.5 && lt < 1.5) lc = mix(vec3(0.82, 0.9, 1.0), vec3(1.0, 0.93, 0.8), tone);
-        else lc = tone < 0.62 ? mix(vec3(1.0, 0.47, 0.16), vec3(1.0, 0.70, 0.38), tone / 0.62) : mix(vec3(1.0, 0.9, 0.76), vec3(0.78, 0.86, 1.0), (tone - 0.62) / 0.38);
-        float I = mix(1.4, lt > 0.5 && lt < 1.5 ? 2.1 : 2.6, cityH(seed, col + seg * 50.0, f + 900.0)) * (curtain > 0.5 ? 0.6 : 1.0) * (1.0 - shut * 0.85);
-        float inside = mix(0.75, 1.2, smoothstep(wlo, whi, fv));
-        bEmit += lc * I * on * wm * inside;
+        float flick = 1.0;
+        if (lt > 0.5 && lt < 1.5) lc = mix(vec3(0.8, 0.88, 1.0), vec3(1.0, 0.92, 0.78), cityH(seed, f, 708.0));
+        else if (tone < 0.62) lc = mix(vec3(1.0, 0.42, 0.11), vec3(1.0, 0.6, 0.25), tone / 0.62);
+        else if (tone < 0.8) lc = vec3(1.0, 0.8, 0.56);
+        else if (tone < 0.93) lc = vec3(0.8, 0.88, 1.0);
+        else { lc = vec3(0.3, 0.45, 1.0); flick = 0.55 + 0.45 * sin(uT * (5.0 + tone * 9.0) + hw * 40.0) * sin(uT * 2.3 + tone * 17.0); }
+        float I = mix(0.8, lt > 0.5 && lt < 1.5 ? 2.0 : 2.6, pow(cityH(seed, col + seg * 50.0, f + 900.0), 1.5)) * (1.0 - shut * 0.9) * flick;
+        float curtGlow = mix(1.0, 0.45, curtMask);
+        vec3 lcc = mix(lc, lc * vec3(1.0, 0.8, 0.55), curtMask * 0.6);
+        float inside = mix(0.7, 1.15, lv) * (1.0 - reveal * 0.6);
+        bEmit += lcc * I * curtGlow * on * wm * inside;
       }
       // zemin kat dükkânları
       if (shop > 0.5 && yRel < gH && yRel > -0.5 && L > 3.0) {
@@ -165,14 +220,26 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
         float hs = cityH(seed, unit, seg + 17.0);
         float sg = cityBox(sf, 0.03, 0.97, sdx) * cityBox(yRel, gH * 0.7, gH * 0.94, sdy) * step(0.2, hs);
         vec3 sc = signCol(cityH(seed, unit, seg + 29.0));
+        // tabela yazısı izlenimi (harf blokları) ve tente
+        float lx = fract(u / 0.42), lid = floor(u / 0.42);
+        float letters = cityBox(lx, 0.12, 0.82, sdx * 5.5 / 0.42) * cityBox(yRel, gH * 0.75, gH * 0.89, sdy)
+          * step(0.25, cityH(seed, lid, unit + 61.0)) * cityBox(sf, 0.12, 0.88, sdx) * (1.0 - sfar);
+        float hasAw = step(0.45, cityH(seed, unit, seg + 37.0));
+        float aw = cityBox(yRel, gH * 0.6, gH * 0.69, sdy) * cityBox(sf, 0.05, 0.95, sdx) * hasAw;
+        float stripe = step(0.5, fract(u / 0.55));
+        vec3 awC = mix(signCol(cityH(seed, unit, seg + 41.0)) * 0.6 + 0.03, vec3(0.75, 0.73, 0.68), stripe * step(0.4, cityH(seed, unit, seg + 43.0)));
+        float awSh = cityBox(yRel, gH * 0.46, gH * 0.6, sdy) * cityBox(sf, 0.05, 0.95, sdx) * hasAw;
         fac = mix(fac, vec3(0.025, 0.028, 0.03), gl);
         fac = mix(fac, sc * 0.55 + 0.05, sg);
-        bGlass = max(bGlass, gl);
+        fac = mix(fac, vec3(0.92, 0.9, 0.86) * (sc.r + sc.g + sc.b > 2.2 ? 0.1 : 1.0), letters * sg);
+        fac = mix(fac, awC, aw);
+        fac *= 1.0 - 0.45 * awSh;
+        bGlass = max(bGlass, gl * (1.0 - awSh * 0.5));
         float kS = kB * 0.2 + cityH(seed, unit, seg + 5.0) * 0.25;
         float onS = smoothstep(kS, kS + 0.015, uLightsOn) * lightsGate;
         float kG = kB * 0.2 + cityH(seed, unit, seg + 6.0) * 0.4;
         float onG = smoothstep(kG, kG + 0.015, uLightsOn) * lightsGate * step(0.12, cityH(seed, unit, seg + 8.0));
-        bEmit += gl * vec3(1.0, 0.8, 0.55) * 2.4 * onG + sg * sc * 4.5 * onS;
+        bEmit += gl * vec3(1.0, 0.78, 0.5) * 2.2 * onG + sg * (sc * 2.2 + letters * vec3(1.0) * 2.5) * onS + aw * awC * 0.6 * onG;
       }
     }
     if (lt > 1.5) bEmit += fac * 0.55 * smoothstep(0.1, 0.4, uLightsOn) * (1.0 - 0.6 * smoothstep(0.0, top + 2.0, yRel));
@@ -186,18 +253,18 @@ metalnessFactor = mix(metalnessFactor, bMetal, bGlass);`)
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
 totalEmissiveRadiance += bEmit;`);
   };
-  m.customProgramCacheKey = () => 'city-bld-v1';
+  m.customProgramCacheKey = () => 'city-bld-v3';
   return m;
 }
 
 /**
  * @returns {{ mesh, footprints: Array<{pts, top, flat, roofY, seed, cat, area, cx, cz, id, kind}>, dispose }}
  */
-export function buildBuildings(ctx, U, nearShopRoad) {
-  const list = ctx.data.buildings?.buildings || [];
+export function buildBuildings(ctx, U, nearShopRoad, listOverride, seedBase = 1) {
+  const list = listOverride || ctx.data.buildings?.buildings || [];
   const B = new Builder({ aWin: 4, aBld: 4, aExt: 4 });
   const footprints = [];
-  let seedN = 1;
+  let seedN = seedBase;
   for (const b of list) {
     if (!b || b.landmark || !Array.isArray(b.footprint)) continue;
     let outer = cleanRing(b.footprint);
