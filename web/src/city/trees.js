@@ -46,6 +46,21 @@ export function buildTrees(ctx, ground, bld, roadInfo, group) {
     add(x, z, cyp);
   }
 
+  // boş parsellerin "ot" hücreleri (zemin gölgelendiricisiyle aynı ızgara): seyrek ağaç
+  for (let iz = -19; iz <= 19; iz++) {
+    for (let ix = -19; ix <= 19; ix++) {
+      const ty = (((ix * 3 + iz * 5) % 7) + 7) % 7;
+      if (ty !== 3 && ty !== 4) continue;
+      for (let k = 0; k < 14; k++) {
+        const x = ix * 48 + rng() * 48;
+        const z = iz * 48 + rng() * 48;
+        const ok = rng() < 0.75;
+        if (!ok || bld.inBuilding(x + 3, z) || bld.inBuilding(x - 3, z) || bld.inBuilding(x, z + 3) || bld.inBuilding(x, z - 3)) continue;
+        add(x, z, false);
+      }
+    }
+  }
+
   const geo = new THREE.IcosahedronGeometry(1, 2);
   const p = geo.attributes.position;
   const jr = ctx.rng('city/tree-shape');

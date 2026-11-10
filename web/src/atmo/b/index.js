@@ -17,6 +17,8 @@ const BOX_MAX = [950, 210, 950];
 export async function create(ctx) {
   const { THREE, scene, camera, renderer } = ctx;
   const FPS = ctx.params?.fps || 30;
+  // hata ayıklama: ?atmoAdapt=0 göz alışmasını kapatır
+  const ADAPT = ctx.params?.query?.atmoAdapt === '0' ? 0 : 1;
 
   // Ton eşleme post'un son geçişinde; three'ninki kapalı (render hedefinde zaten uygulanmaz).
   renderer.toneMapping = THREE.NoToneMapping;
@@ -274,6 +276,7 @@ export async function create(ctx) {
     f.uFogH.value = 40;
     set3(f.uFogTint, P.fogTint);
     f.uExposure.value = P.exposure;
+    f.uAdapt.value = P.adapt * ADAPT;
     post.bloom.strength = P.bloomS;
     post.bpreU.uThreshold.value = P.bloomT;
     post.bpreU.uClamp.value = P.bloomClamp;

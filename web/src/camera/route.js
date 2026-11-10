@@ -1,5 +1,5 @@
 // KAMERA ROTASI — saf matematik (three yok, durum yok): poseAt(t) → { pos, target, fov }.
-// Koordinatlar yerel metre (+X doğu, +Z güney, +Y yukarı). İki çekim, TEK kesme (t = 20.4 sn).
+// Koordinatlar yerel metre (+X doğu, +Z güney, +Y yukarı). Üç çekim, iki kesme (t = 20.4 ve 28.8 sn).
 //
 // ÇEKİM 1 — gündüz → gün batımı (0–20.4)
 //   0–1.5   Viyadük altı: Büyükdere Cd. trafiğinin ~4.5 m üstünde, ayak sıralarının arasından düz bir
@@ -17,41 +17,46 @@
 // ÇEKİM 2 — ışıklar → gece (20.4–36)
 //   20.4–28 Torun'un kuzeydoğusunda yüksekten geniş plan: önde apartman dokusu, ortada viyadük,
 //           arkada Torun kuleleri; ışıklar tek tek yanar. Kamera ~22 m/sn süzülerek alçalır.
-//   28–34.5 Viyadük / metrobüs şeridine doğru alçalan yay; şerit kadrajın orta bandına yükselir.
-//   34.5–36 Kapak: Torun kuleleri üst-ortada, ışık nehri orta bantta, altta çatı dokusu.
+// KESME (28.8): bütün ışıklar yandı → gece; D-100'ün batısına geçiş (kapak ekseni 1.2 km uzakta).
+// ÇEKİM 3 — ışık nehri (28.8–36)
+//   28.8–34.5 D-100'ün güneybatısından yüksekten süzülüp metrobüs ekseninin üstüne döner, yavaşlar.
+//   34.5–36 Kapak: eksen boyunca doğuya bakış; ışık nehri alttan ufka (kare yüksekliğinin ~%72'si)
+//           akar, metrobüs şeridi ortada, solda Trump, sağda uzakta Torun; üstte ~%15 gök.
 //
 // Düğümler çekim başına zaman-parametreli C2 kübik spline ile geçilir (hız ve ivme sürekli).
 // Doğrulama: node web/src/camera/check.mjs
 
 export const DURATION = 36;
 const CUT = 20.4; // kare 612
-export const CUTS = [CUT];
+const CUT2 = 28.8; // kare 864
+export const CUTS = [CUT, CUT2];
 
 // Bakış anahtarları: { t, az, pitch, d } (pusula°, eğim°, uzaklık m) ya da { t, p:[x,y,z] }.
 export const SHOTS = [
   {
     t0: 0,
     t1: CUT,
-    posV0: [-48.8, -0.8, 20.5],
+    posV0: [-48.8, -0.7, 20.5],
     posV1: [-13, 1.6, 8],
-    tgtV0: [-40, -2, 36],
+    tgtV0: [-36, 2, 38],
     tgtV1: [0, 0, 0],
     // [t, x, y, z]
     pos: [
       // Viyadük altı: DÜZ çapraz (pusula 247°). Güney ayak sırasını (844,41) ile (812,43) ayaklarının
       // ortasından keser; her ayağa ≥5 m (ayak konumları şehir modülünden; check.mjs denetler).
-      [0.0, 880, -3.2, 20.2],
-      [0.5, 855.6, -3.7, 30.4],
-      [1.0, 831.2, -4.0, 40.7],
-      [1.5, 806.8, -3.2, 50.9],
-      [2.2, 770, 2.2, 60],
-      [2.9, 729, 11.5, 62.5],
-      [3.7, 678, 25.5, 61.5],
-      [4.5, 625, 39, 61],
-      [5.3, 568, 51, 60],
-      [6.2, 499, 61.5, 56.5],
-      [7.2, 422, 71, 50],
-      [8.2, 344, 78.5, 44.5],
+      [0.0, 870.2, -3.4, 24.3],
+      [0.4, 850.7, -3.7, 32.5],
+      [0.8, 831.2, -4.0, 40.7],
+      [1.3, 806.8, -2.9, 50.9],
+      [2.0, 770.5, 4.0, 62],
+      [2.7, 730, 15.5, 65],
+      // buradan sonra sağa: viyadüğün ÜSTÜNE (tabliye +20 m), D-100 sıkışıklığı boyunca batıya
+      [3.5, 680, 32.5, 60],
+      [4.3, 627, 45.5, 51],
+      [5.1, 570, 54.5, 43.5],
+      [6.0, 504, 61.5, 40],
+      [7.1, 424, 70.5, 42],
+      [8.2, 344, 78.5, 42],
       [9.2, 267, 84, 40.5],
       [10.2, 190, 87, 39.5],
       [11.2, 114, 87, 40],
@@ -67,18 +72,18 @@ export const SHOTS = [
       [20.4, -223.5, 46, -7],
     ],
     look: [
-      { t: 0.0, az: 244, pitch: -8, d: 110 }, // ileride ışığa açılan güney kenar + Torun
-      { t: 0.5, az: 239, pitch: -5, d: 115 },
-      { t: 1.0, az: 229, pitch: 6, d: 125 },
-      { t: 1.5, az: 217, pitch: 25, d: 140 }, // ışığa çıkış: Torun C · B · A yelpazesi
-      { t: 2.2, az: 212, pitch: 36, d: 140 }, // dipten yukarı
-      { t: 2.9, az: 217, pitch: 28, d: 150 },
-      { t: 3.6, az: 234, pitch: 9, d: 200 },
-      { t: 4.3, az: 254, pitch: -4, d: 240 },
-      { t: 5.3, az: 269, pitch: -6, d: 260 },
-      { t: 6.2, az: 278, pitch: -5, d: 280 },
-      { t: 7.2, az: 286, pitch: -4, d: 300 },
-      { t: 8.2, az: 293, pitch: -4, d: 300 },
+      { t: 0.0, az: 250, pitch: -5, d: 110 }, // ileride ışığa açılan güney kenar + trafik derinliği
+      { t: 0.4, az: 242, pitch: -3, d: 115 },
+      { t: 0.8, az: 230, pitch: 7, d: 125 },
+      { t: 1.3, az: 217, pitch: 25, d: 140 }, // ışığa çıkış: Torun C · B · A yelpazesi
+      { t: 2.0, az: 212, pitch: 36, d: 140 }, // dipten yukarı
+      { t: 2.7, az: 218, pitch: 26, d: 150 },
+      { t: 3.4, az: 242, pitch: 3, d: 210 },
+      { t: 4.1, az: 260, pitch: -10, d: 240 }, // viyadük üstü: D-100 sıkışıklığı
+      { t: 5.1, az: 268, pitch: -9, d: 260 },
+      { t: 6.0, az: 276, pitch: -6, d: 280 },
+      { t: 7.1, az: 284, pitch: -5, d: 300 },
+      { t: 8.2, az: 292, pitch: -4, d: 300 },
       { t: 9.2, p: [55, 72, -105] }, // Trump Residence izlenir
       { t: 10.2, p: [52, 82, -110] },
       { t: 11.2, p: [50, 91, -112] },
@@ -92,7 +97,8 @@ export const SHOTS = [
       { t: 20.4, p: [44, 66, -112] },
     ],
     fov: [
-      [0.0, 66],
+      [0.0, 60],
+      [1.3, 66],
       [2.2, 66],
       [3.7, 62],
       [5.3, 55],
@@ -105,7 +111,7 @@ export const SHOTS = [
   },
   {
     t0: CUT,
-    t1: DURATION,
+    t1: CUT2,
     posV0: [-19.7, -5.8, 12.5],
     posV1: [0, 0, 0],
     tgtV0: [-6, 2, 4],
@@ -140,6 +146,37 @@ export const SHOTS = [
       [33.0, 55.5],
       [34.5, 56],
       [36.0, 56],
+    ],
+  },
+  {
+    t0: CUT2,
+    t1: DURATION,
+    posV0: [17.4, -10.8, -21.9],
+    posV1: [0, 0, 0],
+    tgtV0: [20, 0, 60],
+    tgtV1: [0, 0, 0],
+    pos: [
+      [28.8, -492.2, 132.4, 36.7],
+      [30.0, -473.3, 120.7, 12.9],
+      [31.0, -460.8, 112.9, -2.8],
+      [32.0, -451.3, 107, -14.8],
+      [33.0, -444.6, 102.8, -23.2],
+      [33.8, -441.3, 100.8, -27.3],
+      [34.5, -440, 100, -29],
+      [35.2, -439.9, 99.95, -29.03],
+      [36.0, -439.85, 99.93, -29.05],
+    ],
+    look: [
+      { t: 28.8, az: 74, pitch: -15, d: 500 },
+      { t: 31.0, az: 82, pitch: -13.5, d: 500 },
+      { t: 33.0, az: 88.5, pitch: -12.3, d: 500 },
+      { t: 34.5, az: 90.5, pitch: -12, d: 500 }, // kapak
+      { t: 36.0, az: 90.5, pitch: -11.98, d: 500 },
+    ],
+    fov: [
+      [28.8, 48],
+      [34.5, 52],
+      [36.0, 52],
     ],
   },
 ];

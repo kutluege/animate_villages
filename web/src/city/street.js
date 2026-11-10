@@ -324,9 +324,9 @@ function buildPeople(ctx, P, roadInfo, group) {
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', '#include <common>\nvarying vec3 vPCol; varying float vPAo;')
       .replace('#include <color_fragment>', '#include <color_fragment>\ndiffuseColor.rgb *= vPCol;')
-      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.35, vPAo); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }');
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.68, vPAo); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }');
   };
-  mat.customProgramCacheKey = () => 'city-people-v1';
+  mat.customProgramCacheKey = () => 'city-people-v2';
   const mesh = new THREE.Mesh(g, mat);
   mesh.name = 'city-people';
   mesh.frustumCulled = false;

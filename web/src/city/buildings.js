@@ -312,7 +312,7 @@ function addBuilding(THREE, gb, b, rng, gY, inBuilding) {
       } else if (style === 'glass') {
         const p = spot(0.45);
         if (p) gb.box(p[0], ry, p[1], Math.min(5, Math.sqrt(area) * 0.16), 2.2 + rng() * 1.6, Math.min(4, Math.sqrt(area) * 0.13), ang, [0.2, 0.21, 0.22], [seed, 5, 0, 0]);
-        const m = Math.min(6, Math.floor(area / 120));
+        const m = Math.min(16, Math.floor(area / 70));
         for (let k = 0; k < m; k++) {
           const q = spot(0.7);
           if (q) gb.box(q[0], ry, q[1], 0.9 + rng(), 0.9 + rng() * 0.8, 0.8 + rng(), ang, C_UNIT, [seed, 5, 0, 0]);
@@ -322,7 +322,14 @@ function addBuilding(THREE, gb, b, rng, gY, inBuilding) {
         const p = spot(0.5);
         if (p && area > 70) gb.box(p[0], ry, p[1], 1.3 + rng() * 0.9, 2.1 + rng() * 0.6, 1.2 + rng() * 0.7, ang, [wallCol[0] * 0.9, wallCol[1] * 0.9, wallCol[2] * 0.9], [seed, 5, 0, 0]);
         // güneş enerjili su ısıtıcıları: koyu panel + beyaz tank
-        const m = Math.min(5, Math.floor(area / 55 + rng() * 1.5));
+        const m = Math.min(16, Math.floor(area / 50 + rng() * 1.5));
+        // geniş çatılar boş levha kalmasın: ikinci merdiven kulesi, su depoları
+        for (let k = 0; k < Math.min(5, Math.floor(area / 240)); k++) {
+          const q = spot(0.8);
+          if (!q) continue;
+          if (rng() < 0.4) gb.box(q[0], ry, q[1], 1.3 + rng(), 2.0 + rng() * 0.8, 1.2 + rng() * 0.8, ang, [wallCol[0] * 0.85, wallCol[1] * 0.85, wallCol[2] * 0.85], [seed, 5, 0, 0]);
+          else gb.box(q[0], ry + 0.4, q[1], 0.8, 1.3, 0.8, ang + 0.78, C_WHITE, [seed, 5, 0, 0], true, true);
+        }
         for (let k = 0; k < m; k++) {
           const q = spot(0.72);
           if (!q) continue;
@@ -502,7 +509,7 @@ function facadeMaterial(THREE, uniforms) {
       .replace('#include <normal_fragment_maps>', '#include <normal_fragment_maps>\nnormal = normalize(normal + cNrm);')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += cEmis;');
   };
-  mat.customProgramCacheKey = () => 'city-facade-v1';
+  mat.customProgramCacheKey = () => 'city-facade-v2';
   return mat;
 }
 
@@ -649,6 +656,15 @@ cEmis = vec3(0.0); cRough = 0.9; cMetal = 0.0; cNrm = vec3(0.0);
     vec2 p = vUv2;
     float n = cFbm(p * 0.3 + seed * 40.0);
     col = base * (0.74 + 0.4 * n) * (0.94 + 0.12 * cNoise(p * 2.5));
+    // membran derzleri, yamalar, su birikintisi izi
+    float ra = seed * 6.283;
+    vec2 rp = vec2(cos(ra) * p.x - sin(ra) * p.y, sin(ra) * p.x + cos(ra) * p.y);
+    float fwr = max(fwidth(rp.x), fwidth(rp.y));
+    float seam = (1.0 - smoothstep(0.0, 0.04, abs(fract(rp.x / 1.3) - 0.5) - 0.46)) * (1.0 - smoothstep(0.15, 0.6, fwr));
+    vec2 pid = floor(rp / vec2(5.5, 3.6));
+    float pm = step(0.72, cH21(pid + seed * 9.0)) * (1.0 - smoothstep(0.8, 2.5, fwr));
+    col *= (1.0 - 0.2 * seam) * mix(1.0, 0.62 + 0.7 * cH21(pid + 3.0), pm);
+    col *= 1.0 - 0.28 * smoothstep(0.6, 0.8, cFbm(p * 0.13 + seed * 17.0));
     cRough = 0.93;
   } else if (kind < 4.5) {
     float rw = vUv2.y * 2.6;

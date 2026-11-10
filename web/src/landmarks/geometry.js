@@ -287,7 +287,7 @@ export function build(ctx) {
       const st = {
         col: [0.5, 0.5, 0.49],
         a: [3, 4.6, 7.5, 0.5],
-        b: [0.85, 0, 0.8, 0],
+        b: [0.85, 0, 0.14, 0],
         c: [0, 0, 0, 0],
       };
       B.wall(pod.ring, pod.baseY - 3, podTop + 1.1, (x, z) => heightAt(x, z), st, 3.1);
@@ -318,8 +318,8 @@ export function build(ctx) {
       const st = {
         col: [0.3, 0.42, 0.58],
         a: [type, 3.85, 1.5, lit], // podyum üstü 36/34 kat
-        b: [0.2, 0.7, 1.4, 18],
-        c: [0.2, warm, 1.7, 0.05],
+        b: [0.2, 0.7, 0.6, 18],
+        c: [0.2, warm, 0.5, 0.6],
         d: [0, 0.11, 3.0, 0.2],
       };
       B.wall(b.ring, podTop, top, podTop, st, seed);
@@ -378,8 +378,8 @@ export function build(ctx) {
         const st = {
           col: [0.34, 0.45, 0.5], // açık mavi-yeşil yansıtıcı cam
           a: [type, H / floors, 1.35, lit],
-          b: [0.13, 1.5, 0.9, 14], // ince koyu spandrel, belirgin dikey dikme, tepe LED hattı, 14 katta bir mekanik
-          c: [0.1, warm, 1.5, 0.7],
+          b: [0.13, 1.5, 0.5, 14], // ince koyu spandrel, belirgin dikey dikme, tepe LED hattı, 14 katta bir mekanik
+          c: [0.1, warm, 0.45, 0.7],
           d: [2, 0.1, 3.0, 0.8], // çift katlı lobi, panel sapması, parlama tavanı, açık renk dikme
         };
         B.wall(ring, b.baseY - 2, top, g, st, seed + k * 0.37);
@@ -402,7 +402,7 @@ export function build(ctx) {
     const bar = byId.get(ID.torunBar);
     if (bar) {
       const g = ground(bar);
-      const st = { col: [0.34, 0.45, 0.5], a: [1, 4.0, 1.35, 0.5], b: [0.14, 1.5, 0.9, 0], c: [0.1, 0.3, 1.2, 0.7], d: [2, 0.1, 3.0, 0.8] };
+      const st = { col: [0.34, 0.45, 0.5], a: [1, 4.0, 1.35, 0.5], b: [0.14, 1.5, 0.5, 0], c: [0.1, 0.3, 0.35, 0.7], d: [2, 0.1, 3.0, 0.8] };
       B.wall(bar.ring, bar.baseY - 2, g + HEIGHTS.torunBar, g, st, 24.6);
       B.cap(THREE, bar.ring, g + HEIGHTS.torunBar - 1.2, roofDark, 24.6);
       const e = facingEdge(bar.ring, [-0.2, -1], 20);
@@ -412,7 +412,7 @@ export function build(ctx) {
     const low = byId.get(ID.torunLow);
     if (low) {
       const g = ground(low);
-      const st = { col: [0.42, 0.42, 0.41], a: [3, 4.0, 6, 0.5], b: [0.6, 0, 0.6, 0], c: [0, 0, 0, 0] };
+      const st = { col: [0.42, 0.42, 0.41], a: [3, 4.0, 6, 0.5], b: [0.6, 0, 0.1, 0], c: [0, 0, 0, 0] };
       B.wall(low.ring, low.baseY - 2, g + HEIGHTS.torunLow + 0.8, (x, z) => heightAt(x, z), st, 25.2);
       B.cap(THREE, low.ring, g + HEIGHTS.torunLow, roofGrey, 25.2);
     }
@@ -434,10 +434,10 @@ export function build(ctx) {
       const st = {
         col: [0.74, 0.63, 0.49], // sıcak bej taş kaplama
         a: [3, 4.5, 8, 0.38],
-        b: [0.35, 0, 1.0, 0],
+        b: [0.35, 0, 0.18, 0],
         c: [0, 0, 0, 0],
       };
-      const stUp = { ...st, col: [0.66, 0.58, 0.47], a: [3, 4.5, 8, 0.3], b: [0.9, 0, 0.5, 0] };
+      const stUp = { ...st, col: [0.66, 0.58, 0.47], a: [3, 4.5, 8, 0.3], b: [0.9, 0, 0.08, 0] };
       B.wall(b.ring, b.baseY - 3, top + 1.2, (x, z) => heightAt(x, z), st, 31.4);
       B.cap(THREE, b.ring, top, S.matte([0.36, 0.35, 0.33]), 31.4);
       // geri çekilmiş üst kat

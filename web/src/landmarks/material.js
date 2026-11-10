@@ -129,22 +129,23 @@ if (lmType < 0.5) {
     float stt = lmHash(vec3(fi, 21.0, lmSeed));
     float full = step(stt, litFrac * 0.6);
     float part = step(stt, litFrac * 1.25) * (1.0 - full);
-    float zone = floor(pu / 10.0 + lmHash(vec3(fi, 22.0, lmSeed)));
+    float zw = 3.0 + floor(4.0 * lmHash(vec3(fi, 24.0, lmSeed))); // 4–9 m ofis bölmeleri
+    float zone = floor(pu / zw + lmHash(vec3(fi, 22.0, lmSeed)));
     float hz = lmHash(vec3(zone, fi, lmSeed + 5.3));
     float hz2 = lmHash(vec3(zone, fi, lmSeed + 6.9));
-    on = full * step(hz, 0.94) + part * step(hz, 0.5) + (1.0 - full - part) * step(hz, 0.05);
+    on = full * step(hz, 0.8) + part * step(hz, 0.4) + (1.0 - full - part) * step(hz, 0.06);
     th = 0.05 + 0.72 * lmHash(vec3(fi, 11.0, lmSeed)) + 0.18 * hz2;
     float hfc = lmHash(vec3(fi, 13.0, lmSeed));
     float tone = clamp(warm + step(0.8, hfc) * 0.6 + (hz2 - 0.5) * 0.12, 0.0, 1.0);
-    lc = mix(vec3(0.80, 0.90, 1.0), vec3(1.0, 0.84, 0.6), tone);
-    float colm = mod(pi + 0.5, 6.0) < 1.0 ? 0.25 : 1.0; // taşıyıcı kolon aksı
+    lc = mix(vec3(0.86, 0.92, 1.0), vec3(1.0, 0.84, 0.6), tone);
+    float colm = mod(pi + 0.5, 3.0) < 1.0 ? 0.42 : 1.0; // doğrama/kolon ritmi (uzaktan da doku kalır)
     float blind = hz2 > 0.8 ? 0.5 : 1.0;                 // yarı inik stor
     // tavan armatür bandı üstte parlak, altı masa/mobilya karanlığı
-    inten = mix(0.4, 1.0, smoothstep(0.45, 0.7, ff)) * (0.86 + 0.14 * h1) * colm * blind * 0.8;
+    inten = mix(0.4, 1.0, smoothstep(0.45, 0.7, ff)) * (0.5 + 0.5 * h2) * colm * blind * 0.42;
   } else {
     // KONUT: 5 panellik daireler (salon + 2 oda). Daire bir birim olarak yanar; odalar ardından.
-    float ap = pu / 5.0; float au = floor(ap); ap -= au;
-    float room = ap < 0.42 ? 0.0 : (ap < 0.72 ? 1.0 : 2.0);
+    float ap = pu / 3.0; float au = floor(ap); ap -= au;
+    float room = ap < 0.6 ? 0.0 : 1.0;
     float ha = lmHash(vec3(au, fi, lmSeed + 5.3));
     float hstack = lmHash(vec3(au, 31.0, lmSeed));
     float hr = lmHash(vec3(au * 3.0 + room, fi, lmSeed + 8.1));
@@ -155,15 +156,16 @@ if (lmType < 0.5) {
     vec3 wc = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.60, 0.30), fract(ha * 41.3));
     lc = tn < 0.64 ? wc : (tn < 0.88 ? vec3(1.0, 0.88, 0.72) : vec3(0.72, 0.84, 1.0));
     lc = mix(vec3(1.0, 0.78, 0.5), lc, warm);
-    float dim = fract(ha * 23.1) > 0.62 ? 0.38 : 1.0;    // perdeli / loş
-    float wall = lmLine(min(min(abs(ap - 0.42), abs(ap - 0.72)), min(ap, 1.0 - ap)) * 5.0, 0.16, fwU);
+    float dim = fract(ha * 23.1) > 0.45 ? 0.3 : 1.0;    // perdeli / loş
+    float wall = lmLine(min(abs(ap - 0.6), min(ap, 1.0 - ap)) * 3.0, 0.14, fwU);
     inten = dim * (0.8 + 0.2 * hr) * mix(0.5, 1.0, smoothstep(0.2, 0.9, ff)) * (1.0 - wall) * (room < 0.5 ? 1.0 : 0.8);
   }
   float a = on * lmOn(th) * glassAmt * (1.0 - lobby);
-  lmEmis += lc * inten * a * lmNightAmp;
+  lmEmis += lc * inten * a * (lmType < 1.5 ? 1.0 : 0.7) * lmNightAmp;
   // lobi: çift kat yüksekliğinde, erken yanan sıcak taban
   float la = lobby * glassAmt * lmOn(0.06);
-  lmEmis += vec3(1.0, 0.8, 0.55) * la * (0.9 + 0.4 * h1) * 1.25 * lmNightAmp;
+  // cam arkasından iç ışık: zeminde parlak, tavana doğru söner; doğrama ritmi ve panel farkı korunur
+  lmEmis += vec3(1.0, 0.72, 0.44) * la * (0.3 + 0.7 * h2) * (mod(pi + 0.5, 4.0) < 1.0 ? 0.3 : 1.0) * mix(1.0, 0.3, ff) * 0.55 * lmNightAmp;
   lmGlass *= 1.0 - 0.6 * max(a, la);
   // taç: tepe LED hattı
   vec3 cc = mix(vec3(0.75, 0.88, 1.0), vec3(1.0, 0.84, 0.62), vSty3.w);
@@ -189,7 +191,7 @@ if (lmType < 0.5) {
     lmRough = mix(0.8, 0.09, g); lmMetal = mix(0.0, 0.8, g); lmGlass = g * 0.55;
     float on = step(hb, 0.9) * lmOn(0.02 + 0.28 * hb2);
     vec3 lc = mix(vec3(1.0, 0.70, 0.38), vec3(1.0, 0.9, 0.74), hb);
-    lmEmis += g * on * lc * (0.9 + 1.1 * hb2) * mix(1.0, 0.55, smoothstep(0.5, 4.2, v)) * 1.5 * lmNightAmp;
+    lmEmis += g * on * lc * (0.9 + 1.1 * hb2) * mix(1.0, 0.45, smoothstep(0.5, 4.2, v)) * 0.8 * lmNightAmp;
     lmGlass *= 1.0 - 0.7 * on;
   } else if (v < 6.4) {
     // alın bandı: mağaza tabelaları
@@ -197,7 +199,7 @@ if (lmType < 0.5) {
     vec3 sc = hb < 0.25 ? vec3(1.0, 0.13, 0.08) : hb < 0.5 ? vec3(1.0, 0.94, 0.82) : hb < 0.75 ? vec3(0.16, 0.45, 1.0) : vec3(1.0, 0.7, 0.1);
     diffuseColor.rgb = mix(clad * 0.62, sc * 0.55, sgn);
     lmRough = 0.6;
-    lmEmis += sgn * sc * 1.9 * lmOn(0.03 + 0.4 * hb) * lmNightAmp;
+    lmEmis += sgn * sc * 1.1 * lmOn(0.03 + 0.4 * hb) * lmNightAmp;
   } else {
     float fl = (v - 6.4) / floorH; float fi = floor(fl); float ff = fl - fi;
     float fwF = fwidth(fl);
@@ -219,7 +221,7 @@ if (lmType < 0.5) {
     lmEmis += band * on * mix(vec3(1.0, 0.74, 0.44), vec3(1.0, 0.92, 0.8), hw / max(litFrac, 0.01)) * (0.5 + 0.7 * hp) * lmNightAmp;
     lmGlass *= 1.0 - 0.6 * on * band;
     // parapet altı ışık çizgisi (sıcak cephe yıkaması)
-    float wash = smoothstep(2.6, 0.0, vFac.z) * step(0.0, vFac.z);
+    float wash = smoothstep(1.2, 0.0, vFac.z) * step(0.0, vFac.z);
     lmEmis += vec3(1.0, 0.72, 0.42) * wash * vSty2.z * lmOn(0.18) * (1.0 - band) * lmNightAmp;
   }
 } else if (lmType < 4.5) {
@@ -266,6 +268,9 @@ const FRAG_EMISSIVE = /* glsl */ `
   vec3 glow = uLmGlow * (pow(sd, 140.0) * 1.5 * uLmCore + pow(sd, 18.0) * 0.42 * mix(0.3, 1.0, uLmCore) + pow(sd, 4.0) * 0.10);
   vec3 sky = mix(uLmHor, uLmZen, smoothstep(0.0, 0.55, lmR.y));
   sky = mix(sky, uLmHor * 0.28 + vec3(0.012), smoothstep(0.0, -0.25, lmR.y));
+  // gece: ışıksız cam düz siyah kalmasın — altta şehir parıltısı, üstte lacivert gök (panel sapmasıyla kırılır)
+  vec3 lmNref = mix(vec3(0.085, 0.055, 0.032), vec3(0.012, 0.022, 0.05), smoothstep(-0.05, 0.35, lmR.y));
+  lmEmis += lmGlass * uNight * lmNref * mix(0.6, 1.8, lmF);
   lmEmis += lmGlass * (glow + sky * uLmEnvFallback * mix(lmTint, vec3(1.0), lmF));
   totalEmissiveRadiance += lmEmis;
 }
@@ -305,7 +310,7 @@ export function makeFacadeMaterial(ctx) {
       .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\nreflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(lmSpecCap * (0.4 + 1.9 * pow(lmSd, 8.0))));')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${FRAG_EMISSIVE}`);
   };
-  material.customProgramCacheKey = () => 'landmarks-facade-v3';
+  material.customProgramCacheKey = () => 'landmarks-facade-v4';
 
   const C = (r, g, b) => new THREE.Color(r, g, b);
   const ZD = C(0.2, 0.4, 0.82), HD = C(0.62, 0.76, 0.95);

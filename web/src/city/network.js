@@ -65,8 +65,10 @@ export function prepareNetwork(ctx) {
     const rx = -dir[1];
     const rz = dir[0];
     for (let d = 0; d <= EXT_LEN; d += 20) {
-      const x = p0[0] + dir[0] * d;
-      const z = p0[2] + dir[1] * d;
+      // düz cetvel çizgisi olmasın: uzantı yumuşak bir kavisle ufka döner
+      const off = ((dir[0] > 0 ? 1 : -1) * d * d) / 15000;
+      const x = p0[0] + dir[0] * d + rx * off;
+      const z = p0[2] + dir[1] * d + rz * off;
       let g = -1e9;
       for (let k = -1; k <= 1; k++) g = Math.max(g, heightAt(x + rx * k * width * 0.6, z + rz * k * width * 0.6));
       out.push([x, lerp(p0[1], g + 0.5, smoothstep(0, 260, d)), z]);
@@ -84,8 +86,11 @@ export function prepareNetwork(ctx) {
       let pts = makeExt(p, dirs[side], r.width);
       if (end === 0) pts = pts.reverse(); // yol buradan başlıyor → uzantı içeri doğru akar
       extRoads.push({ ...r, id: `${r.id}_ext${end}`, pts, bridge: false, viaduct: false, ext: true });
-      const q = end === 0 ? pts[0] : pts[pts.length - 1];
-      extLines.push({ ax: p[0], az: p[2], bx: q[0], bz: q[2] });
+      for (let i = 0; i + 1 < pts.length; i += 4) {
+        const q0 = pts[i];
+        const q1 = pts[Math.min(pts.length - 1, i + 4)];
+        extLines.push({ ax: q0[0], az: q0[2], bx: q1[0], bz: q1[2] });
+      }
     }
   }
   roads.push(...extRoads);

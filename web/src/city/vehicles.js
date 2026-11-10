@@ -230,8 +230,11 @@ export function vehicleMaterial(THREE, uniforms, lamps) {
         `#include <emissivemap_fragment>
         ${lamps ? `{
           float lampOn = smoothstep(0.02, 0.22, uLit);
-          if (vPaint > 1.5 && vPaint < 2.5) totalEmissiveRadiance += vec3(1.0, 0.95, 0.85) * 5.0 * lampOn;
-          if (vPaint > 2.5 && vPaint < 3.5) totalEmissiveRadiance += vec3(1.0, 0.05, 0.02) * 3.0 * lampOn;
+          // gölgede (tabliye altı) farlar yanık; sıkışık trafikte stoplar gündüz de kızarır
+          float headOn = max(lampOn, 0.8 * vAo);
+          float tailOn = max(lampOn, 0.3 + 0.65 * vAo);
+          if (vPaint > 1.5 && vPaint < 2.5) totalEmissiveRadiance += vec3(1.0, 0.95, 0.85) * 5.0 * headOn;
+          if (vPaint > 2.5 && vPaint < 3.5) totalEmissiveRadiance += vec3(1.0, 0.05, 0.02) * 3.4 * tailOn;
           if (vPaint > 3.5) totalEmissiveRadiance += vec3(1.0, 0.8, 0.2) * 2.5 * lampOn;
         }` : ''}`,
       );
@@ -243,10 +246,10 @@ export function vehicleMaterial(THREE, uniforms, lamps) {
       // tabliye altındaki araçlar: ortam ışığı kısılır
       sh.fragmentShader = sh.fragmentShader.replace(
         '#include <aomap_fragment>',
-        '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.32, vAo); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }',
+        '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.66, vAo); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }',
       );
     };
   }
-  mat.customProgramCacheKey = () => `city-vehicle2-${lamps ? 1 : 0}`;
+  mat.customProgramCacheKey = () => `city-vehicle3-${lamps ? 1 : 0}`;
   return mat;
 }

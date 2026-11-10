@@ -20,7 +20,7 @@ export async function create(ctx) {
   group.name = 'city';
   scene.add(group);
 
-  const shared = { uPx: { value: 0.001 }, uFrac: { value: 0.7 } }; // 1 m uzaklıkta 1 pikselin dünya boyu
+  const shared = { uPx: { value: 0.001 }, uFrac: { value: 0.7 }, uFlow: { value: 0 } }; // 1 m uzaklıkta 1 pikselin dünya boyu
 
   const net = prepareNetwork(ctx);
   const ground = buildGround(ctx, net, group);
@@ -28,7 +28,7 @@ export async function create(ctx) {
   const decals = createDecals(ctx);
   const roadInfo = buildRoads(ctx, net, ground, group, decals);
   const lamps = buildLamps(ctx, net, ground, bld, roadInfo, group, shared);
-  const traffic = buildTraffic(ctx, net, group, shared, roadInfo);
+  const traffic = buildTraffic(ctx, net, group, shared, roadInfo, { ground, bld });
   const trees = buildTrees(ctx, ground, bld, roadInfo, group);
   const street = buildStreet(ctx, net, ground, bld, roadInfo, decals, group);
   decals.finish(group);
@@ -49,12 +49,21 @@ export async function create(ctx) {
 
   if (typeof window !== 'undefined') {
     // denetim kancası (yalnız okuma): sayımlar + son çizimin draw call / üçgen sayısı
-    window.__city = { info, groundAt: ground.gY, renderInfo: () => {
+    window.__city = { info, group, trailDebug: traffic.debug, groundAt: ground.gY, renderInfo: () => {
         // yalnız şehir grubunu düz çiz (post yok) → şehir katmanının draw call / üçgen sayısı (gölge geçişi dahil)
         const vis = scene.children.map((c) => c.visible);
         scene.children.forEach((c) => { if (c !== group && !c.isLight) c.visible = false; });
+        const rt = renderer.getRenderTarget();
+        const ac = renderer.autoClear;
+        const bg = scene.background;
+        renderer.setRenderTarget(null);
+        renderer.autoClear = true;
+        scene.background = null;
         renderer.render(scene, camera);
-        const out = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+        renderer.setRenderTarget(rt);
+        renderer.autoClear = ac;
+        scene.background = bg;
+        const out = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, exposure: renderer.toneMappingExposure, toneMapping: renderer.toneMapping };
         scene.children.forEach((c, i) => { c.visible = vis[i]; });
         return out;
       } };

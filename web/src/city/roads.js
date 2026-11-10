@@ -352,11 +352,11 @@ export function buildRoads(ctx, net, ground, group, decals) {
       // aşağı bakan yüzler (tabliye ve kiriş altları) gökten ışık almaz
       sh.fragmentShader = sh.fragmentShader.replace(
         '#include <aomap_fragment>',
-        '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.3, max(smoothstep(-0.2, -0.7, vCityN.y), vUnder)); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }',
+        '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.58, max(smoothstep(-0.2, -0.7, vCityN.y), vUnder)); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }',
       );
     };
   }
-  sMat.customProgramCacheKey = () => 'city-concrete-v3';
+  sMat.customProgramCacheKey = () => 'city-concrete-v4';
   const sMesh = new THREE.Mesh(sb.build(THREE, { uvw: false }), sMat);
   sMesh.name = 'city-structures';
   sMesh.castShadow = true;
@@ -452,9 +452,9 @@ function roadMaterial(THREE, uniforms) {
       .replace('#include <roughnessmap_fragment>', '#include <roughnessmap_fragment>\nroughnessFactor = cRough;')
       .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += cEmis;')
       // tabliye altı: ortam ışığı ve gök yansıması kısılır (kalıcı gölge)
-      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.42, vInfo.w); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }');
+      .replace('#include <aomap_fragment>', '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.72, vInfo.w); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }');
   };
-  mat.customProgramCacheKey = () => 'city-road-v2';
+  mat.customProgramCacheKey = () => 'city-road-v3';
   return mat;
 }
 
@@ -476,6 +476,22 @@ cEmis = vec3(0.0); cRough = 0.9;
   float lanePos = fract(u / lw);
   float major = step(type, 1.5) + step(2.5, type) * step(type, 3.5) + step(4.5, type);
   asp *= 1.0 - 0.1 * major * smoothstep(0.25, 0.0, abs(abs(lanePos - 0.5) - 0.24)) * (1.0 - smoothstep(0.2, 0.6, fu / lw));
+  {
+    // yama, yağ lekesi, rögar kapağı (yakında okunur, uzakta söner)
+    float fine = (1.0 - smoothstep(0.06, 0.3, fu)) * step(type, 3.5);
+    vec2 pc = floor(vec2(u / 2.3, v / 7.0));
+    float ph = cH21(pc + type * 3.0);
+    asp *= mix(1.0, 0.72 + 0.6 * cH21(pc + 9.0), step(0.84, ph) * fine);
+    float oil = smoothstep(0.6, 0.85, cNoise(vec2(u * 2.5, v * 0.22))) * smoothstep(0.3, 0.0, abs(lanePos - 0.5));
+    asp *= 1.0 - 0.4 * oil * fine;
+    vec2 mc = vec2(u - lw * (floor(u / lw) + 0.5), mod(v, 37.0) - 18.0);
+    float md = length(mc);
+    float mh = step(0.6, cH21(vec2(floor(u / lw), floor(v / 37.0)))) * fine;
+    asp = mix(asp, vec3(0.03), (1.0 - smoothstep(0.34, 0.38, md)) * mh);
+    asp *= 1.0 + 0.8 * mh * (smoothstep(0.38, 0.4, md) - smoothstep(0.44, 0.47, md));
+    float crack = (1.0 - smoothstep(0.0, 0.05, abs(cNoise(vec2(u * 0.6, v * 0.5)) - 0.5))) * fine;
+    asp *= 1.0 - 0.3 * crack;
+  }
   vec3 col = asp;
   if (major > 0.5) {
     float hwid = 0.09;
@@ -509,6 +525,8 @@ cEmis = vec3(0.0); cRough = 0.9;
     cEmis = sc * on * (band * 9.0 * mix(1.0, gain * 2.2, smoothstep(0.3, 1.2, bw)) + 0.14);
   }
   cRough = 0.9 + 0.08 * n1;
-  diffuseColor.rgb = col * mix(1.0, 0.8, vInfo.w);
+  float wet = smoothstep(0.5, 0.7, cFbm(vCityPos.xz * 0.11 + 4.0)) * (0.2 + 0.8 * vInfo.w) * step(type, 3.5);
+  cRough = mix(cRough, 0.16, wet * 0.85);
+  diffuseColor.rgb = col * (1.0 - 0.3 * wet) * mix(1.0, 0.92, vInfo.w);
 }
 `;

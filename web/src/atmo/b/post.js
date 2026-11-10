@@ -11,6 +11,22 @@ varying vec2 vUv;
 void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }
 `;
 
+// Kare içi ortalama (log) parlaklık: 64×64, her teksel 4×4 örnek; mip zincirinin tepesi = kare
+// ortalaması. Yalnız O karenin kendisinden hesaplanır (geçmiş kare yok → deterministik).
+const LUM_FRAG = /* glsl */ `
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D tColor;
+void main(){
+  float s = 0.0;
+  for (int j = 0; j < 4; j++) for (int i = 0; i < 4; i++){
+    vec3 c = texture2D(tColor, vUv + (vec2(float(i), float(j)) - 1.5) / 256.0).rgb;
+    s += log(max(dot(c, vec3(0.2126, 0.7152, 0.0722)), 1e-4));
+  }
+  gl_FragColor = vec4(vec3(s / 16.0), 1.0);
+}
+`;
+
 const FOG_FRAG = /* glsl */ `
 precision highp float;
 varying vec2 vUv;
@@ -18,7 +34,8 @@ uniform sampler2D tColor;
 uniform sampler2D tDepth;
 uniform mat4 uProjInv, uCamWorld;
 uniform vec3 uCamPos, uFogTint;
-uniform float uFogK, uFogR, uFogLow, uFogY0, uFogH, uExposure;
+uniform float uFogK, uFogR, uFogLow, uFogY0, uFogH, uExposure, uAdapt;
+uniform sampler2D tLum;
 ${SKY_GLSL}
 void main(){
   vec3 col = texture2D(tColor, vUv).rgb;
@@ -48,7 +65,10 @@ void main(){
     T = exp(-od);
   }
   col = col * T + fogCol * (1.0 - T);
-  col = max(col, vec3(0.0)) * uExposure;
+  // göz alışması (yalnız gündüz, yalnız yukarı): kare genel olarak karanlıksa (viyadük altı) pozlama açılır
+  float avg = exp(textureLod(tLum, vec2(0.5), 10.0).r) * uExposure;
+  float adapt = mix(1.0, clamp(pow(0.26 / max(avg, 1e-3), 0.55), 1.0, 2.0), uAdapt);
+  col = max(col, vec3(0.0)) * uExposure * adapt;
   // HDR tepe sıkıştırma (renk tonu korunur): cam üstündeki güneş parlaması bloom'u patlatmasın
   float m = max(col.r, max(col.g, col.b));
   // (rasyonel omuz: dizde eğim 1, PEAK'e asimptot — parlamanın içinde ton farkı kalır)
@@ -170,7 +190,7 @@ void main(){
   col *= mix(vec3(1.0), shTint, sh * uSplit);
   col *= mix(vec3(1.0), hiTint, hi * uSplit);
   // gölge kaldırma: tam siyaha çökmesin, taban teal
-  vec3 lift = mix(vec3(0.004, 0.006, 0.009), vec3(0.003, 0.011, 0.016), uNightK);
+  vec3 lift = mix(vec3(0.004, 0.006, 0.009), vec3(0.0012, 0.003, 0.0065), uNightK);
   col = col * (1.0 - 0.02) + lift;
 
   l = dot(col, vec3(0.2126, 0.7152, 0.0722));
@@ -188,7 +208,7 @@ void main(){
   // gren + titreme (kare indeksinden tohumlu; bantlanmayı da kırar)
   vec2 px = floor(vUv * uRes);
   float g = h31(vec3(px, uSeed)) + h31(vec3(px + 17.0, uSeed + 3.7)) - 1.0;
-  col += g * (uGrain * (0.35 + 0.65 * (1.0 - l)) + 1.0 / 255.0);
+  col += g * (uGrain * (0.35 + 0.65 * (1.0 - l)) + 1.5 / 255.0);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -219,6 +239,7 @@ export function createPost(renderer, skyUniforms) {
   const rtScene = hdr(2, 2, { depthBuffer: true, depthTexture: depthTex, samples });
   const rtA = hdr(2, 2);
   const rtB = hdr(2, 2);
+  const rtLum = hdr(64, 64, { generateMipmaps: true, minFilter: THREE.LinearMipmapLinearFilter });
   const rtS1 = hdr(2, 2);
   const rtS2 = hdr(2, 2);
   const rtS3 = hdr(2, 2);
@@ -248,6 +269,8 @@ export function createPost(renderer, skyUniforms) {
     uFogY0: { value: 0 },
     uFogH: { value: 30 },
     uExposure: { value: 1 },
+    uAdapt: { value: 0 },
+    tLum: { value: rtLum.texture },
   };
   const preU = { tColor: { value: rtA.texture }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 2.1 } };
   const bpreU = { tColor: { value: rtA.texture }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1 }, uClamp: { value: 1.6 } };
@@ -271,6 +294,7 @@ export function createPost(renderer, skyUniforms) {
     uNightK: { value: 0 },
   };
 
+  const lumMat = mk(LUM_FRAG, { tColor: { value: rtScene.texture } });
   const fogMat = mk(FOG_FRAG, fogU);
   const preMat = mk(STREAK_PRE_FRAG, preU);
   const bpreMat = mk(BLOOM_PRE_FRAG, bpreU);
@@ -317,6 +341,7 @@ export function createPost(renderer, skyUniforms) {
     fogU.uProjInv.value.copy(camera.projectionMatrixInverse);
     fogU.uCamWorld.value.copy(camera.matrixWorld);
     fogU.uCamPos.value.setFromMatrixPosition(camera.matrixWorld);
+    pass(lumMat, rtLum);
     pass(fogMat, rtA);
 
     // şerit kaynağı bloom'dan ÖNCE alınır (bloom ile çifte sayım olmasın)

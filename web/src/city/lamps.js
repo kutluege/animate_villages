@@ -200,7 +200,7 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
       #include <common>
       #include <fog_pars_vertex>
       void main(){
-        float on = max(iPar.z * 0.55, smoothstep(iPar.y, iPar.y + 0.05, uLit));
+        float on = max(iPar.z * 1.5, smoothstep(iPar.y, iPar.y + 0.05, uLit));
         vec3 nn = normalize(iNrm);
         vec3 tx = normalize(cross(vec3(0.0, 0.0, 1.0), nn));
         vec3 tz = cross(nn, tx);

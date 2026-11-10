@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // KARE KARE ÜRETİM — deterministik, ekran kaydı DEĞİL (CONTRACT §7–§8).
 // Playwright ile /?render=1 sayfasını açar; her kare için __setFrame(i) → __capture() (PNG),
-// sonra ffmpeg ile H.264 / yuv420p / 30 fps / sessiz MP4.
+// sonra ffmpeg ile H.264 / yuv420p / 30 fps / sessiz MP4 (kare dizisi sabit kare hızıyla; her PNG = 1 video karesi).
 //
 //   node tools/render.mjs --draft            540×960  → out/draft/draft.mp4
 //   node tools/render.mjs                    1080×1920 → out/final/mecidiyekoy.mp4 + out/final/cover.png
@@ -155,32 +155,50 @@ export function sourceSignature() {
 export const frameName = (i) => `f${String(i).padStart(5, '0')}.png`;
 
 function encode({ dir, frames, fps, step, out, crf, preset }) {
-  // concat demuxer: aralık/adım ne olursa olsun çalışır; çıktı sabit 30 fps.
-  const list = path.join(dir, 'concat.txt');
-  const dur = (step / fps).toFixed(6);
-  const lines = ['ffconcat version 1.0'];
-  for (const i of frames) lines.push(`file '${frameName(i)}'`, `duration ${dur}`);
-  lines.push(`file '${frameName(frames[frames.length - 1])}'`); // son karenin süresi için
-  fs.writeFileSync(list, lines.join('\n') + '\n');
+  // Kareler ffmpeg'e SIRALI bir dizi olarak, sabit kare hızıyla verilir (-framerate fps -i s%05d.png):
+  // zaman damgası yuvarlaması / fps dönüştürmesi yok → her PNG tam bir video karesi (adım K ise K kare).
+  // Dizi, kare dosyalarına sabit bağ (hardlink; olmazsa kopya) içeren geçici bir klasördür.
+  const seq = path.join(dir, 'seq');
+  fs.rmSync(seq, { recursive: true, force: true });
+  fs.mkdirSync(seq, { recursive: true });
+  let n = 0;
+  for (const i of frames) {
+    const src = path.join(dir, frameName(i));
+    for (let rpt = 0; rpt < step; rpt++) {
+      const dst = path.join(seq, `s${String(n++).padStart(5, '0')}.png`);
+      try {
+        fs.linkSync(src, dst);
+      } catch {
+        fs.copyFileSync(src, dst);
+      }
+    }
+  }
   fs.mkdirSync(path.dirname(out), { recursive: true });
   const tmp = out.replace(/\.mp4$/, '.part.mp4');
   const args = [
-    '-y', '-hide_banner', '-loglevel', 'error', '-stats',
-    '-f', 'concat', '-safe', '0', '-i', list,
+    '-y', '-hide_banner', '-loglevel', 'error',
+    '-framerate', String(fps), '-start_number', '0', '-i', path.join(seq, 's%05d.png'),
     '-an',
-    '-vf', `fps=${fps},scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p`,
+    '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p',
     '-c:v', 'libx264', '-preset', preset, '-crf', String(crf),
     '-profile:v', 'high', '-level', '4.2', '-pix_fmt', 'yuv420p',
     '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
     '-g', String(fps * 2), '-bf', '2',
-    '-frames:v', String(frames.length * step),
+    '-fps_mode', 'passthrough', '-video_track_timescale', String(fps * 512),
+    '-frames:v', String(n),
     '-movflags', '+faststart',
     tmp,
   ];
-  const r = spawnSync(ffmpegBin(), args, { stdio: 'inherit' });
-  if (r.error) throw new Error(`ffmpeg çalışmadı: ${r.error.message} (FFMPEG ortam değişkeniyle yol verilebilir)`);
-  if (r.status !== 0) throw new Error(`ffmpeg hata kodu ${r.status}`);
+  const res = spawnSync(ffmpegBin(), args, { stdio: 'inherit' });
+  fs.rmSync(seq, { recursive: true, force: true });
+  if (res.error) throw new Error(`ffmpeg çalışmadı: ${res.error.message} (FFMPEG ortam değişkeniyle yol verilebilir)`);
+  if (res.status !== 0) throw new Error(`ffmpeg hata kodu ${res.status}`);
+  // doğrulama: video kare sayısı = verilen kare sayısı
+  const probe = spawnSync(ffmpegBin().replace(/ffmpeg(\.exe)?$/i, 'ffprobe$1'), ['-v', 'error', '-select_streams', 'v:0', '-count_frames', '-show_entries', 'stream=nb_read_frames', '-of', 'csv=p=0', tmp], { encoding: 'utf8' });
+  const got = parseInt((probe.stdout || '').trim(), 10);
+  if (Number.isFinite(got) && got !== n) throw new Error(`kodlama kare sayısı tutmuyor: ${got} ≠ ${n}`);
   fs.renameSync(tmp, out);
+  return n;
 }
 
 async function main() {

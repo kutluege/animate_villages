@@ -183,6 +183,29 @@ const OUTER_GLSL = /* glsl */ `
   }
 `;
 
+// Yapısız, yolsuz zemin (doku taban rengi) → 48 m hücrelerle otopark / ot / toprak-şantiye dokusu.
+const LOT_GLSL = /* glsl */ `
+  {
+    float lotM = 1.0 - smoothstep(0.012, 0.045, distance(diffuseColor.rgb, vec3(0.198, 0.181, 0.153)));
+    vec2 lp = vCityPos.xz;
+    vec2 lc = floor(lp / 48.0);
+    float ty = mod(lc.x * 3.0 + lc.y * 5.0, 7.0);
+    vec3 lot;
+    if (ty < 2.5) {
+      float fwx = fwidth(lp.x);
+      float dl = abs(mod(lp.x + 1.35, 2.7) - 1.35);
+      float stall = step(mod(lp.y, 8.0), 5.0);
+      float ln = (1.0 - smoothstep(0.05, 0.05 + fwx, dl)) * stall * (1.0 - smoothstep(0.25, 0.9, fwx));
+      lot = mix(vec3(0.07, 0.07, 0.073) * (0.8 + 0.4 * cNoise(lp * 0.3)), vec3(0.5), ln * 0.8);
+    } else if (ty < 4.5) {
+      lot = mix(vec3(0.1, 0.13, 0.065), vec3(0.17, 0.16, 0.1), cFbm(lp * 0.12)) * (0.75 + 0.5 * cNoise(lp * 1.1));
+    } else {
+      lot = mix(vec3(0.27, 0.22, 0.16), vec3(0.2, 0.19, 0.175), cFbm(lp * 0.09)) * (0.8 + 0.4 * cNoise(lp * 0.7));
+    }
+    diffuseColor.rgb = mix(diffuseColor.rgb, lot, lotM * 0.88);
+  }
+`;
+
 function groundMaterial(THREE, map, fine, uniforms) {
   const mat = new THREE.MeshStandardMaterial({
     color: map ? 0xffffff : 0x6f6b64,
@@ -203,6 +226,7 @@ function groundMaterial(THREE, map, fine, uniforms) {
         '#include <color_fragment>',
         `#include <color_fragment>
         {
+          ${fine ? LOT_GLSL : ''}
           float n1 = cFbm(vCityPos.xz * 0.045);
           float n2 = cNoise(vCityPos.xz * 0.9);
           float dist = length(vCityPos.xz - cameraPosition.xz);
@@ -213,7 +237,7 @@ function groundMaterial(THREE, map, fine, uniforms) {
         }`,
       );
   };
-  mat.customProgramCacheKey = () => `city-ground-${fine ? 1 : 0}`;
+  mat.customProgramCacheKey = () => `city-ground2-${fine ? 1 : 0}`;
   return mat;
 }
 
