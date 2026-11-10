@@ -26,6 +26,11 @@ Değerler ajan tamamlanma bildiriminden alınır; bildirimde yoksa "yok".
 | 20 | kamera-kurgu | 4 | 446089 | 22 | 534940 |
 | 21 | kamera-kurgu | 5 | 469331 | 13 | 418530 |
 | 22 | denetçi | 4 | 213959 | 12 | 118236 |
+| 23 | simge yapılar | 4 | 271329 | 15 | 243643 |
+| 24 | şehir dokusu | 4 | 520722 | 26 | 418591 |
+| 25 | kamera-kurgu | 6 | 531495 | 23 | 631127 |
+| 26 | denetçi | 5 | 257563 | 13 | 145436 |
+| 27 | kamera-kurgu | 7 | 561449 | 14 | 459093 |
 
 ## Toplam
 

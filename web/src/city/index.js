@@ -13,6 +13,7 @@ import { buildLamps } from './lamps.js';
 import { buildTrees } from './trees.js';
 import { createDecals } from './decals.js';
 import { buildStreet } from './street.js';
+import { makeRoadTester } from './onroad.js';
 
 export async function create(ctx) {
   const { THREE, scene, camera, renderer } = ctx;
@@ -23,19 +24,28 @@ export async function create(ctx) {
   const shared = { uPx: { value: 0.001 }, uFrac: { value: 0.7 }, uFlow: { value: 0 } }; // 1 m uzaklıkta 1 pikselin dünya boyu
 
   const net = prepareNetwork(ctx);
-  const ground = buildGround(ctx, net, group);
-  const bld = buildBuildings(ctx, ground, net, group);
+  // yol üstüne taşan binalar: çizilmez ya da (yalnız tabliyeyi deliyorsa) alçaltılır — bkz. docs/removed_on_road.md
+  const roadTest = makeRoadTester(net);
+  const verdict = new Map();
+  for (const b of Array.isArray(ctx.data.buildings) ? ctx.data.buildings : []) {
+    if (b.landmark || !b.ring || b.ring.length < 3) continue;
+    const d = roadTest.decide(b);
+    if (d) verdict.set(b, d);
+  }
+  const ground = buildGround(ctx, net, group, verdict);
+  const bld = buildBuildings(ctx, ground, net, group, verdict, roadTest);
   const decals = createDecals(ctx);
   const roadInfo = buildRoads(ctx, net, ground, group, decals);
   const lamps = buildLamps(ctx, net, ground, bld, roadInfo, group, shared);
   const traffic = buildTraffic(ctx, net, group, shared, roadInfo, { ground, bld });
   const trees = buildTrees(ctx, ground, bld, roadInfo, group);
-  const street = buildStreet(ctx, net, ground, bld, roadInfo, decals, group);
+  const street = buildStreet(ctx, net, ground, bld, roadInfo, decals, group, verdict);
   decals.finish(group);
 
   const sz = new THREE.Vector2();
   const info = {
     buildings: bld.count,
+    onRoad: { removed: [...verdict.values()].filter((v) => v.action === 'remove').length, lowered: [...verdict.values()].filter((v) => v.action === 'clamp').length, fillerDropped: bld.fillerDropped },
     filler: bld.fillerCount,
     vehicles: traffic.count,
     parked: traffic.parked,

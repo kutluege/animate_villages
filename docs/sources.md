@@ -78,6 +78,21 @@ Gece ışık örüntüsü (ofis kat bantları, 5 panellik daire birimleri, mekan
 (panel başına normal sapması, mat derzler, parlama tavanı) birer görsel modeldir; gerçek yapıların kat planına
 ya da aydınlatmasına dayanmaz.
 
+## Tur 4 — Cevahir yeniden araştırma (2026-11-10)
+- Yeni metin kaynağı YOK: yükseklik (m), cephe malzemesi, cam çatının biçimi, giriş ve otopark düzeni için
+  arama sonuç vermedi. ITÜ A|Z makalesi (https://www.az.itu.edu.tr/jfa/article/download/885/743/18949) PDF
+  olarak indi ama metni okunamadı. **Yükseklik 27 m hâlâ VARSAYIM** (6 kat × 4.5 m).
+- Doğrulanan küçük ayrıntılar (arama özeti): adres Büyükdere Cd. No. 22; M2 Şişli-Mecidiyeköy istasyonuna
+  doğrudan bağlı (https://www.malls.com/malls/cevahir/, Wikipedia).
+- Veriden: otopark girişi, OSM servis yolu rampalarının (`w1463654669/70/71/77/88`) dayandığı güneybatı
+  yüzüne kondu (yer veriden, biçim varsayım).
+- VARSAYIM olan eklemeler: batı/güneybatı yüzündeki camlı giriş holleri ve saçak (gerçek ana girişin yeri
+  doğrulanmadı), tonozun yanındaki küçük ışıklıklar, ek çatı mekaniği, ışıklı reklam panolarının yeri/rengi,
+  cam tonozun içeriden "fener" gibi ışıması.
+
+Yol denetimi (`out/tmp/r4_roadcheck.cjs`): simge yapı ayak izlerinin hiçbiri taşıt yolu üstünde değil; yalnız
+Trump ve Cevahir kenarlarına servis yolu (otopark rampası) dayanıyor. Yola 2.5 m'den yakın 3 metro totemi kaldırıldı.
+
 ## URL'ler
 - https://en.wikipedia.org/wiki/Trump_Towers_Istanbul — 155 m / 145 m, 39 / 37 kat, mimar
 - https://www.skyscrapercenter.com/complex/503 ve https://www.skyscrapercenter.com/building/trump-tower-2/4192 — 156 m / 145.1 m (arama özeti)

@@ -9,7 +9,7 @@ const C_GLASS = [0.07, 0.1, 0.11];
 const C_BENCH = lin(0x6b4a2e);
 const CLOTHES = [0x1c1c20, 0x23304a, 0x55585c, 0xd8d6d0, 0xb9a88a, 0x8e1f1c, 0x4a5a3a, 0x3c5f8f, 0xc79a1e, 0x6a2f4a, 0x2f2f33, 0x7a7d82, 0xe8e6e0, 0x1e3a34].map(lin);
 
-export function buildStreet(ctx, net, ground, bld, roadInfo, decals, group) {
+export function buildStreet(ctx, net, ground, bld, roadInfo, decals, group, verdict) {
   const { THREE, data } = ctx;
   const rng = ctx.rng('city/street');
   const pois = data.pois || {};
@@ -153,7 +153,7 @@ export function buildStreet(ctx, net, ground, bld, roadInfo, decals, group) {
   // ---- dükkân tabelaları (cadde cepheleri) -----------------------------------------------
   let nSign = 0;
   (data.buildings || []).forEach((b, bi) => {
-    if (b.landmark || !b.ring || b.ring.length < 3 || b.height < 8 || b.part) return;
+    if (b.landmark || !b.ring || b.ring.length < 3 || b.height < 8 || b.part || (verdict && verdict.has(b))) return;
     const c0 = b.ring[0];
     if (Math.hypot(c0[0] - 300, c0[1]) > 800) return;
     let ring = b.ring;

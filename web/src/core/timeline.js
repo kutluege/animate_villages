@@ -5,17 +5,19 @@
 import { Vector3 } from 'three';
 
 export const FPS = 30;
-export const DURATION = 36; // sn → 1080 kare
+export const DURATION = 40; // sn → 1200 kare (kurgu ajanı tur 6: 36 → 40, kullanıcı isteğiyle uzun alacakaranlık)
 export const FRAMES = FPS * DURATION;
 
 // [film saniyesi, tod] — t artan, tod azalmayan olmalı.
 export const KEYS = [
   [0, 15.0], // sert gündüz (viyadük altı)
   [12.5, 18.5], // altın saat (Trump'ın yanından geçiş)
-  [16.3, 19.0], // gün batımı camda … (güneş 6.7° → ufuk, ~4 sn)
-  [20.4, 19.64], // … güneş ufukta; KESME; ışıklar tek tek …
-  [28.5, 20.85], // … hepsi yandı
-  [36, 22.5], // gece, kapak karesi
+  [16.3, 19.0], // gün batımı camda … (güneş 6.7° → ufuk)
+  [19.8, 19.6], // … güneş ufukta; ALACAKARANLIK başlar (mezarlık, Cevahir) — uzun tutulur …
+  [25.5, 20.0], // … mavi saat, ilk ışıklar; Torun'a dönüş …
+  [31, 20.4], // … gece oldu (night = 1)
+  [34.5, 20.85], // bütün ışıklar yandı
+  [40, 22.5], // gece, kapak karesi
 ];
 
 export const clamp = (x, a, b) => Math.min(b, Math.max(a, x));

@@ -11,7 +11,7 @@ export function buildTrees(ctx, ground, bld, roadInfo, group) {
   const pois = data.pois || {};
   const T = []; // [x, z, r, sy, col]
   const add = (x, z, cyp) => {
-    if (bld.inBuilding(x, z) || roadInfo.onRoad(x, z)) return;
+    if (bld.inBuilding(x, z) || roadInfo.onRoad(x, z) || roadInfo.underDeck(x, z, -1e3) > 0) return; // tabliye altına ağaç yok (tepesi yolu deler)
     const r = cyp ? 1.0 + rng() * 0.6 : 1.9 + rng() * 1.7;
     const sy = cyp ? 4.0 + rng() * 2.4 : 0.95 + rng() * 0.5;
     const pal = cyp ? CYPRESS : GREENS;
@@ -61,31 +61,55 @@ export function buildTrees(ctx, ground, bld, roadInfo, group) {
     }
   }
 
-  const geo = new THREE.IcosahedronGeometry(1, 2);
-  const p = geo.attributes.position;
+  // taç: üç yumuşak kürenin birleşimi (köşeli tek top yerine öbekli siluet); normal = küre merkezinden dışarı
   const jr = ctx.rng('city/tree-shape');
-  // aynı konumdaki köşeler aynı kaysın (düz gölgeli ikosahedronda köşeler çoğaltılmış)
-  const seen = new Map();
-  for (let i = 0; i < p.count; i++) {
-    const key = `${p.getX(i).toFixed(3)},${p.getY(i).toFixed(3)},${p.getZ(i).toFixed(3)}`;
-    let s = seen.get(key);
-    if (s === undefined) {
-      s = 0.78 + jr() * 0.44;
-      seen.set(key, s);
+  const BLOBS = [[0, 0, 0, 1.0], [0.52, 0.18, 0.22, 0.74], [-0.44, 0.26, -0.36, 0.68], [0.05, 0.5, -0.1, 0.6]];
+  const gp = [];
+  const gn = [];
+  const gc = [];
+  for (const [bx, by, bz, br] of BLOBS) {
+    const ico = new THREE.IcosahedronGeometry(1, 1);
+    const ip = ico.attributes.position;
+    const seen = new Map();
+    for (let i = 0; i < ip.count; i++) {
+      const x = ip.getX(i);
+      const y = ip.getY(i);
+      const z = ip.getZ(i);
+      const key = `${x.toFixed(3)},${y.toFixed(3)},${z.toFixed(3)}`;
+      let k = seen.get(key);
+      if (k === undefined) {
+        k = 0.92 + jr() * 0.16;
+        seen.set(key, k);
+      }
+      const px = bx + x * br * k;
+      const py = by + y * br * k;
+      const pz = bz + z * br * k;
+      gp.push(px, py, pz);
+      // normal: küre yönü ile taç merkezinden dışarı yönün karışımı → öbekler arası yumuşak geçiş
+      const ol = Math.hypot(px, py, pz) || 1;
+      let nx = x * 0.55 + (px / ol) * 0.45;
+      let ny = y * 0.55 + (py / ol) * 0.45;
+      let nz = z * 0.55 + (pz / ol) * 0.45;
+      const nl = Math.hypot(nx, ny, nz) || 1;
+      gn.push(nx / nl, ny / nl, nz / nl);
+      const sh = 0.68 + 0.32 * Math.min(1, Math.max(0, py * 0.55 + 0.5));
+      gc.push(sh, sh, sh);
     }
-    p.setXYZ(i, p.getX(i) * s, p.getY(i) * s, p.getZ(i) * s);
+    ico.dispose();
   }
-  // yumuşak normal (yön = konum) + alttan üste koyulaşma
-  const nn = geo.attributes.normal;
-  const cc = new Float32Array(p.count * 3);
-  for (let i = 0; i < p.count; i++) {
-    const l = Math.hypot(p.getX(i), p.getY(i), p.getZ(i)) || 1;
-    nn.setXYZ(i, p.getX(i) / l, p.getY(i) / l, p.getZ(i) / l);
-    const k = 0.5 + 0.5 * Math.min(1, Math.max(0, p.getY(i) * 0.6 + 0.55));
-    cc[i * 3] = k; cc[i * 3 + 1] = k; cc[i * 3 + 2] = k;
-  }
-  geo.setAttribute('color', new THREE.BufferAttribute(cc, 3));
+  const geo = new THREE.BufferGeometry();
+  geo.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
+  geo.setAttribute('normal', new THREE.Float32BufferAttribute(gn, 3));
+  geo.setAttribute('color', new THREE.Float32BufferAttribute(gc, 3));
   const mat = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.95, metalness: 0, vertexColors: true });
+  // gölgede tam siyaha düşmesin: yaprak geçirgenliği niyetine küçük bir taban ton + normalde sarma
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uNight = ctx.uniforms.uNight;
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', '#include <common>\nuniform float uNight;')
+      .replace('#include <emissivemap_fragment>', '#include <emissivemap_fragment>\ntotalEmissiveRadiance += diffuseColor.rgb * mix(0.2, 0.05, uNight);');
+  };
+  mat.customProgramCacheKey = () => 'city-tree-v2';
   const mesh = new THREE.InstancedMesh(geo, mat, Math.max(1, T.length));
   const m4 = new THREE.Matrix4();
   const q = new THREE.Quaternion();

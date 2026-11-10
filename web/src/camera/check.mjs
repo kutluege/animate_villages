@@ -254,7 +254,7 @@ function glintReport() {
   ];
   const cam = new THREE.PerspectiveCamera(40, 9 / 16, 2, 20000);
   const notTrump = (b) => b.landmark === 'trump';
-  for (let t = 15.5; t <= 20.39; t += 0.4) {
+  for (let t = 15.5; t <= 20.21; t += 0.4) {
     const sun = sunAt(todAt(t));
     const Sx = sun.dir.x;
     const Sy = sun.dir.y;
@@ -291,7 +291,7 @@ function glintReport() {
     lines.push(
       `${t.toFixed(1).padStart(5)} ${todAt(t).toFixed(2).padStart(6)} ${((sun.azim * 180) / Math.PI).toFixed(1).padStart(6)} ${((sun.elev * 180) / Math.PI).toFixed(1).padStart(5)}  | ${u.toFixed(1).padStart(6)} ${G[1].toFixed(1).padStart(6)}  ${on ? 'EVET ' : 'hayır'} | ${ndc.x.toFixed(2).padStart(6)} ${ndc.y.toFixed(2).padStart(6)} ${inFrame ? ' ' : '!'}    | ${off.toFixed(1).padStart(6)}°          | ${blocked ? 'KAPALI ' + blocked.id : 'açık'}`,
     );
-    if (t >= 16.5 && t <= 20.2 && (!on || !inFrame || blocked)) note(t, `doruk: yansıma ${!on ? 'cephe dışında' : !inFrame ? 'kadraj dışında' : 'kapalı'}`);
+    if (t >= 16.6 && t <= 19.6 && (!on || !inFrame || blocked)) note(t, `doruk: yansıma ${!on ? 'cephe dışında' : !inFrame ? 'kadraj dışında' : 'kapalı'}`);
   }
   return lines;
 }

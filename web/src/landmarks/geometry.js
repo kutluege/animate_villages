@@ -236,6 +236,21 @@ function facingEdge(ring, dir, minLen = 0) {
   }
   return best;
 }
+/** orta noktası (x,z) noktasına en yakın kenar → {mid, n, len} */
+function edgeNear(ring, x, z) {
+  const sgn = area(ring) > 0 ? 1 : -1;
+  let best = null;
+  for (let i = 0; i < ring.length; i++) {
+    const p = ring[i], q = ring[(i + 1) % ring.length];
+    const dx = q[0] - p[0], dz = q[1] - p[1];
+    const len = Math.hypot(dx, dz);
+    if (len < 0.5) continue;
+    const mid = [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+    const d = Math.hypot(mid[0] - x, mid[1] - z);
+    if (!best || d < best.d) best = { d, mid, n: [(sgn * dz) / len, (-sgn * dx) / len], len };
+  }
+  return best;
+}
 function longAxis(ring) {
   let best = null;
   for (let i = 0; i < ring.length; i++) {
@@ -433,8 +448,8 @@ export function build(ctx) {
       const top = g + HEIGHTS.cevahir;
       const st = {
         col: [0.74, 0.63, 0.49], // sıcak bej taş kaplama
-        a: [3, 4.5, 8, 0.38],
-        b: [0.35, 0, 0.18, 0],
+        a: [3, 4.5, 8, 0.62],
+        b: [0.45, 0, 0.18, 0],
         c: [0, 0, 0, 0],
       };
       const stUp = { ...st, col: [0.66, 0.58, 0.47], a: [3, 4.5, 8, 0.3], b: [0.9, 0, 0.08, 0] };
@@ -450,7 +465,7 @@ export function build(ctx) {
       const dir = [0.36, 0.933];
       const perp = [-dir[1], dir[0]];
       const vl = 96, vw = 26;
-      const glass = S.glassRoof([0.3, 0.42, 0.5], 2.0, 0.2);
+      const glass = S.glassRoof([0.3, 0.42, 0.5], 2.0, 0.4);
       B.vault(c[0], tierTop, c[1], dir, vl, vw, 9, 7, glass, 33.3);
       // çatı mekaniği (tohumlu)
       const r = rng.fork('cevahir-roof');
@@ -465,12 +480,68 @@ export function build(ctx) {
         B.box(x, tierTop, z, r.range(6, 14), r.range(2.2, 4), r.range(4, 8), r() < 0.5 ? dir : perp, mech, 34 + placed);
         placed++;
       }
+      // ikincil ışıklıklar: tonozun iki yanında küçük cam fenerler (VARSAYIM; görsel zenginlik)
+      for (let k = -2; k <= 2; k++) {
+        for (const sd of [-1, 1]) {
+          const x = c[0] + dir[0] * k * 21 + perp[0] * sd * 31, z = c[1] + dir[1] * k * 21 + perp[1] * sd * 31;
+          if (inside(inner, x, z)) B.vault(x, tierTop, z, dir, 9, 7, 2.6, 3, S.glassRoof([0.3, 0.42, 0.5], 1.4, 0.34), 35.1 + k + sd * 0.3);
+        }
+      }
+      // ek çatı mekaniği: dış çatı halkasında klima santralleri
+      {
+        const r2 = rng.fork('cevahir-roof2');
+        const outer = scaled(b.ring, 0.95, c), innerR = scaled(b.ring, 0.84, c);
+        let n2 = 0;
+        for (let i = 0; i < 600 && n2 < 18; i++) {
+          const x = c[0] + r2.range(-120, 120), z = c[1] + r2.range(-140, 140);
+          if (!inside(outer, x, z) || inside(innerR, x, z)) continue;
+          B.box(x, top, z, r2.range(4, 9), r2.range(1.6, 2.8), r2.range(3, 5), r2() < 0.5 ? dir : perp, mech, 36 + n2);
+          n2++;
+        }
+      }
+      // giriş cephesi (batı-güneybatı yüzü): tam yükseklikte camlı giriş holü + saçak + tabela.
+      // Gerçek ana girişin yeri DOĞRULANMADI (Büyükdere Cd. tarafı bilinir); bu, kameranın gördüğü yüzdeki giriş.
+      const portal = (e, w, extra) => {
+        if (!e) return;
+        const t = [-e.n[1], e.n[0]];
+        const gy = heightAt(e.mid[0], e.mid[1]);
+        const ww = Math.min(w, e.len * 0.8);
+        const stG = { col: [0.3, 0.4, 0.46], a: [1, 4.5, 2.0, 1], b: [0.1, 1.2, 0, 0], c: [0.5, 1, 0, 0], d: [7, 0.06, 2.5, 0.7] };
+        B.box(e.mid[0] - e.n[0] * 0.6, gy - 1, e.mid[1] - e.n[1] * 0.6, ww, top + extra - gy + 1, 3.2, t, stG, 37.2 + w);
+        B.box(e.mid[0] + e.n[0] * 1.6, gy + 5.2, e.mid[1] + e.n[1] * 1.6, ww + 3, 0.5, 4.5, t, S.matte([0.2, 0.2, 0.21]), 37.5); // saçak
+      };
+      const eW = edgeNear(b.ring, 0, 463);
+      portal(eW, 24, 3.5);
+      if (eW) sign({ ...eW, mid: [eW.mid[0] + eW.n[0] * 1.2, eW.mid[1] + eW.n[1] * 1.2] }, top - 1.5, 5.0, 'Cevahir', { col: [1.0, 0.2, 0.14], track: 0.04, glow: 1.4 });
+      portal(edgeNear(b.ring, 60, 540), 16, 2.0);
+      // otopark girişi: verideki servis yolu rampalarının (w1463654669–71) dayandığı güneybatı yüzü
+      const eP = edgeNear(b.ring, 133, 586);
+      if (eP) {
+        const t = [-eP.n[1], eP.n[0]];
+        const gy = heightAt(eP.mid[0], eP.mid[1]);
+        for (const off of [-9, 4]) {
+          const x = eP.mid[0] + t[0] * off, z = eP.mid[1] + t[1] * off;
+          B.box(x + eP.n[0] * 0.15, gy - 1, z + eP.n[1] * 0.15, 8, 4.6, 0.5, t, S.matte([0.015, 0.015, 0.018]), 38.1); // karanlık ağız
+          B.box(x + eP.n[0] * 0.2, gy + 3.3, z + eP.n[1] * 0.2, 8, 0.35, 0.6, t, S.emis([1.0, 0.86, 0.6], 0.08, 1.6), 38.2); // ağız üstü ışık şeridi
+        }
+        B.box(eP.mid[0] + t[0] * 11 + eP.n[0] * 0.3, gy + 4.6, eP.mid[1] + t[1] * 11 + eP.n[1] * 0.3, 2.6, 2.6, 0.5, t, S.emis([0.1, 0.32, 1.0], 0.1, 2.2), 38.3); // "P"
+        sign({ ...eP, mid: [eP.mid[0] - t[0] * 2.5, eP.mid[1] - t[1] * 2.5] }, gy + 5.6, 1.5, 'OTOPARK', { col: [1, 1, 1], track: 0.1 });
+      }
+      // ışıklı reklam panoları (cephe üst bandı). Yer ve içerik VARSAYIM.
+      const board = (e, w, h, col, th) => {
+        if (!e) return;
+        const t = [-e.n[1], e.n[0]];
+        B.box(e.mid[0] + e.n[0] * 0.25, top - 3 - h, e.mid[1] + e.n[1] * 0.25, Math.min(w, e.len * 0.7), h, 0.5, t, S.emis(col, th, 0.5), 39.1 + w);
+      };
+      board(edgeNear(b.ring, 27, 507), 16, 7, [0.3, 0.55, 1.0], 0.16);
+      board(edgeNear(b.ring, -8, 421), 14, 7, [1.0, 0.36, 0.5], 0.24);
+      board(edgeNear(b.ring, 183, 590), 22, 8, [1.0, 0.72, 0.3], 0.2);
       // tabelalar: Büyükdere Cd. (kuzeydoğu) ve kuzey/batı yüzleri
       const red = { col: [1.0, 0.2, 0.14], track: 0.04, glow: 1.2 };
       sign(facingEdge(b.ring, [1, -0.75], 25), top - 4.2, 5.2, 'Cevahir', red);
       sign(facingEdge(b.ring, [-0.8, -0.6], 20), top - 4.2, 4.6, 'Cevahir', red);
       sign(facingEdge(b.ring, [1, 0.8], 25), top - 4.2, 4.6, 'Cevahir', red);
-      sign(facingEdge(b.ring, [-1, 0.75], 25), top - 4.2, 4.6, 'Cevahir', red);
+      sign(edgeNear(b.ring, 133, 586), top - 4.2, 5.0, 'Cevahir', red);
       info[b.id] = { top: +top.toFixed(1), tier: +tierTop.toFixed(1), base: +g.toFixed(1) };
     }
   }
@@ -479,9 +550,24 @@ export function build(ctx) {
   {
     const ents = data.pois && Array.isArray(data.pois.entrances) ? data.pois.entrances : [];
     const pole = S.matte([0.2, 0.2, 0.21]);
+    // taşıt yoluna 2.5 m'den yakın totem konmaz ("yolun üstünde nesne" olmasın)
+    const VEH = /^(motorway|trunk|primary|secondary|tertiary|residential|service|living_street|busway|unclassified)/;
+    const roads = (Array.isArray(data.roads) ? data.roads : []).filter((r) => VEH.test(r.cls) && !r.tunnel);
+    const nearRoad = (x, z) => {
+      for (const r of roads) {
+        const lim = (r.width || 6) / 2 + 2.5;
+        for (let i = 0; i + 1 < r.pts.length; i++) {
+          const a = r.pts[i], q = r.pts[i + 1];
+          const dx = q[0] - a[0], dz = q[2] - a[2];
+          const t = Math.max(0, Math.min(1, ((x - a[0]) * dx + (z - a[2]) * dz) / (dx * dx + dz * dz || 1)));
+          if (Math.hypot(x - a[0] - t * dx, z - a[2] - t * dz) < lim) return true;
+        }
+      }
+      return false;
+    };
     for (let i = 0; i < ents.length; i++) {
       const e = ents[i];
-      if (!Number.isFinite(e.x) || !Number.isFinite(e.z)) continue;
+      if (!Number.isFinite(e.x) || !Number.isFinite(e.z) || nearRoad(e.x, e.z)) continue;
       const y = heightAt(e.x, e.z);
       B.box(e.x, y, e.z, 0.35, 4.2, 0.35, [1, 0], pole, 40 + i);
       B.box(e.x, y + 4.2, e.z, 1.5, 1.5, 0.5, [1, 0], S.emis([1.0, 0.16, 0.1], 0.1 + 0.02 * (i % 5), 3.2), 40 + i);

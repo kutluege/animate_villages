@@ -70,6 +70,7 @@ float lmRough = 0.85;
 float lmMetal = 0.0;
 float lmGlass = 0.0;
 vec3 lmTint = vec3(0.5);
+vec3 lmLantern = vec3(0.0);
 float lmSpecCap = 1.0e6;
 float lmSd = 0.0;
 vec2 lmJit = vec2(0.0);
@@ -236,9 +237,13 @@ if (lmType < 0.5) {
   lmGlass = (1.0 - ln);
   lmTint = diffuseColor.rgb;
   lmJit = (vec2(hg, fract(hg * 13.7)) - 0.5) * 0.05 * (1.0 - ln);
-  float on = lmOn(0.12 + 0.2 * hg);
-  lmEmis += vec3(1.0, 0.74, 0.44) * (1.0 - ln) * on * vSty.w * (0.5 + 0.6 * hg) * lmNightAmp;
-  lmGlass *= 1.0 - 0.5 * on;
+  // fener: AVM açık, içi aydınlık. Bölüm bölüm (12 m atrium açıklıkları) erken yanar; cam ızgarası koyu kalır.
+  // Şiddet bakış açısına bağlı (FRAG_EMISSIVE): dik bakışta iç ışık, sıyırma açıda gök yansıması baskın.
+  float bay = floor(vFac.x / 12.0);
+  float on = lmOn(0.015 + 0.14 * lmHash(vec3(bay, 3.0, lmSeed)));
+  float inner = 0.55 + 0.45 * sin(vFac.x * 0.52 + lmSeed) * sin(vFac.y * 0.9); // alttaki galeri ışıklarının düzensizliği
+  lmLantern = mix(vec3(1.0, 0.70, 0.38), vec3(1.0, 0.84, 0.6), hg) * (1.0 - ln) * on * vSty.w * (0.3 + 0.35 * hg + 0.6 * inner);
+  lmGlass *= 1.0 - 0.35 * on;
 } else {
   // ---- ışıklı katı (totem, şerit) ----
   lmEmis += diffuseColor.rgb * vSty.w * lmOn(vSty.y) * lmNightAmp;
@@ -262,7 +267,9 @@ const FRAG_EMISSIVE = /* glsl */ `
   vec3 lmV = normalize(cameraPosition - vLmW);
   vec3 lmN = normalize((vec4(normal, 0.0) * viewMatrix).xyz);
   vec3 lmR = reflect(-lmV, lmN);
-  float lmF = pow(1.0 - clamp(dot(lmV, lmN), 0.0, 1.0), 5.0);
+  float lmNV = clamp(dot(lmV, lmN), 0.0, 1.0);
+  float lmF = pow(1.0 - lmNV, 5.0);
+  lmEmis += lmLantern * mix(0.3, 1.0, smoothstep(0.08, 0.6, lmNV)) * mix(0.6, 1.0, uNight);
   float sd = max(dot(lmR, uLmSun), 0.0);
   // alçak güneş: dar çekirdek + geniş hale → cephe boyunca kayan, panel panel kırılan parıltı
   vec3 glow = uLmGlow * (pow(sd, 140.0) * 1.5 * uLmCore + pow(sd, 18.0) * 0.42 * mix(0.3, 1.0, uLmCore) + pow(sd, 4.0) * 0.10);
@@ -310,7 +317,7 @@ export function makeFacadeMaterial(ctx) {
       .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\nreflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(lmSpecCap * (0.4 + 1.9 * pow(lmSd, 8.0))));')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${FRAG_EMISSIVE}`);
   };
-  material.customProgramCacheKey = () => 'landmarks-facade-v4';
+  material.customProgramCacheKey = () => 'landmarks-facade-v6';
 
   const C = (r, g, b) => new THREE.Color(r, g, b);
   const ZD = C(0.2, 0.4, 0.82), HD = C(0.62, 0.76, 0.95);

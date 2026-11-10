@@ -4,7 +4,7 @@ import { smoothstep, lerp, segDist, GLSL_NOISE } from './util.js';
 const FX0 = -960, FX1 = 1000, FZ0 = -900, FZ1 = 1100, STEP = 4;
 const TEX = 4096;
 
-export function buildGround(ctx, net, group) {
+export function buildGround(ctx, net, group, verdict) {
   const { THREE, heightAt, data, renderer } = ctx;
   const nx = Math.round((FX1 - FX0) / STEP) + 1;
   const nz = Math.round((FZ1 - FZ0) / STEP) + 1;
@@ -58,7 +58,7 @@ export function buildGround(ctx, net, group) {
   };
 
   // ---- doku ------------------------------------------------------------------------------
-  const tex = paintTexture(ctx, net);
+  const tex = paintTexture(ctx, net, verdict);
   tex.anisotropy = Math.min(8, renderer.capabilities.getMaxAnisotropy());
 
   // ---- ince ızgara ağı -------------------------------------------------------------------
@@ -196,13 +196,27 @@ const LOT_GLSL = /* glsl */ `
       float dl = abs(mod(lp.x + 1.35, 2.7) - 1.35);
       float stall = step(mod(lp.y, 8.0), 5.0);
       float ln = (1.0 - smoothstep(0.05, 0.05 + fwx, dl)) * stall * (1.0 - smoothstep(0.25, 0.9, fwx));
-      lot = mix(vec3(0.07, 0.07, 0.073) * (0.8 + 0.4 * cNoise(lp * 0.3)), vec3(0.5), ln * 0.8);
+      lot = mix(vec3(0.07, 0.07, 0.073) * (0.8 + 0.4 * cNoise(lp * 0.3)), vec3(0.4), ln * 0.4);
     } else if (ty < 4.5) {
       lot = mix(vec3(0.1, 0.13, 0.065), vec3(0.17, 0.16, 0.1), cFbm(lp * 0.12)) * (0.75 + 0.5 * cNoise(lp * 1.1));
     } else {
       lot = mix(vec3(0.27, 0.22, 0.16), vec3(0.2, 0.19, 0.175), cFbm(lp * 0.09)) * (0.8 + 0.4 * cNoise(lp * 0.7));
     }
-    diffuseColor.rgb = mix(diffuseColor.rgb, lot, lotM * 0.88);
+    diffuseColor.rgb = mix(diffuseColor.rgb, lot, lotM * 0.6 * smoothstep(0.25, 0.6, cFbm(lp * 0.035 + 2.0) + 0.25));
+  }
+  {
+    // mezarlık zemini (doku rengi): sıra sıra soluk mezar taşları, ot lekeleri
+    float cemM = 1.0 - smoothstep(0.01, 0.03, distance(diffuseColor.rgb, vec3(0.0723, 0.0887, 0.0578)));
+    vec2 gp2 = vCityPos.xz * mat2(0.94, -0.34, 0.34, 0.94);
+    vec2 gc2 = gp2 / vec2(2.6, 3.8);
+    vec2 gi = floor(gc2); vec2 gf = fract(gc2);
+    float fwg = max(fwidth(gc2.x), fwidth(gc2.y));
+    float has = step(0.3, cH21(gi + 2.0)) * step(0.35, cFbm(vCityPos.xz * 0.03 + 7.0));
+    float stone = cBox(gf, vec2(0.3, 0.25), vec2(0.7, 0.75), vec2(fwg)) * has * (1.0 - smoothstep(0.25, 0.7, fwg));
+    vec3 turf = diffuseColor.rgb * (0.75 + 0.6 * cFbm(vCityPos.xz * 0.22)) * mix(vec3(1.0), vec3(1.25, 1.15, 0.8), cNoise(vCityPos.xz * 0.05));
+    vec3 cem = mix(turf, vec3(0.42, 0.41, 0.38) * (0.7 + 0.5 * cH21(gi + 5.0)), stone * 0.9);
+    cem = mix(cem, turf * 1.15 + vec3(0.02), has * 0.25 * smoothstep(0.25, 0.7, fwg));
+    diffuseColor.rgb = mix(diffuseColor.rgb, cem, cemM);
   }
 `;
 
@@ -237,11 +251,11 @@ function groundMaterial(THREE, map, fine, uniforms) {
         }`,
       );
   };
-  mat.customProgramCacheKey = () => `city-ground2-${fine ? 1 : 0}`;
+  mat.customProgramCacheKey = () => `city-ground4-${fine ? 1 : 0}`;
   return mat;
 }
 
-function paintTexture(ctx, net) {
+function paintTexture(ctx, net, verdict) {
   const { THREE, data } = ctx;
   const cv = document.createElement('canvas');
   cv.width = TEX;
@@ -327,6 +341,7 @@ function paintTexture(ctx, net) {
   d.fillStyle = '#000';
   for (const b of data.buildings || []) {
     if (!b.ring || b.ring.length < 3) continue;
+    if (verdict && verdict.get(b) && verdict.get(b).action === 'remove') continue;
     d.beginPath();
     b.ring.forEach((p, i) => (i ? d.lineTo(X(p[0]) * k2, Z(p[1]) * k2) : d.moveTo(X(p[0]) * k2, Z(p[1]) * k2)));
     d.closePath();

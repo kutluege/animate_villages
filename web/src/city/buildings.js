@@ -29,10 +29,17 @@ function pickWeighted(list, r) {
   return list[0].c;
 }
 
-export function buildBuildings(ctx, ground, net, group) {
+export function buildBuildings(ctx, ground, net, group, verdict, roadTest) {
   const { THREE, data, heightAt } = ctx;
   const rng = ctx.rng('city/buildings');
-  const list = (Array.isArray(data.buildings) ? data.buildings : []).filter((b) => !b.landmark && b.ring && b.ring.length >= 3);
+  const list = [];
+  for (const b of Array.isArray(data.buildings) ? data.buildings : []) {
+    if (b.landmark || !b.ring || b.ring.length < 3) continue;
+    const v = verdict && verdict.get(b);
+    if (v && v.action === 'remove') continue;
+    // tabliyeyi delen yapı: veri değişmez, kopyası alçaltılır (camsız, düz hacim)
+    list.push(v && v.action === 'clamp' ? { ...b, height: v.height, minHeight: 0, kind: 'service' } : b);
+  }
 
   const gb = new GeoBuilder();
   const index = new Grid2(40); // ağaç/lamba yerleşimi için bina sorgusu
@@ -60,7 +67,8 @@ export function buildBuildings(ctx, ground, net, group) {
 
   // ---- dolgu şehir: veri sınırının ötesi (İstanbul her yöne sürer) ----------------------
   const fb = new GeoBuilder();
-  const fill = makeFillers(ctx, net, rng.fork('filler'));
+  const fill0 = makeFillers(ctx, net, rng.fork('filler'));
+  const fill = roadTest ? fill0.filter((b) => !roadTest.onRoad(b)) : fill0;
   for (const b of fill) addBuilding(THREE, fb, b, rng, heightAt, null);
   const fmesh = new THREE.Mesh(fb.build(THREE), mat);
   fmesh.name = 'city-filler';
@@ -68,7 +76,7 @@ export function buildBuildings(ctx, ground, net, group) {
   fmesh.receiveShadow = false;
   group.add(fmesh);
 
-  return { mesh, fmesh, inBuilding, count: list.length, fillerCount: fill.length };
+  return { mesh, fmesh, inBuilding, count: list.length, fillerCount: fill.length, fillerDropped: fill0.length - fill.length };
 }
 
 function styleOf(b, h, r) {
