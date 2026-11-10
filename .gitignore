@@ -1,0 +1,9 @@
+.env
+.env.*
+apikey*
+*.key
+node_modules/
+out/*
+!out/final/
+.playwright/
+*.log
