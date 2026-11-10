@@ -24,3 +24,22 @@ Değerler ajan tamamlanma bildiriminden alınır; bildirimde yoksa "yok".
 | 18 | şehir dokusu | 3 | 472928 | 40 | 1236174 |
 | 19 | denetçi | 3 | 185505 | 9 | 196914 |
 | 20 | kamera-kurgu | 4 | 446089 | 22 | 534940 |
+| 21 | kamera-kurgu | 5 | 469331 | 13 | 418530 |
+| 22 | denetçi | 4 | 213959 | 12 | 118236 |
+
+## Toplam
+
+- Satır (ajan çağrısı / tur girişi): **22**
+- Ayrı ajan sayısı: **8** (iskelet, veri, şehir dokusu, simge yapılar, atmosfer A, atmosfer B, kamera-kurgu, denetçi)
+- Tur sayısı: **3** tam üretim turu + kamera-kurgu için 2 bitiş turu (rötuş + yeniden kodlama); **4** denetim turu
+- subagent_tokens, satırların düz toplamı: **5 880 453**
+- tool_uses toplamı: **716**
+- duration_ms toplamı: **16 897 211** (ajanlar paralel çalıştığı için duvar saati değil)
+
+Not (orkestratörün yorumu, bildirimde yazmıyor): aynı ajana geri gönderilen turlarda
+`subagent_tokens` her seferinde bir öncekinden büyük geldi (ör. iskelet 82 522 → 87 989, yalnız
+4 araç çağrısıyla); değer ajan başına kümülatif görünüyor. Öyleyse düz toplam fazla sayar; her
+ajanın SON bildirimindeki değerlerin toplamı **2 180 749**. Kıyaslamada hangisinin kullanılacağı
+öbür oturumun defteriyle aynı yönteme göre seçilmeli. Orkestratörün kendi token kullanımı bu
+deftere dahil değil.
+
