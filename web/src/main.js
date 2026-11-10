@@ -96,12 +96,14 @@ window.addEventListener('error', (e) => console.error('[main] yakalanmamış hat
 window.addEventListener('unhandledrejection', (e) => console.error('[main] yakalanmamış söz reddi:', e.reason));
 
 // ───────────────────────────── veri ─────────────────────────────
+// Dosya yoksa ctx.data.<ad> = null (CONTRACT §6). Varsa, beklenen dizi alanı eksikse [] ile tamamlanır.
 const DATA_DEFAULTS = {
   buildings: () => ({ origin: null, buildings: [] }),
   roads: () => ({ roads: [] }),
   terrain: () => null,
   landmarks: () => ({ landmarks: [] }),
   points: () => ({ points: [] }),
+  landuse: () => ({ areas: [] }),
 };
 async function loadData() {
   const data = {};
@@ -117,9 +119,9 @@ async function loadData() {
       data[key] = json;
       status.data[key] = 'ok';
     } catch (e) {
-      data[key] = def();
+      data[key] = null;
       status.data[key] = 'yok';
-      console.info(`[main] data/${key}.json yüklenemedi (${e.message}) — boş varsayılan`);
+      console.info(`[main] data/${key}.json yüklenemedi (${e.message}) — ctx.data.${key} = null`);
     }
   }));
   return data;
@@ -340,7 +342,8 @@ async function boot() {
   if (terrain) { mods.push(terrain); ctx.ground = terrain.inst.object3D; }
 
   const atmoParam = (params.get('atmo') || '').toLowerCase();
-  const atmoFiles = /^[a-z0-9_-]{1,16}$/.test(atmoParam) ? [`atmosphere.${atmoParam}.js`] : ['atmosphere.js', 'atmosphere.a.js', 'atmosphere.b.js'];
+  // Varsayılan atmosfer B (CONTRACT §4 Tur 2); yoksa sırayla diğerleri.
+  const atmoFiles = /^[a-z0-9_-]{1,16}$/.test(atmoParam) ? [`atmosphere.${atmoParam}.js`] : ['atmosphere.b.js', 'atmosphere.js', 'atmosphere.a.js'];
   const [cityMod, lmMod, editMod] = await Promise.all([tryImport('city.js'), tryImport('landmarks.js'), tryImport('edit.js')]);
   let atmoMod = null, atmoFile = null;
   for (const f of atmoFiles) { atmoMod = await tryImport(f); if (atmoMod) { atmoFile = f; break; } }
@@ -365,6 +368,7 @@ async function boot() {
       console.error('[main] edit.js: "export function shotAt(t)" yok — yer tutucu rota kullanılıyor');
     }
   }
+  window.__instances = { mods, atmo, edit }; // denetim/sınama için
   DURATION = Number.isFinite(edit.DURATION) && edit.DURATION > 0 ? edit.DURATION : 36;
   window.__duration = DURATION;
 
@@ -418,15 +422,36 @@ function startFreeMode() {
   const ui = $('ui'), slider = $('tod'), clock = $('clock'), phase = $('phase');
   const btnPlay = $('play'), btnPrev = $('preview'), bar = $('preview-bar');
   $('loading').classList.add('done');
+  document.body.classList.add('ready');
 
+  // Açılış: altın saatte doğudan kulelere (Trump Towers) ve gün batımına bakış.
+  // Dar (dikey) ekranda biraz geri çekil ki kuleler kadraja sığsın.
+  const narrow = innerWidth / innerHeight < 0.8;
+  camera.position.set(...(narrow ? [520, 190, 330] : [420, 160, 260]));
+  camera.fov = narrow ? 50 : 45; camera.updateProjectionMatrix();
   const controls = new OrbitControls(camera, renderer.domElement);
-  controls.target.set(0, 20, 0);
+  controls.target.set(20, 80, -190);
   controls.enableDamping = true; controls.dampingFactor = 0.08;
-  controls.maxPolarAngle = 88 * DEG; controls.minDistance = 30; controls.maxDistance = 4000;
+  controls.screenSpacePanning = false; // kaydırma yatay düzlemde
+  controls.maxPolarAngle = 86 * DEG; controls.minDistance = 25; controls.maxDistance = 2600;
+  controls.zoomToCursor = true;
   controls.update();
+  // Kamera yerin altına ya da sahnenin çok dışına kaçmasın.
+  const LIM = 1400, ctxH = window.__ctx.heightAt;
+  function clampView() {
+    const tg = controls.target;
+    tg.x = Math.min(LIM, Math.max(-LIM, tg.x)); tg.z = Math.min(LIM, Math.max(-LIM, tg.z));
+    tg.y = Math.min(400, Math.max(ctxH(tg.x, tg.z), tg.y));
+    const c = camera.position;
+    const R = LIM + 1200;
+    c.x = Math.min(R, Math.max(-R, c.x)); c.z = Math.min(R, Math.max(-R, c.z));
+    const floor = ctxH(c.x, c.z) + 6;
+    if (c.y < floor) c.y = floor;
+    if (c.y > 2600) c.y = 2600;
+  }
 
   const startTod = parseFloat(params.get('tod'));
-  let tod = Number.isFinite(startTod) ? Math.min(24, Math.max(0, startTod)) : 16.5;
+  let tod = Number.isFinite(startTod) ? Math.min(24, Math.max(0, startTod)) : 18.9;
   slider.min = String(Math.min(6, tod));
   slider.value = String(tod);
   let playing = false, playDir = 1;
@@ -453,6 +478,7 @@ function startFreeMode() {
     btnPrev.classList.toggle('on', on);
     btnPrev.querySelector('span').textContent = on ? 'Önizlemeyi kapat' : 'Videoyu önizle';
     bar.classList.toggle('show', on);
+    document.body.classList.toggle('previewing', on);
     if (on) {
       togglePlay(false);
       saved = { pos: camera.position.clone(), target: controls.target.clone(), fov: camera.fov, tod };
@@ -465,6 +491,7 @@ function startFreeMode() {
     }
   }
   btnPrev.addEventListener('click', () => togglePreview());
+  $('preview-close').addEventListener('click', () => togglePreview(false));
   if (edit === placeholderEdit) btnPrev.title = 'edit.js henüz yok — yer tutucu rota önizlenir';
 
   addEventListener('keydown', (e) => {
@@ -512,6 +539,7 @@ function startFreeMode() {
         slider.value = String(tod);
       }
       controls.update();
+      clampView();
       state = drawFrame(tod, (now - t0) / 1000);
     }
     const label = formatTod(state.tod) + '|' + phaseLabel(state);

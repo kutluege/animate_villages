@@ -90,8 +90,8 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
     } else if (cat < 3.5) {
       bool office = cat > 1.5;
       float colW = office ? mix(1.4, 2.0, r1) : mix(2.5, 3.6, r1);
-      float ww = office ? mix(0.8, 0.9, r2) : mix(0.42, 0.62, r2);
-      float wh = office ? mix(0.6, 0.78, r3) : mix(0.42, 0.52, r3);
+      float ww = office ? mix(0.68, 0.8, r2) : mix(0.36, 0.52, r2);
+      float wh = office ? mix(0.5, 0.62, r3) : mix(0.38, 0.47, r3);
       float sill = office ? 0.14 : 0.30;
       float m = 0.55;
       float nCol = floor((L - 2.0 * m) / colW);
@@ -144,13 +144,13 @@ float bGlass = 0.0; float bMetal = 0.0; vec3 bEmit = vec3(0.0);
           wm *= 1.0 - rail * 0.75;
         }
         // gece: pencere eşiği
-        float k = lt > 0.5 && lt < 1.5 ? (0.04 + kB * 0.3 + hw * 0.85) : (0.08 + kB * 0.5 + hw * 0.72);
+        float k = lt > 0.5 && lt < 1.5 ? (0.1 + kB * 0.3 + hw * 1.05) : (0.14 + kB * 0.5 + hw * 0.8);
         float on = smoothstep(k, k + 0.012, uLightsOn) * lightsGate;
         float tone = cityH(seed, col + seg * 50.0, f + 600.0);
         vec3 lc;
         if (lt > 0.5 && lt < 1.5) lc = mix(vec3(0.82, 0.9, 1.0), vec3(1.0, 0.93, 0.8), tone);
         else lc = tone < 0.62 ? mix(vec3(1.0, 0.47, 0.16), vec3(1.0, 0.70, 0.38), tone / 0.62) : mix(vec3(1.0, 0.9, 0.76), vec3(0.78, 0.86, 1.0), (tone - 0.62) / 0.38);
-        float I = mix(1.5, 3.2, cityH(seed, col + seg * 50.0, f + 900.0)) * (curtain > 0.5 ? 0.6 : 1.0) * (1.0 - shut * 0.85);
+        float I = mix(1.4, lt > 0.5 && lt < 1.5 ? 2.1 : 2.6, cityH(seed, col + seg * 50.0, f + 900.0)) * (curtain > 0.5 ? 0.6 : 1.0) * (1.0 - shut * 0.85);
         float inside = mix(0.75, 1.2, smoothstep(wlo, whi, fv));
         bEmit += lc * I * on * wm * inside;
       }

@@ -2,6 +2,8 @@
 //   node tools/check-route.mjs            özet + çarpışmalar (varsa çıkış kodu 1)
 //   node tools/check-route.mjs --hz 240   örnekleme sıklığı  --margin 3  güvenlik payı (m)
 //   node tools/check-route.mjs --frame 36 o anki kadrajda simge yapıların ekran konumları
+//   node tools/check-route.mjs --scene [--atmo b] [--scene-hz 10] [--scene-r 1.5]
+//        ek olarak gerçek sahneye (her örnekte __renderFrame(t) → hareketli trafik dahil) ışın testi
 // Denetimler: arazi açıklığı, bina izleri × yükseklik (baseY+minHeight … baseY+height), köprü tabliyeleri
 // (+ üstündeki trafik zarfı), tabliye altında ayak riski, hız/ivme sürekliliği, bakış açısal hızı,
 // tod monotonluğu ve referans saatler, lightsOn penceresi, batı cephesinde güneş yansıması (ayna açısı).
@@ -117,9 +119,9 @@ for (const s of S) {
     const { d, u } = distToSeg(x, z, k.ax, k.az, k.bx, k.bz);
     const top = heightAt(k.ax + u * (k.bx - k.ax), k.az + u * (k.bz - k.az)) + k.top;
     const lat = d - k.w / 2;
-    // tabliye gövdesi [top−DECK_T, top] + üstte araç zarfı 5 m: yanda MARGIN, altta yakın düzlem payı 1 m.
+    // tabliye gövdesi [top−DECK_T, top] + üstte araç zarfı (VEH_H + 1 m): yanda MARGIN, altta yakın düzlem payı 1 m.
     // Kenarın dışında ve gövdenin altındaysa (yanal > 1 m) çarpışma yok — tabliye yalnız tavan olarak görünür.
-    const body = y > top - DECK_T - 1 && y < top + 5 + MARGIN;
+    const body = y > top - DECK_T - 1 && y < top + VEH_H + 1;
     if ((lat < MARGIN && body) || (lat < 1 && y <= top - DECK_T - 1 && y > top - DECK_T - 1.5)) hits.push(`t=${s.t.toFixed(2)} tabliye ${k.id} (${k.kind}) yanal ${lat.toFixed(1)} m, y=${y.toFixed(1)}, üst ${top.toFixed(1)}`);
     if (lat < 3 && y < top - DECK_T) underDeck.push({ t: s.t, id: k.id, d, clear: top - DECK_T - y });
   }
@@ -234,6 +236,61 @@ for (const t of frames) {
   }
   const line = mb.map(([x, z], i) => [x, heightAt(x, z), z]).map((P) => project(s, P)).filter((p) => p && Math.abs(p[0]) <= 1 && Math.abs(p[1]) <= 1);
   if (line.length) console.log(`  metrobüs hattı: ${line.length} köşe kadrajda, ekran ${line.map((p) => `(${p[0].toFixed(2)},${p[1].toFixed(2)})`).join(' ')}`);
+}
+
+// ───────── --scene: gerçek sahneye karşı (hareketli trafik dahil) ─────────
+// Tarayıcıda sahne kurulur, her örnekte __renderFrame(t) ile trafik o ana getirilir; kameradan 14 yönde
+// ışın (yarıçap SR m) + önceki örnekten bu örneğe ışın. Statik ağlar kameraya uzaklığa göre önelenir.
+if (args.scene) {
+  const { openBrowser, openScene } = await import('./lib-browser.mjs');
+  const SHZ = Number(args['scene-hz']) || 10, SR = Number(args['scene-r']) || 1.5;
+  const atmo = args.atmo && args.atmo !== true ? String(args.atmo) : 'b';
+  const env = await openBrowser();
+  try {
+    const sc = await openScene(env, { query: { render: '1', w: 64, h: 114, q: 'draft', atmo }, width: 64, height: 114, log: false });
+    console.log(`\nsahne denetimi (atmo ${atmo}, ${SHZ} Hz, yarıçap ${SR} m): ${JSON.stringify(await sc.page.evaluate(() => window.__modules.modules))}`);
+    const n = Math.round(D * SHZ);
+    let worst = { d: Infinity };
+    for (let i = 0; i <= n; i++) {
+      const t = (i / n) * D;
+      await sc.page.evaluate((tt) => window.__renderFrame(tt), t);
+      const r = await sc.page.evaluate(() => {
+        const { THREE, scene, camera } = window.__ctx;
+        const p = camera.position.clone();
+        if (!window.__crMeshes) {
+          const list = [];
+          scene.traverse((o) => { if ((o.isMesh || o.isInstancedMesh) && o.geometry && !/sky|atmo|cloud|star|sun|moon|glow|halo|sprite|flare/i.test(o.name + '/' + (o.parent?.name || '')) && !(o.material && o.material.side === THREE.BackSide)) list.push(o); });
+          window.__crMeshes = list;
+        }
+        const sph = new THREE.Sphere();
+        const near = window.__crMeshes.filter((o) => {
+          if (!o.visible) return false;
+          if (o.isInstancedMesh) return true;
+          if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+          sph.copy(o.geometry.boundingSphere).applyMatrix4(o.matrixWorld);
+          return sph.distanceToPoint(p) < 80;
+        });
+        const rc = new THREE.Raycaster(); let best = { d: Infinity, name: '' };
+        const dirs = [[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[0,0,1],[0,0,-1],[1,1,1],[1,1,-1],[1,-1,1],[1,-1,-1],[-1,1,1],[-1,1,-1],[-1,-1,1],[-1,-1,-1]];
+        for (const v of dirs) {
+          rc.set(p, new THREE.Vector3(...v).normalize()); rc.far = 10;
+          const h = rc.intersectObjects(near, false)[0];
+          if (h && h.distance < best.d) best = { d: h.distance, name: (h.object.parent?.name || '') + '/' + h.object.name };
+        }
+        let seg = null;
+        if (window.__crPrev) {
+          const d = p.clone().sub(window.__crPrev), L = d.length();
+          if (L > 1e-6) { rc.set(window.__crPrev, d.normalize()); rc.far = L; const h = rc.intersectObjects(near, false)[0]; if (h) seg = (h.object.parent?.name || '') + '/' + h.object.name; }
+        }
+        window.__crPrev = p;
+        return { best, seg };
+      });
+      if (r.best.d < worst.d) worst = { ...r.best, t };
+      if (r.best.d < SR) hits.push(`t=${t.toFixed(2)} sahne: ${r.best.name} ${r.best.d.toFixed(2)} m`);
+      if (r.seg) hits.push(`t=${t.toFixed(2)} sahne: rota parçası ${r.seg} içinden geçiyor`);
+    }
+    console.log(`sahne: en yakın yüzey ${worst.d.toFixed(2)} m (t=${worst.t?.toFixed(2)}, ${worst.name})`);
+  } finally { await env.close(); }
 }
 
 if (hits.length) {

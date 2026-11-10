@@ -9,7 +9,8 @@
 // rastgelelik yalnızca ctx.rng ve shader içi sabit hash.
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { facadeMaterial, lin } from './landmarks/facade.js';
-import { obb, frame, prism, sectionLoft, loft, boxAlong, strip3, signTexture, wallPlane, arcPts, cleanPoly, centroid, signedArea, pointIn } from './landmarks/geom.js';
+import { buildStation } from './landmarks/station.js';
+import { obb, frame, prism, sectionLoft, loft, boxAlong, strip3, interpRect, slabAlong, treeGeos, personGeo, signTexture, wallPlane, arcPts, cleanPoly, centroid, signedArea, pointIn } from './landmarks/geom.js';
 
 export async function create(ctx) {
   const { THREE, heightAt } = ctx;
@@ -52,7 +53,6 @@ export async function create(ctx) {
   const steel = std(0x8b9298, 0.38, 0.85);
   const darkSteel = std(0x2a2e33, 0.45, 0.7);
   const concrete = std(0x9c978e, 0.85, 0);
-  const canopyMat = std(0xd9dde0, 0.35, 0.25, { side: THREE.DoubleSide });
   const railGlass = std(0x9fb5bf, 0.05, 0.6, { transparent: true, opacity: 0.35, depthWrite: false });
   const paving = std(0xb3aa9c, 0.82, 0);
   const pavingDark = std(0x6f6a64, 0.85, 0);
@@ -98,6 +98,10 @@ export async function create(ctx) {
       glass: L3(0x111418), wall: L3(0x15181c), wallRM: [0.35, 0.6], tilt: 0, occ: 0 });
 
     const trumpLed = glow(0xfff1dc, 3.5, 0.2, 0x8a8a8a);
+    const podLeaf = std(0x3e5a30, 0.92, 0), podBark = std(0x4b3c2f, 0.9, 0);
+    const trumpWhiteBand = std(0xe8ebec, 0.5, 0.05);
+    const trumpBronze = std(0x4a4038, 0.32, 0.75);
+    const trumpParapet = std(0x8fa3ad, 0.04, 0.9, { side: THREE.DoubleSide });
     function trumpTower(fp, H, residential, seed) {
       const b = obb(fp.footprint);
       const fr = frame(b.cx, b.cz, b.angle);
@@ -107,48 +111,107 @@ export async function create(ctx) {
       const darkTop = residential
         ? (u) => roof - 11 * Math.min(1, Math.max(0, (-s - u) / (L / 2 - s)))   // eğik kesik çatı
         : () => roof - 15;
-      add(M.dark, sectionLoft(fr, [
+      const dS = [
         { y: y0, rect: [-L / 2, -s, -W / 2, W / 2] },
         { y: base + 0.44 * H, rect: [-L / 2 - 1.2, -s, -W / 2 - 3.0, W / 2 + 1.2] },
         { y: (u) => darkTop(u), rect: [-L / 2 + 1.8, -s, -W / 2 + 1.0, W / 2 - 2.0] },
-      ]));
+      ];
+      add(M.dark, sectionLoft(fr, dS));
       // beyaz yarı: dış ucu yukarı doğru içe kaçar (incelen siluet)
       const whiteTop = residential ? roof - 6 : roof - 15;
-      add(M.white, sectionLoft(fr, [
+      const wS = [
         { y: y0, rect: [s, L / 2, -W / 2 + 0.4, W / 2 - 0.4] },
         { y: base + 0.6 * H, rect: [s, L / 2 - 1.2, -W / 2 + 0.2, W / 2 + 0.9] },
         { y: whiteTop, rect: [s, L / 2 - 5.5, -W / 2 + 1.2, W / 2 - 0.2] },
-      ]));
-      // şeffaf orta kütle (çekirdeğin iki yanı ayrı birim — e-architect)
-      const coreTop = residential ? roof - 2.5 : roof - 15;
+      ];
+      add(M.white, sectionLoft(fr, wS));
+      // ── cephe kabartması (yakın planda düz ızgara kalmasın) ──
+      const numS = (S, top) => S.map((q) => ({ y: typeof q.y === 'function' ? top : q.y, rect: q.rect }));
+      const dN = numS(dS, residential ? roof - 11 : roof - 15), wN = numS(wS, whiteTop);
+      const r3 = ctx.rng('landmarks/trump-relief-' + seed);
+      const FH = 3.75;
+      // beyaz yarı: her katta beyaz döşeme bandı (0.35 m taşar) + ritmik parapet/balkon panelleri (e-architect)
+      for (let y = base + 2 * FH; y < whiteTop - 1.5; y += FH) {
+        const r = interpRect(wN, y);
+        add(trumpWhiteBand, prism(fr.rect(r[0] + 0.05, r[1] + 0.35, r[2] - 0.35, r[3] + 0.35), y - 0.22, y + 0.22, { top: true, bottom: true }));
+      }
+      for (let fl = 2, y = base + 2 * FH; y < whiteTop - FH; fl++, y += FH) {
+        const r = interpRect(wN, y + 0.6);
+        const bayW = 2.9, nB = Math.floor((r[1] - r[0] - 0.6) / bayW);
+        for (const side of [-1, 1]) for (let b2 = 0; b2 < nB; b2++) {
+          const ph = (fl * 2 + b2 * 3 + (side > 0 ? 1 : 0)) % 7;
+          if (!(ph < 2 || (ph === 4 && r3() < 0.5))) continue;
+          const u0 = r[0] + 0.4 + b2 * bayW, v = side > 0 ? r[3] : r[2];
+          add(trumpWhiteBand, prism(fr.rect(u0 + 0.15, u0 + bayW - 0.15, side > 0 ? v - 0.1 : v - 0.55, side > 0 ? v + 0.55 : v + 0.1), y + 0.22, y + 1.25, { top: true, bottom: true }));
+        }
+      }
+      // koyu yarı: her katta bronz yatay kanat (kırık yüzleri izler), iki katta bir daha derin
+      for (let fl = 2, y = base + 2 * FH; y < (residential ? roof - 12 : roof - 16); fl++, y += FH) {
+        const r = interpRect(dN, y), e = fl % 2 ? 0.22 : 0.5;
+        add(trumpBronze, prism(fr.rect(r[0] - e, r[1] - 0.05, r[2] - e, r[3] + e), y - 0.18, y + 0.18, { top: true, bottom: true }));
+      }
+      // koyu yarının iki uzun yüzünde derin dikey kanat (prizmatik kırığı vurgular)
+      for (const side of [-1, 1]) {
+        const pts = dN.map((q) => { const r = q.rect; return [r[0] + (r[1] - r[0]) * 0.42, side > 0 ? r[3] : r[2], q.y]; });
+        for (let i = 0; i < pts.length - 1; i++) {
+          const a = pts[i], b2 = pts[i + 1];
+          const ring = (p) => [fr(p[0] - 0.35, p[1]), fr(p[0] + 0.35, p[1]), fr(p[0] + 0.35, p[1] + side * 0.7), fr(p[0] - 0.35, p[1] + side * 0.7)].map(([x, z]) => [x, p[2], z]);
+          add(darkSteel, loft([ring(a), ring(b2)], { top: true }));
+        }
+      }
+      // şeffaf orta kütle (çekirdeğin iki yanı ayrı birim — e-architect); rezidansta çatıdan cam bıçak gibi taşar
+      const coreTop = residential ? roof + 5 : roof - 15;
       add(M.core, prism(fr.rect(-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6), y0, coreTop));
       const av = [];
       if (!residential) {
-        // ofis kulesinin koyu taç kutusu + TRUMP yazısı
+        // ofis kulesinin koyu taç kutusu: dikey jaluzi kanatları, üst/alt ışık bandı, iki yüzde büyük TRUMP
         const cr = [-9, 7, -W / 2 + 2.2, W / 2 - 2.2];
         add(crownMat, prism(fr.rect(...cr), roof - 16, roof));
-        const tex = signTexture('TRUMP', { color: '#f3e6c4', size: 0.7, letter: 0.12 });
-        const sm = signMat(tex, 3.5, 0.18);
-        for (const sgn of [-1, 1]) {
-          const [cx, cz] = fr(-1, sgn * (W / 2 - 2.2));
-          const nx = -Math.sin(fr.angle) * sgn, nz = Math.cos(fr.angle) * sgn;
-          const pl = new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 6, 14, 3.5, 0.3), sm);
-          root.add(pl);
+        for (const side of [-1, 1]) {
+          const v = side > 0 ? cr[3] : cr[2];
+          for (let u = cr[0] + 0.6; u < cr[1] - 0.3; u += 1.15) {
+            add(darkSteel, prism(fr.rect(u, u + 0.18, side > 0 ? v : v - 0.55, side > 0 ? v + 0.55 : v), roof - 15.5, roof - 9.8));
+          }
+          const u = side > 0 ? cr[1] : cr[0];
+          for (let w2 = cr[2] + 0.6; w2 < cr[3] - 0.3; w2 += 1.15) {
+            add(darkSteel, prism(fr.rect(side > 0 ? u : u - 0.55, side > 0 ? u + 0.55 : u, w2, w2 + 0.18), roof - 15.5, roof - 0.5));
+          }
         }
+        const ring = (y, e) => fr.rect(cr[0] - e, cr[1] + e, cr[2] - e, cr[3] + e).map(([x, z]) => [x, y, z]);
+        for (const [y, e] of [[roof + 0.02, 0.0], [roof - 16.2, 0.4]]) { const rr = ring(y, e); for (let i = 0; i < 4; i++) add(trumpLed, strip3(rr[i], rr[(i + 1) % 4], 0.5, 0.35)); }
+        const tex = signTexture('TRUMP', { color: '#f3e6c4', size: 0.72, letter: 0.14 });
+        const sm = signMat(tex, 4.5, 0.15);
+        for (const sgn of [-1, 1]) {
+          const [cx, cz] = fr((cr[0] + cr[1]) / 2, sgn > 0 ? cr[3] : cr[2]);
+          const nx = -Math.sin(fr.angle) * sgn, nz = Math.cos(fr.angle) * sgn;
+          root.add(new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 5, 15, 4.6, 0.62), sm));
+        }
+        add(steel, boxAlong(fr(2, 0), fr(2.6, 0), 0.6, roof, roof + 9));
         av.push(...rectCorners(fr, cr, roof));
+        const [mx, mz] = fr(2.3, 0); av.push([mx, roof + 9, mz]);
       } else {
-        av.push(...rectCorners(fr, [-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6], roof - 2.5, 0.2));
-        const [ax, az] = fr(-s - 1, 0);
-        av.push([ax, roof, az]);
+        // rezidans: eğik çatı kenarları cam parapetle yükselir (siluet bıçak gibi)
+        const pr = dN[dN.length - 1].rect;
+        const edge = (u, v) => { const [x, z] = fr(u, v); return [x, darkTop(u), z]; };
+        for (const v of [pr[2], pr[3]]) {
+          const a = edge(pr[0], v), b2 = edge(pr[1], v);
+          const [ix, iz] = [-Math.sin(fr.angle) * 0.12 * Math.sign(v), Math.cos(fr.angle) * 0.12 * Math.sign(v)];
+          const lo = [a, b2, [b2[0] - ix, b2[1], b2[2] - iz], [a[0] - ix, a[1], a[2] - iz]];
+          add(trumpParapet, loft([lo, lo.map((q) => [q[0], q[1] + 3.2, q[2]])], { top: true }));
+        }
+        av.push(...rectCorners(fr, [-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6], roof + 5, 0.2));
+        const [ax, az] = fr(-L / 2 + 3, 0);
+        av.push([ax, darkTop(-L / 2 + 3) + 3.2, az]);
+        const cb = fr.rect(-s - 1.2, s + 1.2, -W / 2 + 2.6, W / 2 - 2.6).map(([x, z]) => [x, roof + 5.02, z]);
+        for (let i = 0; i < 4; i++) add(trumpLed, strip3(cb[i], cb[(i + 1) % 4], 0.4, 0.3));
       }
       // taç çizgisi: kütle üst kenarlarında ince sıcak-beyaz LED (gece kişiliği)
-      const crownLed = trumpLed;
       const dTop = [[-L / 2 + 1.8, -W / 2 + 1.0], [-s, -W / 2 + 1.0], [-s, W / 2 - 2.0], [-L / 2 + 1.8, W / 2 - 2.0]]
-        .map(([u, v]) => { const [x, z] = fr(u, v); return [x, darkTop(u) + 0.05, z]; });
+        .map(([u, v]) => { const [x, z] = fr(u, v); return [x, darkTop(u) + (residential ? 3.25 : 0.05), z]; });
       const wTop = [[s, -W / 2 + 1.2], [L / 2 - 5.5, -W / 2 + 1.2], [L / 2 - 5.5, W / 2 - 0.2], [s, W / 2 - 0.2]]
         .map(([u, v]) => { const [x, z] = fr(u, v); return [x, whiteTop + 0.05, z]; });
-      for (const ring of [dTop, wTop]) for (let i = 0; i < 4; i++) add(crownLed, strip3(ring[i], ring[(i + 1) % 4], 0.45, 0.4));
-      // çatı teknik katı (gündüz siluet, gece hafif)
+      for (const ring of [dTop, wTop]) for (let i = 0; i < 4; i++) add(trumpLed, strip3(ring[i], ring[(i + 1) % 4], 0.45, 0.4));
+      // çatı teknik katı
       add(darkSteel, prism(fr.rect(3, 9, -3, 3), whiteTop - 0.5, whiteTop + 3.5));
       aviation(av, seed * 0.137);
       return { fr, L, W, roof };
@@ -160,12 +223,41 @@ export async function create(ctx) {
     if (pod) {
       const poly = cleanPoly(pod.footprint);
       const podMat = facade({
-        name: 'trump-podium', baseY: pod.baseY, seed: 31, floorH: 4.6, colW: 2.4, win: [0.05, 1, 0.22, 0.95],
+        name: 'trump-podium', baseY: pod.baseY, seed: 31, roof: L3(0x7a756d), floorH: 4.6, colW: 2.4, win: [0.05, 1, 0.22, 0.95],
         glass: L3(0x55636e), glassRM: [0.06, 0.88], wall: L3(0x1b1d20), wallRM: [0.4, 0.5], tilt: 0.03,
         lobbyH: 9.5, lobbyC: [1.8, 1.25, 0.75], occ: 0.60, darkFrac: 0.2, zone: 3, litA: [1, 0.8, 0.55], litB: [1, 0.9, 0.75],
       });
       const top = (x, z) => heightAt(x, z) + 14;
       add(podMat, prism(poly, (x, z) => heightAt(x, z) - 3, top));
+      // çatı: kuzey-güney ışıklıkları, tesisat kutuları, kule diplerinde saksı ağaçlar (TAHMİN)
+      {
+        const ob = obb(poly), fp2 = frame(ob.cx, ob.cz, ob.angle), r4 = ctx.rng('landmarks/trump-roof');
+        const towers = [res, off].filter(Boolean).map((f) => obb(f.footprint));
+        const nearT = (x, z, m) => towers.some((o) => { const c = Math.cos(o.angle), sn = Math.sin(o.angle), dx = x - o.cx, dz = z - o.cz;
+          return Math.abs(dx * c + dz * sn) < o.L / 2 + m && Math.abs(-dx * sn + dz * c) < o.W / 2 + m; });
+        const sky = std(0x8ea4b0, 0.06, 0.85), sky2 = glow(0xffd7a0, 1.2, 0.1, 0x8ea4b0);
+        for (let u = -ob.L / 2 + 14; u < ob.L / 2 - 14; u += 26) {
+          for (const v of [-ob.W * 0.18, ob.W * 0.18]) {
+            const c = fp2(u, v);
+            if (!pointIn(poly, c[0], c[1]) || nearT(c[0], c[1], 6)) continue;
+            const rr = frame(c[0], c[1], ob.angle), y = top(c[0], c[1]);
+            add(sky, sectionLoft(rr, [{ y: y - 0.2, rect: [-9, 9, -3, 3] }, { y: y + 1.2, rect: [-9, 9, -3, 3] }, { y: y + 2.4, rect: [-9, 9, -0.4, 0.4] }]));
+            add(sky2, prism(rr.rect(-8.6, 8.6, -2.6, 2.6), y - 0.25, y + 0.05));
+            for (let k = -9; k <= 9; k += 3) { const a1 = rr(k, -3.05), a2 = rr(k, 0); add(darkSteel, strip3([a1[0], y + 1.2, a1[1]], [a2[0], y + 2.45, a2[1]], 0.12, 0.1)); const b1 = rr(k, 3.05); add(darkSteel, strip3([b1[0], y + 1.2, b1[1]], [a2[0], y + 2.45, a2[1]], 0.12, 0.1)); }
+          }
+        }
+        for (let i = 0; i < 60; i++) {
+          const u = (r4() - 0.5) * ob.L * 0.9, v = (r4() - 0.5) * ob.W * 0.8, c = fp2(u, v);
+          if (!pointIn(poly, c[0], c[1]) || nearT(c[0], c[1], 3)) continue;
+          const y = top(c[0], c[1]), rr = frame(c[0], c[1], ob.angle);
+          if (r4() < 0.6) { const w = 2 + r4() * 5, d = 1.5 + r4() * 3; add(r4() < 0.5 ? concrete : steel, prism(rr.rect(-w / 2, w / 2, -d / 2, d / 2), y - 0.2, y + 1 + r4() * 1.8)); }
+          else if (nearT(c[0], c[1], 22)) {
+            add(concrete, prism(rr.rect(-1.6, 1.6, -1.6, 1.6), y - 0.2, y + 0.9));
+            const [tr, cw] = treeGeos(c[0], y + 0.9, c[1], 4.5 + r4() * 2, 1.6 + r4(), 'round', r4() * 6);
+            add(podBark, tr); add(podLeaf, cw);
+          }
+        }
+      }
       // güney cephesi (D100'e bakan) tabelalar
       const a = [-8.7, -107.9], bpt = [52.3, -104.8];
       const dx = bpt[0] - a[0], dz = bpt[1] - a[1], len = Math.hypot(dx, dz);
@@ -183,9 +275,10 @@ export async function create(ctx) {
   }
 
   // ───────── Torun Center + Quasar İstanbul ─────────
-  const tc = byKey('torun_center');
-  if (tc) {
-    const fps = Object.fromEntries((tc.footprints || []).map((f) => [f.osmId, f]));
+  const tcFps = [...(byKey('torun_center')?.footprints || []), ...(byKey('quasar')?.footprints || [])];
+  if (tcFps.length) {
+    const fps = Object.fromEntries(tcFps.map((f) => [f.osmId, f]));
+    const torunCrownGlow = glow(0xffb85a, 4.5, 0.1, 0x6a5a40);
     // Torun ofis kulesi (w801, tahmin: 36 kat ≈ 150 m) — kaydırılmış istif bloklar, koyu mavi cam, altın LED kat çizgileri, kırmızı T logosu
     const tOff = fps['way/728793801'];
     if (tOff) {
@@ -206,6 +299,9 @@ export async function create(ctx) {
       add(m, prism(fr.rect(...C), y0, base + 0.79 * H));
       const crown = [B[0] + 4, B[1] - 6, -W / 2 + 3, W / 2 - 4];
       add(stone, prism(fr.rect(...crown), roof - 10, roof));
+      // taç: dikey köşe ışıkları + üst kenar altın çerçeve
+      for (const [cx, cz] of fr.rect(crown[0] - 0.3, crown[1] + 0.3, crown[2] - 0.3, crown[3] + 0.3)) add(torunCrownGlow, boxAlong([cx - 0.25, cz], [cx + 0.25, cz], 0.5, roof - 10, roof + 0.3));
+      { const rr = fr.rect(crown[0], crown[1], crown[2], crown[3]).map(([x, z]) => [x, roof + 0.02, z]); for (let i = 0; i < 4; i++) add(torunCrownGlow, strip3(rr[i], rr[(i + 1) % 4], 0.5, 0.4)); }
       // dikey koyu kanat (cephedeki derin çizgi)
       const [fx, fz] = fr((B[0] + B[1]) / 2, W / 2 + 0.6);
       const [gx, gz] = fr((B[0] + B[1]) / 2, W / 2 - 0.2);
@@ -215,36 +311,118 @@ export async function create(ctx) {
       for (const sgn of [-1, 1]) {
         const [cx, cz] = fr((crown[0] + crown[1]) / 2, sgn > 0 ? crown[3] : crown[2]);
         const nx = -Math.sin(fr.angle) * sgn, nz = Math.cos(fr.angle) * sgn;
-        root.add(new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 4.5, 7, 7, 0.3), signMat(tTex, 5, 0.08)));
+        root.add(new THREE.Mesh(wallPlane(cx, cz, nx, nz, roof - 5, 9, 9, 0.3), signMat(tTex, 5.5, 0.08)));
         const [ax, az] = fr((A[0] + A[1]) / 2, sgn > 0 ? A[3] : A[2]);
         root.add(new THREE.Mesh(wallPlane(ax, az, nx, nz, base + 0.6 * H - 2.2, 17, 2.4, 0.3),
           signMat(signTexture('TORUN CENTER', { color: '#ffffff', size: 0.6, letter: 0.08 }), 3.2, 0.15)));
       }
       aviation(rectCorners(fr, crown, roof), 0.31);
     }
-    // Torun konut kulesi (w798, 160 m OSM) — gri taş kaplı balkon şeritli dilim + cam bloklar
-    const tRes = fps['way/728793798'];
-    if (tRes) {
-      const b = obb(tRes.footprint), fr = frame(b.cx, b.cz, b.angle), L = b.L, W = b.W;
-      const base = tRes.baseY, y0 = base - 3, H = 160, roof = base + H;
+    // Torun konut kuleleri — gri taş kaplı balkon şeritli dilim + cam bloklar (altın LED kat çizgileri)
+    function torunRes(fr, L, W, base, H, seed, flip) {
+      const y0 = base - 3, roof = base + H, f = flip ? -1 : 1;
       const stoneM = facade({
-        name: 'torun-stone', baseY: base, seed: 51, floorH: 3.6, colW: 3.2, win: [0.04, 0.96, 0.62, 0.9],
+        name: 'torun-stone', baseY: base, seed, floorH: 3.6, colW: 3.2, win: [0.04, 0.96, 0.62, 0.9],
         glass: L3(0x4f5a66), glassRM: [0.06, 0.85], wall: L3(0x6e6c69), wallRM: [0.75, 0.02], tilt: 0.02,
         occ: 0.32, darkFrac: 0.1, zone: 0, litA: [1, 0.68, 0.38], litB: [1, 0.84, 0.6],
       });
       const glassM = facade({
-        name: 'torun-resglass', baseY: base, seed: 53, floorH: 3.6, colW: 1.5, win: [0.06, 1, 0.26, 1],
+        name: 'torun-resglass', baseY: base, seed: seed + 2, floorH: 3.6, colW: 1.5, win: [0.06, 1, 0.26, 1],
         glass: L3(0x5e7392), glassRM: [0.04, 0.92], wall: L3(0x161c25), wallRM: [0.35, 0.6], tilt: 0.06,
         ledEvery: 3, ledColor: [3.4, 2.1, 0.9], occ: 0.32, darkFrac: 0.12, litA: [1, 0.7, 0.42], litB: [1, 0.88, 0.66],
       }, 0.14);
-      const S = [-L / 2, -L / 2 + 0.45 * L, -W / 2, W / 2 - 0.3 * W];
-      const G1 = [-L / 2 + 0.38 * L, L / 2, -W / 2 + 2, W / 2];
-      const G2 = [-L / 2 + 2, -L / 2 + 0.42 * L, W / 2 - 0.34 * W, W / 2];
+      const R = (u0, u1, v0, v1) => (f > 0 ? [u0, u1, v0, v1] : [-u1, -u0, v0, v1]);
+      const S = R(-L / 2, -L / 2 + 0.45 * L, -W / 2, W / 2 - 0.3 * W);
+      const G1 = R(-L / 2 + 0.38 * L, L / 2, -W / 2 + 2, W / 2);
+      const G2 = R(-L / 2 + 2, -L / 2 + 0.42 * L, W / 2 - 0.34 * W, W / 2);
       add(stoneM, prism(fr.rect(...S), y0, roof));
       add(glassM, prism(fr.rect(...G1), y0, roof - 7));
       add(glassM, prism(fr.rect(...G2), y0, base + 0.68 * H));
+      // taş dilimin balkon yarıkları: her katta ince koyu kanat (yakın planda gölge ritmi)
+      for (let y = base + 10; y < roof - 2; y += 3.6) {
+        const v = S[2];
+        add(darkSteel, prism(fr.rect(S[0] + 1.2, S[1] - 1.2, v - 0.6, v + 0.2), y - 0.12, y + 0.12, { top: true, bottom: true }));
+      }
       add(darkSteel, prism(fr.rect(S[0] + 3, S[1] - 3, S[2] + 3, S[3] - 3), roof, roof + 2.5));
-      aviation(rectCorners(fr, S, roof + 2.5, 3), 0.77);
+      // taç: altın LED çerçeve
+      const cr = fr.rect(S[0], S[1], S[2], S[3]).map(([x, z]) => [x, roof + 0.02, z]);
+      for (let i = 0; i < 4; i++) add(torunGold, strip3(cr[i], cr[(i + 1) % 4], 0.45, 0.4));
+      aviation(rectCorners(fr, S, roof + 2.5, 3), 0.77 + seed * 0.01);
+    }
+    const torunGold = glow(0xffb85a, 4, 0.12, 0x6a5a40);
+    const tRes = fps['way/728793798'];
+    let resAngle = 0;
+    if (tRes) {
+      const b = obb(tRes.footprint), fr = frame(b.cx, b.cz, b.angle);
+      resAngle = b.angle;
+      torunRes(fr, b.L, b.W, tRes.baseY, 160, 51, false);
+    }
+    // Eksik üçüncü Torun kulesi (OSM'de yok) — ScraperBase "South Tower" konumundan (East'e göre kaydırma
+    // düzeltilerek) ≈ (550, 192); 160 m / 43 kat [SB]; iz 34×26 m TAHMİN.
+    const third = byKey('torun_center')?.footprints?.find((f) => f.role === 'tower_estimate' || f.osmId === 'estimate/torun_south');
+    {
+      const cx = third ? obb(third.footprint).cx : 550, cz = third ? obb(third.footprint).cz : 192;
+      const fr = frame(cx, cz, resAngle);
+      const base = Math.min(...fr.rect(-17, 17, -13, 13).map(([x, z]) => heightAt(x, z)));
+      torunRes(fr, 34, 26, base, 160, 57, true);
+    }
+
+    // ── Torun arsası: D100'e bakan AVM/podyum + çatısında bahçe-meydan (podyum ve peyzaj TAHMİN) ──
+    const avoid = [];
+    for (const id of ['way/728793801', 'way/728793798']) if (fps[id]) avoid.push(obb(fps[id].footprint));
+    avoid.push({ cx: third ? obb(third.footprint).cx : 550, cz: third ? obb(third.footprint).cz : 192, angle: resAngle, L: 34, W: 26 });
+    const nearTower = (x, z, m) => avoid.some((o) => { const c = Math.cos(o.angle), sn = Math.sin(o.angle), dx = x - o.cx, dz = z - o.cz;
+      return Math.abs(dx * c + dz * sn) < o.L / 2 + m && Math.abs(-dx * sn + dz * c) < o.W / 2 + m; });
+    const foliage = std(0x3e5a30, 0.92, 0), bark = std(0x4b3c2f, 0.9, 0), lawn = std(0x56763c, 0.95, 0);
+    const water = std(0x1d2a33, 0.03, 0.6);
+    const bollard = glow(0xffd29a, 3.2, 0.06, 0x555048);
+    function garden(poly, yTop, seedStr, density = 0.5, kind = 'roof') {
+      const r = ctx.rng('landmarks/garden-' + seedStr);
+      const xs = poly.map((p) => p[0]), zs = poly.map((p) => p[1]);
+      for (let x = Math.min(...xs) + 7; x < Math.max(...xs) - 5; x += 13) {
+        for (let z = Math.min(...zs) + 7; z < Math.max(...zs) - 5; z += 13) {
+          const jx = x + (r() - 0.5) * 4, jz = z + (r() - 0.5) * 4;
+          if (!pointIn(poly, jx, jz) || nearTower(jx, jz, 5)) continue;
+          const y = typeof yTop === 'function' ? yTop(jx, jz) : yTop;
+          const q = r();
+          if (q < density) {
+            const w = 5 + r() * 9, d = 4 + r() * 6, fg = frame(jx, jz, resAngle + (r() < 0.3 ? Math.PI / 4 : 0));
+            const lp = r() < 0.35 ? arcPts(jx, jz, Math.min(w, d) / 1.6, 0, Math.PI * 2, 14).slice(0, 14) : fg.rect(-w / 2, w / 2, -d / 2, d / 2);
+            add(lawn, prism(lp, y - 0.2, y + (kind === 'roof' ? 0.55 : 0.12)));
+            if (kind === 'roof') add(concrete, prism(lp.map(([px, pz]) => [jx + (px - jx) * 1.06, jz + (pz - jz) * 1.06]), y - 0.2, y + 0.45));
+            const nT = 1 + Math.floor(r() * 2.5);
+            for (let i = 0; i < nT; i++) {
+              const [tr, cw] = treeGeos(jx + (r() - 0.5) * w * 0.6, y + 0.5, jz + (r() - 0.5) * d * 0.6, 5 + r() * 4, 1.8 + r() * 1.4, 'round', r() * 6);
+              add(bark, tr); add(foliage, cw);
+            }
+          } else if (q < density + 0.18) {
+            add(darkSteel, boxAlong([jx - 0.08, jz], [jx + 0.08, jz], 0.16, y, y + 4.2));
+            add(bollard, boxAlong([jx - 0.3, jz], [jx + 0.3, jz], 0.6, y + 4.1, y + 4.4));
+          }
+        }
+      }
+    }
+    const site = [[468, 16], [636, 12], [640, 128], [620, 184], [566, 210], [506, 210], [490, 94], [464, 92]];
+    const pTop = maxGround(site) + 9;
+    const podM = facade({ name: 'torun-podium', baseY: minGround(site), seed: 45, floorH: 4.6, colW: 3.0, win: [0.04, 1, 0.12, 0.96],
+      glass: L3(0x56677a), glassRM: [0.05, 0.9], wall: L3(0x1e2329), wallRM: [0.4, 0.5], tilt: 0.03, roof: L3(0x8c857a),
+      lobbyH: 30, lobbyC: [2.0, 1.45, 0.85], occ: 0.0, darkFrac: 0 });
+    add(podM, prism(site, (x, z) => heightAt(x, z) - 3, pTop));
+    garden(site, pTop, 'torun', 0.42, 'roof');
+    // kuleler arası uzun yansıtma havuzu + çatı yürüyüş aksı
+    add(concrete, prism(frame(552, 72, resAngle).rect(-42, 42, -5.5, 5.5), pTop - 0.2, pTop + 0.5));
+    add(water, prism(frame(552, 72, resAngle).rect(-41, 41, -4.5, 4.5), pTop - 0.2, pTop + 0.42));
+    // D100 cephesi: TORUN CENTER tabelası + üst kenarda sıcak LED medya bandı
+    {
+      const a = site[0], b2 = site[1], mx = (a[0] + b2[0]) / 2, mz = (a[1] + b2[1]) / 2;
+      const dx = b2[0] - a[0], dz = b2[1] - a[1], len = Math.hypot(dx, dz);
+      let nx = dz / len, nz = -dx / len; if (nz > 0) { nx = -nx; nz = -nz; }
+      root.add(new THREE.Mesh(wallPlane(mx, mz, nx, nz, pTop - 3.2, 34, 4.4, 0.35),
+        signMat(signTexture('TORUN CENTER', { color: '#ffffff', size: 0.62, letter: 0.12 }), 4.5, 0.08)));
+      const tTex = signTexture('T', { color: '#ff2a1c', size: 0.95, w: 256, h: 256 });
+      root.add(new THREE.Mesh(wallPlane(mx - dx / len * 22, mz - dz / len * 22, nx, nz, pTop - 3.2, 4.6, 4.6, 0.35), signMat(tTex, 5, 0.08)));
+      add(torunGold, strip3([a[0] + nx * 0.3, pTop - 0.6, a[1] + nz * 0.3], [b2[0] + nx * 0.3, pTop - 0.6, b2[1] + nz * 0.3], 0.5, 0.35));
+      add(torunGold, strip3([a[0] + nx * 0.3, pTop - 9.3 + (maxGround(site) - heightAt(mx, mz)), a[1] + nz * 0.3], [b2[0] + nx * 0.3, pTop - 9.3 + (maxGround(site) - heightAt(mx, mz)), b2[1] + nz * 0.3], 0.4, 0.3));
     }
     // Quasar — Fairmont (w799, heliport): koyu mavi cam, beyaz kat çizgileri, kırmızı dikey LED, gökbahçe boşluğu
     const qF = fps['way/728793799'];
@@ -311,6 +489,21 @@ export async function create(ctx) {
     for (const id of ['way/728793803', 'way/728793805']) {
       const f = fps[id];
       if (f) add(lowM, prism(cleanPoly(f.footprint), f.baseY - 2, f.baseY + (f.height || 40)));
+    }
+    // ── Quasar: fabrikanın önünde Büyükdere'ye uzanan kent parkı (Emre Arolat "nefes alanı") + kulelerin altında podyum (TAHMİN) ──
+    {
+      for (const id of ['way/728793799', 'way/728793800']) if (fps[id]) avoid.push(obb(fps[id].footprint));
+      const park = [[652, 16], [784, 12], [784, 78], [652, 80]];
+      const gy = (x, z) => heightAt(x, z) + 0.15;
+      add(paving, prism(park, (x, z) => heightAt(x, z) - 1, gy));
+      garden(park, gy, 'quasar-park', 0.62, 'park');
+      const qpod = [[640, 127], [787, 123], [784, 181], [643, 179]];
+      const qTop = maxGround(qpod) + 7;
+      const qm = facade({ name: 'quasar-podium', baseY: minGround(qpod), seed: 65, floorH: 4.4, colW: 2.6, win: [0.05, 1, 0.14, 0.96],
+        glass: L3(0x5d6d80), glassRM: [0.05, 0.9], wall: L3(0x2a2f36), wallRM: [0.4, 0.4], tilt: 0.03, roof: L3(0x85807a),
+        lobbyH: 30, lobbyC: [1.9, 1.35, 0.8], occ: 0, darkFrac: 0 });
+      add(qm, prism(qpod, (x, z) => heightAt(x, z) - 3, qTop));
+      garden(qpod, qTop, 'quasar-roof', 0.35, 'roof');
     }
   }
 
@@ -434,90 +627,9 @@ export async function create(ctx) {
     }
   }
 
-  // ───────── Metrobüs peronu (D100 ortası) + kapalı üst geçit ─────────
-  {
-    const line = [[-101, -49.5], [-80, -46.5], [33, -37]];
-    const gy = (p) => heightAt(p[0], p[1]);
-    for (let i = 0; i < line.length - 1; i++) {
-      const p = line[i], q = line[i + 1];
-      add(concrete, boxAlong(p, q, 5.2, Math.min(gy(p), gy(q)) - 1, Math.max(gy(p), gy(q)) + 0.35));
-    }
-    // tonoz sundurma: kesit yayı, segment boyunca süpürülür
-    const vault = (p, q, w, yE, rise) => {
-      const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz), nx = -dz / L, nz = dx / L;
-      const N = 8, pos = [];
-      const pt = (e, k) => { const a = Math.PI * (k / N); const off = -Math.cos(a) * w / 2; const y = yE(e) + Math.sin(a) * rise; const b = e ? q : p; return [b[0] + nx * off, y, b[1] + nz * off]; };
-      for (let k = 0; k < N; k++) { const a0 = pt(0, k), a1 = pt(0, k + 1), b0 = pt(1, k), b1 = pt(1, k + 1); pos.push(...a0, ...b0, ...b1, ...a0, ...b1, ...a1); }
-      const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.computeVertexNormals(); return g;
-    };
-    const ledUnder = glow(0xdde8ff, 3.2, 0.05, 0x666a70);
-    for (let i = 0; i < line.length - 1; i++) {
-      const p = line[i], q = line[i + 1];
-      const ye = (e) => gy(e ? q : p) + 4.1;
-      add(canopyMat, vault(p, q, 7.2, ye, 1.5));
-      add(ledUnder, boxAlong(p, q, 0.35, Math.min(ye(0), ye(1)) + 1.0, Math.min(ye(0), ye(1)) + 1.12));
-      const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz);
-      for (let s = 0; s <= L; s += 9) {
-        const x = p[0] + dx * s / L, z = p[1] + dz * s / L, nx = -dz / L, nz = dx / L;
-        for (const sg of [-1, 1]) {
-          const cx = x + nx * sg * 3.3, cz = z + nz * sg * 3.3;
-          add(steel, boxAlong([cx - 0.15, cz], [cx + 0.15, cz], 0.3, gy([cx, cz]), gy([cx, cz]) + 4.2));
-        }
-      }
-    }
-    // üst geçit: (-93,-98) → (-98,-50) → (-100,-24), tabla +6.8 m, çatılı
-    const op = [[-93, -102], [-98, -50], [-100, -24]];
-    const deck = (p) => gy(p) + 6.8;
-    const opRoof = std(0xc9ced1, 0.4, 0.3, { side: THREE.DoubleSide });
-    for (let i = 0; i < op.length - 1; i++) {
-      const p = op[i], q = op[i + 1], yd = Math.max(deck(p), deck(q));
-      add(concrete, boxAlong(p, q, 3.6, yd - 0.7, yd));
-      const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz), nx = -dz / L, nz = dx / L;
-      for (const sg of [-1, 1]) {
-        const a = [p[0] + nx * sg * 1.7, p[1] + nz * sg * 1.7], b = [q[0] + nx * sg * 1.7, q[1] + nz * sg * 1.7];
-        add(railGlass, boxAlong(a, b, 0.06, yd, yd + 1.2));
-        for (let s = 0; s <= L; s += 6) {
-          const c = [a[0] + dx * s / L, a[1] + dz * s / L];
-          add(steel, boxAlong([c[0] - 0.1, c[1]], [c[0] + 0.1, c[1]], 0.2, yd, yd + 3.0));
-        }
-      }
-      add(opRoof, vault(p, q, 4.4, () => yd + 3.0, 0.6));
-      // ayaklar
-      for (let s = 0; s <= L; s += 14) {
-        const c = [p[0] + dx * s / L, p[1] + dz * s / L];
-        add(concrete, boxAlong([c[0] - 0.4, c[1]], [c[0] + 0.4, c[1]], 0.8, gy(c) - 1, yd - 0.7));
-      }
-      add(ledUnder, boxAlong(p, q, 0.25, yd + 2.75, yd + 2.85));
-    }
-    // merdivenler: perona, kuzey ve güney uçlara
-    const stair = (top, bot, w = 2.6) => {
-      const yt = deck(top), yb = gy(bot) + 0.35;
-      const dx = bot[0] - top[0], dz = bot[1] - top[1], L = Math.hypot(dx, dz), nx = -dz / L * w / 2, nz = dx / L * w / 2;
-      const poly = [[top[0] + nx, top[1] + nz], [bot[0] + nx, bot[1] + nz], [bot[0] - nx, bot[1] - nz], [top[0] - nx, top[1] - nz]];
-      const f = (x, z) => { const tt2 = ((x - top[0]) * dx + (z - top[1]) * dz) / (L * L); return yt + (yb - yt) * Math.min(1, Math.max(0, tt2)); };
-      add(concrete, prism(poly, (x, z) => f(x, z) - 0.6, f, { top: true, bottom: true }));
-      add(railGlass, prism([[top[0] + nx, top[1] + nz], [bot[0] + nx, bot[1] + nz], [bot[0] + nx * 1.02, bot[1] + nz * 1.02], [top[0] + nx * 1.02, top[1] + nz * 1.02]], f, (x, z) => f(x, z) + 1.1));
-    };
-    stair([-98, -50], [-80, -47.5]);
-    stair([-93, -102], [-91.5, -122]);
-    stair([-100, -24], [-83, -22]);
-  }
-
-  // ───────── İETT Mecidiyeköy peronları (orijindeki aktarma merkezi) — düz sundurmalar ─────────
-  {
-    const roofM = std(0xcfd4d6, 0.45, 0.3, { side: THREE.DoubleSide });
-    const lamp = glow(0xffe2b8, 3.0, 0.08, 0x666666);
-    for (const ln of [[[-34, -5], [14, -1]], [[-48, 0], [-17, 8], [2, 10], [26, 10]], [[-44, 10], [-28, 15], [-7, 19], [9, 20], [32, 17]]]) {
-      for (let i = 0; i < ln.length - 1; i++) {
-        const p = ln[i], q = ln[i + 1], g = Math.max(heightAt(...p), heightAt(...q));
-        add(concrete, boxAlong(p, q, 3.2, g - 1, g + 0.2));
-        add(roofM, boxAlong(p, q, 4.2, g + 3.6, g + 3.85));
-        add(lamp, boxAlong(p, q, 0.3, g + 3.5, g + 3.6));
-        const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz);
-        for (let s = 0; s <= L; s += 8) { const c = [p[0] + dx * s / L, p[1] + dz * s / L]; add(steel, boxAlong([c[0] - 0.12, c[1]], [c[0] + 0.12, c[1]], 0.24, g, g + 3.6)); }
-      }
-    }
-  }
+  // ───────── Metrobüs durağı + üst geçit + İETT peronları (landmarks/station.js) ─────────
+  const peopleGeos = [];
+  buildStation({ THREE, ctx, heightAt, add, std, glow, signMat, root, byKey, steel, darkSteel, concrete, railGlass, people: peopleGeos });
 
   // ───────── Metro girişleri — cam köşk + kırmızı M ─────────
   {
@@ -589,6 +701,14 @@ export async function create(ctx) {
     mesh.castShadow = !transparent;
     mesh.receiveShadow = true;
     root.add(mesh);
+  }
+  if (peopleGeos.length) {
+    const g = mergeGeometries(peopleGeos, false);
+    if (g) {
+      const crowd = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.85, metalness: 0 }));
+      crowd.name = 'lm:crowd'; crowd.castShadow = true; crowd.receiveShadow = true;
+      root.add(crowd);
+    }
   }
   ctx.scene.add(root);
 

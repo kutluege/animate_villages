@@ -51,3 +51,20 @@
 - README'deki "Şişli Elit Residence 140" = OSM w1457770436, "Elit Residence" (w164288213) kompleksinin silindir kulesi; Şişli Plaza değil (city.js çiziyor).
 - `metrobus_station` anahtarı orijindeki **İETT otobüs peronlarını** gösteriyor; asıl metrobüs peronu OSM w1305577747 "Mecidiyeköy" (−80,−48)→(33,−37). İkisi de çizildi.
 - `metro_station` girişlerinden (−790.1, −327.7) sahne kapsamı dışında; atlandı.
+
+## Tur 2 eklemeleri (hepsi TAHMİN, kaynaklı olanlar belirtildi)
+| Öğe | Kullanılan | Dayanak |
+|---|---|---|
+| Üçüncü Torun kulesi ("South", rezidans) | merkez (550, 192), iz 34×26 m, açı w798 ile aynı, 160 m, w798'in aynası (taş dilim + cam bloklar) | 160 m / 43 kat [SB]; konum: SB koordinatı (543, 204) + SB East ↔ w798 farkı kadar düzeltme; iz **tahmin**. Veride `torun_center` altında `role: "tower_estimate"` ya da `osmId: "estimate/torun_south"` bir iz gelirse onun merkezi kullanılır |
+| Torun podyumu / AVM | arsa çokgeni (468,16)…(464,92) ≈ 170×195 m, arsanın en yüksek zemini + 9 m; D100 cephesinde TORUN CENTER + kırmızı T, üst kenarda altın LED; gece tüm cam cephe sıcak | biçim/yükseklik **tahmin**; arsa sınırı Akıncı Bayırı Sk. / Büyükdere (D100) / Ali Sami Yen Sk. çizgilerinden |
+| Torun podyum çatısı | bahçe-meydan: çim adaları, ağaçlar, aydınlatma direkleri, kuleler arası ~82×9 m yansıtma havuzu | **tahmin** |
+| Quasar parkı | fabrika ile Büyükdere arası (652–784, 12–80), çim + ağaç | "fabrikanın önünde Büyükdere'ye uzanan ~20.000 m² kent parkı" [EAA]; sınırlar **tahmin** |
+| Quasar podyumu | kulelerin altında (640–787, 123–181), zemin + 7 m, çatı bahçesi | "iki kule bir podyum üstünde" [ARUP]; ölçü **tahmin** |
+| Trump cephe kabartması | beyaz yarıda her katta 0.35 m taşan döşeme bandı + ritmik parapet/balkon panelleri; koyu yarıda her katta bronz yatay kanat (2 katta bir 0.5 m), uzun yüzlerde dikey koyu kanat; rezidans eğik çatısında 3.2 m cam parapet, çekirdek cam bıçağı çatıdan +5 m | "balkon/parapet panelleri ritmik desen" [EA-TT]; ölçüler **tahmin** |
+| Trump ofis tacı | 16 m koyu kutu, dikey jaluzi kanatları, üst/alt LED çerçeve, iki yüzde 15×4.6 m TRUMP, 9 m direk | **tahmin** [CM Sunset over Mecidiyeköy] |
+| Trump AVM çatısı | ışıklıklar, tesisat kutuları, saksı ağaçlar | **tahmin** |
+| Metrobüs peronu | ekseni ve genişliği roads.json'daki iki busway şeridinin arasından (genişlik = aralık − 3.8 m, 4–10 m), kot +0.35 m; tonoz sundurma 4.0 + 1.6 m, 3 m'de bir kaburga, 9 m'de bir kolon, kapı açıklıklı korkuluk, sarı kenar şeridi, 26 m'de bir MECİDİYEKÖY tabelası, reklam panoları, banklar, turnike sırası + gişe, ~190 figür | **tahmin** [CM Mecidiyeköy Metrobüs.jpg] |
+| Üst geçit | tabla üstü zemin + 5.95 m (city.js yaya köprüsü kotuyla aynı yüzey), 4 m genişlik, çatılı, cam korkuluk, mavi alın bandı + "METROBÜS · MECİDİYEKÖY"; perona iki kol merdiven | **tahmin** |
+
+Veri notu: `metrobus_station` (yeni düzen: w1305577747 / w1412628025) ve `bus_platforms` destekleniyor; eski düzende OSM'den sabit çizgilere düşülüyor. `quasar` ayrı anahtarı da okunuyor (iki düzen de sınandı: yeni düzen Playwright ile simüle edildi).
+city.js yaya köprüsünü (w375233084) zaten çiziyor; bizim üst geçit onu kapsayacak kotta, ama iki çizim üst üste — city.js bu yolu atlarsa daha temiz olur.

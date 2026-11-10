@@ -593,6 +593,118 @@ def build_points(E):
     return pts, greens
 
 
+# ---------------------------------------------------------------- arazi kullanımı (Tur 2)
+def landuse_kind(t):
+    lu, le, na, am = t.get("landuse"), t.get("leisure"), t.get("natural"), t.get("amenity")
+    if lu == "cemetery" or am == "grave_yard":
+        return "cemetery"
+    if na == "water" or lu in ("reservoir", "basin") or le == "swimming_pool" or t.get("water"):
+        return "water"
+    if lu in ("forest",) or na in ("wood",):
+        return "forest"
+    if le in ("park", "garden", "dog_park") or lu in ("recreation_ground", "village_green"):
+        return "park"
+    if lu in ("grass", "meadow", "flowerbed", "allotments", "orchard", "plant_nursery") or na in ("grassland", "scrub", "heath"):
+        return "grass"
+    if le in ("pitch", "playground", "sports_centre", "track", "stadium", "fitness_station") :
+        return "pitch"
+    if am == "parking" or lu == "garages":
+        return "parking"
+    if lu in ("construction", "brownfield", "greenfield"):
+        return "construction"
+    if t.get("place") == "square" or t.get("area:highway") in ("pedestrian", "footway") or le == "outdoor_seating" \
+            or t.get("man_made") == "courtyard" or (t.get("highway") == "pedestrian" and t.get("area") == "yes"):
+        return "plaza"
+    return None
+
+
+def build_landuse(path):
+    if not os.path.exists(path):
+        return None, [], []
+    E = json.load(open(path, encoding="utf-8"))["elements"]
+    areas, walls, extra_pts = [], [], []
+    seen = set()
+    for e in E:
+        t = e.get("tags", {})
+        if e["type"] == "node":
+            if t.get("amenity") == "place_of_worship" or t.get("historic"):
+                x, z = to_xz(e["lat"], e["lon"])
+                if CLIP[0] <= x <= CLIP[2] and CLIP[1] <= z <= CLIP[3]:
+                    p = {"kind": "place_of_worship" if t.get("amenity") == "place_of_worship" else "historic",
+                         "x": r1(x), "z": r1(z)}
+                    if t.get("name"):
+                        p["name"] = t["name"]
+                    if t.get("religion"):
+                        p["religion"] = t["religion"]
+                    extra_pts.append(p)
+            continue
+        if e["type"] == "way" and t.get("barrier") in ("wall", "fence", "retaining_wall", "hedge"):
+            g = way_xz(e)
+            for seg in clip_line(g) if len(g) >= 2 else []:
+                w = {"id": f"w{e['id']}", "kind": t["barrier"], "pts": rpts(seg)}
+                h = num(t.get("height"))
+                if h:
+                    w["height"] = h
+                walls.append(w)
+            # aynı yol bir alan da olabilir (ör. mezarlık + barrier=fence) — devam et
+        kind = landuse_kind(t)
+        kind_est = False
+        if not kind and e["type"] == "way" and e["id"] == 218230062:
+            # Torun Center arsası: OSM'de yalnız landuse=commercial; zemin sert peyzaj/plaza kabulü TAHMİN
+            kind, kind_est = "plaza", True
+        if not kind:
+            continue
+        for k, (outer, holes) in enumerate(poly_of(e)):
+            poly = make_valid(Polygon(outer, holes))
+            if poly.area < 20 or not CLIP_BOX.intersects(poly):
+                continue
+            aid = f"{e['type'][0]}{e['id']}" + (f"_{k}" if k else "")
+            if aid in seen:
+                continue
+            seen.add(aid)
+            a = {"id": aid, "kind": kind, "footprint": rpts(orient(outer, True))}
+            if holes:
+                a["holes"] = [rpts(orient(h, False)) for h in holes]
+            if t.get("name"):
+                a["name"] = t["name"]
+            if kind == "cemetery" and t.get("religion"):
+                a["religion"] = t["religion"]
+            if kind == "parking" and t.get("parking"):
+                a["parking"] = t["parking"]
+                if t["parking"] in ("underground", "multi-storey"):
+                    continue  # yer altı / katlı otopark zemini değil
+            src = {k2: t[k2] for k2 in ("landuse", "leisure", "natural", "amenity", "place", "area:highway") if k2 in t}
+            a["osm"] = src
+            if kind_est:
+                a["kindSource"] = "estimate"
+            a["_area"] = poly.area
+            areas.append(a)
+    areas.sort(key=lambda a: -a["_area"])  # büyükten küçüğe: sonra çizilen üstte
+    for a in areas:
+        a["area"] = r1(a.pop("_area"))
+    return areas, walls, extra_pts
+
+
+def mark_cemetery_paths(roads, areas):
+    cem = [Polygon(a["footprint"], a.get("holes") or []) for a in areas if a["kind"] == "cemetery"]
+    if not cem:
+        return 0
+    from shapely.ops import unary_union
+    U = make_valid(unary_union([make_valid(c) for c in cem]))
+    n = 0
+    for r in roads:
+        if r["kind"] in ("footway", "path", "service", "steps", "pedestrian", "track", "living_street") and not r["bridge"]:
+            ls = LineString(r["pts"])
+            if ls.length > 0 and ls.intersection(U).length > 0.6 * ls.length:
+                r["inCemetery"] = True
+                if r["kind"] != "steps":
+                    r["osmKind"] = r["kind"]
+                    r["kind"] = "path"
+                    r["width"] = min(r["width"], 2.5)
+                n += 1
+    return n
+
+
 # ---------------------------------------------------------------- main
 def main():
     E = json.load(open(os.path.join(RAW, "overpass.json"), encoding="utf-8"))["elements"]
@@ -603,6 +715,12 @@ def main():
     roads, ped_areas = build_roads(E)
     buildings, src_count, ms_added, dropped, recs = build_buildings(E, height_at, roads)
     points, greens = build_points(E)
+    lu_areas, lu_walls, lu_pts = build_landuse(os.path.join(RAW, "overpass-landuse.json"))
+    n_cem_paths = 0
+    if lu_areas is not None:
+        n_cem_paths = mark_cemetery_paths(roads, lu_areas)
+        have = {(p["kind"], p["x"], p["z"]) for p in points}
+        points += [p for p in lu_pts if (p["kind"], p["x"], p["z"]) not in have]
 
     # --- landmarks
     bmap = {b["id"]: b for b in buildings}
@@ -642,12 +760,23 @@ def main():
                 "footprints": sp, "height": 170.1, "heightSource": "reference",
                 "notes": "Wikipedia 'Şişli Plaza': roof 170.1 m, 46 floors (40 residential on a 4-floor retail podium); the Istanbul tallest-list gives 152 m — sources differ. OSM maps only the whole-complex outline (~67×165 m), so the TOWER FOOTPRINT AND POSITION WITHIN THE OUTLINE ARE UNKNOWN; outline height in buildings.json is a 20 m podium estimate. Place the tower from photos (refs/)."})
     # Torun Center
-    tc = [fp("way", w, "tower") for w in (728793801, 728793798, 728793799, 728793800)] + \
-         [fp("way", w, "low_block") for w in (728793802, 728793803, 728793805)]
+    tc = [fp("way", 728793801, "office_tower"), fp("way", 728793798, "residence_tower")] + \
+         [fp("way", w, "low_block") for w in (728793803, 728793805)]
     tc = [x for x in tc if x]
-    lms.append({"key": "torun_center", "name": "Torun Center", "center": center_of([x for x in tc if x["role"] == "tower"]),
+    for x in tc:
+        if x["osmId"] == "way/728793801":
+            x["note"] = "Assumed office tower: sources give 36 floors → ~150 m (ESTIMATE); OSM says 160 m/42 floors."
+    lms.append({"key": "torun_center", "name": "Torun Center", "center": center_of([x for x in tc if "tower" in x["role"]]),
                 "osmIds": [x["osmId"] for x in tc], "footprints": tc, "height": 160.0, "heightSource": "osm",
-                "notes": "OSM tags four tower ways each height=160/levels=42. CTBUH/ScraperBase list East and South residential towers at 160 m (42 floors) plus an Office Tower (~36 floors per sales listings, height unpublished). OSM has FOUR 160 m ways for three Torun towers; a 'QUASAR Heliport' (way 1295515350) is mapped on w728793799, so that way may actually be Quasar İstanbul Residence (160 m / 48 floors per Wikipedia list) on the adjacent former liquor-factory site. Which way is the Torun office tower (height unpublished) is UNVERIFIED; all four kept at OSM 160 m. Low blocks w728793803/805 height=40 from OSM; w728793802 (1 level, 5 m) is likely the restored Art Deco liquor factory. The complex sits at the scene's east edge (x≈520–760)."})
+                "notes": "On the former Ali Sami Yen stadium site (~(585,116)). Sources: 2 residential towers 160 m/42 floors (CTBUH/ScraperBase) + 1 office tower 36 floors (height unpublished). Only TWO Torun towers exist as tall ways in OSM: w728793801 (assumed office — UNVERIFIED) and w728793798 (residence; ScraperBase 'East Tower' coords fall on it). The third Torun tower is not mapped as a tall building (w1321569694 'Torun Center' is a thin 12×55 m office strip). w728793799/800 moved to key 'quasar'. Low blocks w728793803/805 height=40 from OSM. Site ground (plaza/green/parking) in landuse.json."})
+    # Quasar
+    qs = [fp("way", 728793799, "fairmont_hotel_tower"), fp("way", 728793800, "residence_tower"),
+          fp("way", 728793802, "liquor_factory")]
+    qs = [x for x in qs if x]
+    lms.append({"key": "quasar", "name": "Quasar İstanbul (Fairmont Quasar + Quasar Residences)",
+                "center": center_of([x for x in qs if "tower" in x["role"]]),
+                "osmIds": [x["osmId"] for x in qs], "footprints": qs, "height": 156.0, "heightSource": "reference",
+                "notes": "Büyükdere Cd. 76, former Tekel liqueur factory site (Robert Mallet-Stevens, 1930s, restored). Two ~40-floor towers: Fairmont hotel (w728793799, 'QUASAR Heliport' way 1295515350 mapped on it) and Quasar Residences (w728793800; ScraperBase coords fall on it; its OSM name=Torun Center is probably wrong). ScraperBase: ~156 m, estimated from 40 floors; OSM: 160 m/42 floors (buildings.json keeps OSM 160). Liquor factory w728793802: OSM 5 m/1 level."})
     # Cevahir
     cv = [fp("way", 46962419, "mall")]
     cv = [x for x in cv if x]
@@ -665,14 +794,43 @@ def main():
                 "deckHeight": 9.0,
                 "notes": "OSM bridge=viaduct, layer=1: two D100 carriageways ('1. Çevre Yolu') + Metrobüs busway, running east from about x≈190 over the Büyükdere Cd. / square junction. Deck height above ground (~9 m) is an ESTIMATE. Footprints here are centerlines (polylines) with width, not polygons; the same ways are also in roads.json (bridge:true)."})
     # Metrobüs durağı
-    st_poly = way_poly(745420396)
-    plats = [way_poly(w) for w in (957443633,) if way_poly(w)]
-    lms.append({"key": "metrobus_station", "name": "İETT Mecidiyeköy Metrobüs Peronları",
-                "center": center_of([{"footprint": st_poly}]), "osmIds": ["way/745420396", "way/957443633"],
-                "footprints": [{"osmId": "way/745420396", "role": "station_area", "footprint": st_poly}] +
-                              [{"osmId": "way/957443633", "role": "platform", "footprint": p} for p in plats],
-                "height": 5.0, "heightSource": "estimate",
-                "notes": "Station area in the D100 median (public_transport=station). Canopy height ~5 m ESTIMATE. The scene origin lies inside this area."})
+    def way_line(wid):
+        e = byid.get(("way", wid))
+        return rpts(way_xz(e)) if e else None
+
+    def platform_fp(wid, role):
+        e = byid.get(("way", wid))
+        if not e:
+            return None
+        g = way_xz(e)
+        closed = len(g) > 3 and math.dist(g[0], g[-1]) < 0.5
+        d = {"osmId": f"way/{wid}", "role": role}
+        if closed:
+            d["footprint"] = rpts(clean_ring(g))
+        else:
+            d["centerline"] = rpts(g)
+            d["width"] = 4.0
+        if e.get("tags", {}).get("name"):
+            d["name"] = e["tags"]["name"]
+        return d
+
+    mp = [platform_fp(w, "metrobus_platform") for w in (1305577747, 1412628025)]
+    fb = platform_fp(375233084, "footbridge")
+    if fb:
+        fb["width"] = 3.0
+    mp = [x for x in mp + [fb] if x]
+    allpts = [p for x in mp if "footbridge" not in x["role"] for p in (x.get("footprint") or x.get("centerline"))]
+    lms.append({"key": "metrobus_station", "name": "Mecidiyeköy Metrobüs durağı",
+                "center": center_of([{"footprint": allpts}]), "osmIds": [x["osmId"] for x in mp],
+                "footprints": mp, "height": 5.6, "heightSource": "estimate",
+                "notes": "Real Metrobüs platform(s) in the D100 median, OSM highway=platform w1305577747 'Mecidiyeköy' (+ w1412628025), z≈−37…−50, between the busway carriageways. Open ways are given as centerline+width (width ESTIMATE). Footbridge w375233084 (OSM footway bridge) links platform to the sides. Canopy ~4–6 m ESTIMATE."})
+    bp_ids = [745420396, 957443632, 957443633, 957443634]
+    bp = [platform_fp(w, "station_area" if w == 745420396 else "bus_platform") for w in bp_ids]
+    bp = [x for x in bp if x]
+    lms.append({"key": "bus_platforms", "name": "İETT Mecidiyeköy Metrobüs Peronları (otobüs)",
+                "center": center_of([{"footprint": x.get("footprint") or x.get("centerline")} for x in bp]),
+                "osmIds": [x["osmId"] for x in bp], "footprints": bp, "height": 3.6, "heightSource": "estimate",
+                "notes": "İETT city-bus platforms (public_transport=station w745420396 + platforms) — NOT the Metrobüs platform. The scene origin lies inside the station area. Canopy ~3.6 m ESTIMATE."})
     # Metro
     ents = [p for p in points if p["kind"] == "subway_entrance"]
     stations = [p for p in points if p["kind"] == "station"]
@@ -721,6 +879,8 @@ def main():
         "landmarks.json": dump("landmarks.json", {"origin": origin, "landmarks": lms}),
         "points.json": dump("points.json", {"origin": origin, "points": points, "greens": greens}),
     }
+    if lu_areas is not None:
+        sizes["landuse.json"] = dump("landuse.json", {"origin": origin, "areas": lu_areas, "walls": lu_walls})
 
     # --- doğrulama/istatistik
     st = {"sizes": sizes, "buildings": len(buildings), "heightSource": dict(src_count), "ms_added": ms_added,
@@ -741,6 +901,12 @@ def main():
                                     "length": r1(LineString(c).length), "maxSegment": r1(gaps),
                                     "onBridge": r1(sum(LineString(c[i:i + 2]).length for i in range(len(c) - 1) if p["layer"][i] >= 1 and p["layer"][i + 1] >= 1))})
     st["landmark_centers"] = {l["key"]: l["center"] for l in lms}
+    if lu_areas is not None:
+        st["landuse"] = {k: {"n": sum(1 for a in lu_areas if a["kind"] == k),
+                             "area_m2": round(sum(a["area"] for a in lu_areas if a["kind"] == k))}
+                         for k in sorted({a["kind"] for a in lu_areas})}
+        st["walls"] = dict(Counter(w["kind"] for w in lu_walls))
+        st["cemetery_paths"] = n_cem_paths
     H = terr["heights"]
     st["terrain_range"] = (min(H), max(H), terr["originElevation"])
     st["points"] = dict(Counter(p["kind"] + ("/" + p["source"] if "source" in p else "") for p in points))

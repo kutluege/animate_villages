@@ -18,7 +18,7 @@ export function buildLamps(ctx, U, roadNet, isInside) {
   const near = (x, z, d) => { let hit = false; taken.query(x, z, d, (p) => { if ((p[0] - x) ** 2 + (p[1] - z) ** 2 < d * d) { hit = true; return false; } }); return hit; };
   for (const r of roadNet.roads) {
     const sp = SPEC[r.cls];
-    if (!sp || r.len < 12) continue;
+    if (!sp || r.len < 12 || r.inCemetery) continue;
     const rr = ctx.rng('city/lamp/' + r.id);
     const kRoad = rr();
     const sodium = !sp.led && rr() < 0.6;

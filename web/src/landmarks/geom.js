@@ -139,6 +139,62 @@ export function strip3(a, b, w = 0.4, h = 0.4) {
   return loft([lo, lo.map((p) => [p[0], p[1] + h, p[2]])], { top: true });
 }
 
+/** Sayısal y'li kesit listesinde (artan y) y yüksekliğindeki dikdörtgeni doğrusal ara değerle bul. */
+export function interpRect(S, y) {
+  if (y <= S[0].y) return S[0].rect.slice();
+  for (let i = 0; i < S.length - 1; i++) {
+    const a = S[i], b = S[i + 1];
+    if (y <= b.y) { const f = (y - a.y) / (b.y - a.y || 1); return a.rect.map((v, k) => v + (b.rect[k] - v) * f); }
+  }
+  return S[S.length - 1].rect.slice();
+}
+
+/** p→q boyunca, uçlarda farklı üst kotlu (yp, yq) eğimli plak; kalınlık t, genişlik w (uçlarda wq ayrı olabilir). */
+export function slabAlong(p, q, w, yp, yq, t, wq = w) {
+  const dx = q[0] - p[0], dz = q[1] - p[1], L = Math.hypot(dx, dz) || 1, nx = -dz / L, nz = dx / L;
+  const top = [[p[0] + nx * w / 2, yp, p[1] + nz * w / 2], [q[0] + nx * wq / 2, yq, q[1] + nz * wq / 2],
+    [q[0] - nx * wq / 2, yq, q[1] - nz * wq / 2], [p[0] - nx * w / 2, yp, p[1] - nz * w / 2]];
+  return loft([top.map((v) => [v[0], v[1] - t, v[2]]), top], { top: true, bottom: true });
+}
+
+function stripGeo(g) {
+  const n = g.index ? g.toNonIndexed() : g;
+  for (const k of Object.keys(n.attributes)) if (k !== 'position' && k !== 'normal') n.deleteAttribute(k);
+  return n;
+}
+
+/** Basit ağaç: [gövde, taç] geometrileri (yalnız position+normal; birleştirilebilir). kind 'round' | 'cypress' */
+export function treeGeos(x, y, z, h, r, kind = 'round', rot = 0) {
+  const trunkH = kind === 'cypress' ? h * 0.15 : h * 0.4;
+  const trunk = stripGeo(new THREE.CylinderGeometry(0.12 * r, 0.18 * r, trunkH, 5));
+  trunk.translate(x, y + trunkH / 2, z);
+  let crown;
+  if (kind === 'cypress') { crown = stripGeo(new THREE.ConeGeometry(r * 0.55, h - trunkH * 0.6, 7)); crown.translate(x, y + trunkH * 0.4 + (h - trunkH * 0.6) / 2, z); }
+  else { crown = stripGeo(new THREE.IcosahedronGeometry(r, 0)); crown.scale(1, 0.85, 1); crown.rotateY(rot); crown.translate(x, y + trunkH + r * 0.7, z); }
+  crown.computeVertexNormals();
+  return [trunk, crown];
+}
+
+/** Düşük çokgenli insan figürü (gövde + baş), renk vertex color olarak. */
+export function personGeo(x, y, z, h, rot, rgbBody, rgbLegs, rgbHead = [0.55, 0.4, 0.32]) {
+  const parts = [];
+  const box = (w, hh, d, cy, rgb) => {
+    const g = stripGeo(new THREE.BoxGeometry(w, hh, d));
+    g.translate(0, cy, 0);
+    const c = new Float32Array(g.attributes.position.count * 3);
+    for (let i = 0; i < c.length; i += 3) { c[i] = rgb[0]; c[i + 1] = rgb[1]; c[i + 2] = rgb[2]; }
+    g.setAttribute('color', new THREE.BufferAttribute(c, 3));
+    parts.push(g);
+  };
+  const s = h / 1.75;
+  box(0.34 * s, 0.82 * s, 0.22 * s, 0.41 * s, rgbLegs);
+  box(0.46 * s, 0.62 * s, 0.26 * s, 1.13 * s, rgbBody);
+  box(0.2 * s, 0.24 * s, 0.22 * s, 1.58 * s, rgbHead);
+  const m = new THREE.Matrix4().makeRotationY(rot).setPosition(x, y, z);
+  for (const g of parts) g.applyMatrix4(m);
+  return parts;
+}
+
 /** Tabela dokusu (CanvasTexture). Yazı tipi: sistem sans-serif; aynı makinede kare kare aynı. */
 export function signTexture(text, { w = 1024, h = 256, color = '#ffffff', bg = null, font = 'bold', size = 0.62, letter = 0.06, stroke = null } = {}) {
   const cv = document.createElement('canvas');

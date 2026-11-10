@@ -1,10 +1,11 @@
 {
  "sizes": {
-  "buildings.json": 606934,
-  "roads.json": 293039,
+  "buildings.json": 606916,
+  "roads.json": 293634,
   "terrain.json": 10308,
-  "landmarks.json": 12500,
-  "points.json": 47688
+  "landmarks.json": 14500,
+  "points.json": 47786,
+  "landuse.json": 31932
  },
  "buildings": 2972,
  "heightSource": {
@@ -174,10 +175,11 @@
   "steps": 148,
   "primary_link": 45,
   "pedestrian": 10,
-  "service": 115,
+  "service": 98,
   "busway": 12,
   "footway": 270,
   "secondary_link": 7,
+  "path": 17,
   "subway": 17,
   "platform": 7,
   "unclassified": 5,
@@ -323,8 +325,12 @@
    653.8
   ],
   "torun_center": [
-   646.8,
-   145.3
+   570.3,
+   137.9
+  ],
+  "quasar": [
+   709.5,
+   151.4
   ],
   "cevahir": [
    82.4,
@@ -335,8 +341,12 @@
    -11.8
   ],
   "metrobus_station": [
-   4.2,
-   2.7
+   -67.9,
+   -46.3
+  ],
+  "bus_platforms": [
+   -1.6,
+   5.7
   ],
   "metro_station": [
    64.1,
@@ -351,6 +361,51 @@
    0.0
   ]
  },
+ "landuse": {
+  "cemetery": {
+   "n": 5,
+   "area_m2": 449773
+  },
+  "construction": {
+   "n": 10,
+   "area_m2": 115150
+  },
+  "forest": {
+   "n": 2,
+   "area_m2": 23579
+  },
+  "grass": {
+   "n": 24,
+   "area_m2": 13830
+  },
+  "park": {
+   "n": 18,
+   "area_m2": 49060
+  },
+  "parking": {
+   "n": 18,
+   "area_m2": 29477
+  },
+  "pitch": {
+   "n": 11,
+   "area_m2": 3269
+  },
+  "plaza": {
+   "n": 3,
+   "area_m2": 68594
+  },
+  "water": {
+   "n": 1,
+   "area_m2": 193
+  }
+ },
+ "walls": {
+  "wall": 17,
+  "fence": 17,
+  "hedge": 1,
+  "retaining_wall": 1
+ },
+ "cemetery_paths": 17,
  "terrain_range": [
   -86.4,
   2.0,
@@ -363,6 +418,7 @@
   "tree/osm": 54,
   "station": 3,
   "metrobus_stop": 4,
-  "tree/synthetic": 394
+  "tree/synthetic": 394,
+  "place_of_worship": 1
  }
 }

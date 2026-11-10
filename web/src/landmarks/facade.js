@@ -72,7 +72,7 @@ vec3 lmEmit = lmG * lmLit * lmInt * lmLitC;
 lmEmit += lmG * step(lmV * uFloorH, uLobbyH) * step(0.0, lmV) * clamp(uLightsOn * 1.5, 0.0, 1.0) * uLobbyC;
 // LED kat çizgileri (her uLedEvery katta bir, döşeme hizasında ince şerit)
 if (uLedEvery > 0.5) {
-  float lmBand = lmPulse(lmV / uLedEvery, 0.0, 0.07 / uLedEvery, fwidth(lmV) / uLedEvery);
+  float lmBand = lmPulse(lmV / uLedEvery, 0.0, 0.11 / uLedEvery, fwidth(lmV) / uLedEvery);
   lmEmit += (1.0 - lmRoof) * uLed * uLedColor * lmBand * step(0.0, lmV);
 }
 `;

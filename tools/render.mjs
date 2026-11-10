@@ -2,13 +2,13 @@
 //   npm run render -- --draft                  540×960, 15 fps, hızlı → out/draft/
 //   npm run render                             1080×1920, 30 fps, yüksek kalite → out/final/
 // Seçenekler: --atmo a|b  --from 10 --to 14 (sn, kısmi)  --fps N  --size WxH  --crf N
-//             --fresh (kareleri sil, baştan)  --no-encode  --testscene  --swiftshader  --out dosya.mp4
+//             --outdir out/<ajan> (kareler+MP4 oraya)  --fresh (kareleri sil, baştan)  --no-encode  --testscene  --swiftshader  --out dosya.mp4
 // Yarıda kesilirse aynı komut kaldığı yerden devam eder (out/frames/<iş>/ altındaki tamam kareler atlanır).
 // Kod/veri değiştiyse (manifest özeti tutmazsa) eski kareler otomatik silinir.
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { join, relative, resolve } from 'node:path';
 import { openBrowser, openScene, parseArgs } from './lib-browser.mjs';
 import { ROOT } from './serve.mjs';
 
@@ -17,12 +17,14 @@ const draft = !!args.draft;
 let [W, H] = draft ? [540, 960] : [1080, 1920];
 if (args.size) [W, H] = String(args.size).split('x').map(Number);
 const FPS = Number(args.fps) || (draft ? 15 : 30);
-const atmo = args.atmo && args.atmo !== true ? String(args.atmo) : '';
+const atmo = args.atmo && args.atmo !== true ? String(args.atmo) : 'b'; // varsayılan atmosfer B
 const quality = draft ? 'draft' : 'final';
-const crf = Number(args.crf) || (draft ? 23 : 15);
+const crf = Number(args.crf) || (draft ? 23 : 14);
+// --outdir out/<ajan-adı>: kareler <outdir>/frames/<iş>/, MP4 <outdir>/ altına (başkasının karelerine dokunmaz)
+const OUTDIR = args.outdir && args.outdir !== true ? resolve(ROOT, String(args.outdir)) : null;
 
-const job = `${quality}${atmo ? '-' + atmo : ''}${args.testscene ? '-test' : ''}-${W}x${H}-${FPS}`;
-const framesDir = join(ROOT, 'out', 'frames', job);
+const job = `${quality}-${atmo}${args.testscene ? '-test' : ''}-${W}x${H}-${FPS}`;
+const framesDir = OUTDIR ? join(OUTDIR, 'frames', job) : join(ROOT, 'out', 'frames', job);
 const manifestPath = join(framesDir, 'manifest.json');
 const frameName = (i) => `f${String(i).padStart(5, '0')}.png`;
 
@@ -99,8 +101,13 @@ try {
     const i = todo[k];
     const t = i / FPS;
     try {
-      await scene.page.evaluate((tt) => window.__renderFrame(tt), t);
-      const buf = await scene.page.screenshot({ type: 'png', clip: { x: 0, y: 0, width: W, height: H }, animations: 'disabled' });
+      // Kanvas pikselleri doğrudan (preserveDrawingBuffer açık): page.screenshot'tan ~4× hızlı, kompozitör yok.
+      const dataUrl = await scene.page.evaluate(async (tt) => {
+        await window.__renderFrame(tt);
+        return window.__ctx.renderer.domElement.toDataURL('image/png');
+      }, t);
+      const buf = Buffer.from(dataUrl.slice(dataUrl.indexOf(',') + 1), 'base64');
+      if (buf.length < 1000) throw new Error('boş kare');
       const p = join(framesDir, frameName(i));
       writeFileSync(p + '.tmp', buf);
       renameSync(p + '.tmp', p); // yarım dosya kalmasın
@@ -129,16 +136,16 @@ try {
     if (missing.length) throw new Error(`${missing.length} kare eksik (ilk: ${missing[0]})`);
     const partial = from > 0 || to < N;
     // out/final/ commit edilir: yalnızca tam, final, test sahnesiz videolar oraya gider.
-    const outDir = join(ROOT, 'out', !draft && !partial && !args.testscene ? 'final' : 'draft');
+    const outDir = OUTDIR || join(ROOT, 'out', !draft && !partial && !args.testscene ? 'final' : 'draft');
     mkdirSync(outDir, { recursive: true });
-    const base = `mecidiyekoy${draft ? '-draft' : ''}${atmo ? '-' + atmo : ''}${args.testscene ? '-test' : ''}`;
+    const base = `mecidiyekoy${draft ? '-draft' : ''}${atmo !== 'b' ? '-' + atmo : ''}${args.testscene ? '-test' : ''}`;
     const out = args.out && args.out !== true ? String(args.out)
       : join(outDir, partial ? `${base}-${(from / FPS).toFixed(1)}-${(to / FPS).toFixed(1)}s.mp4` : `${base}.mp4`);
     const enc = [
       '-y', '-hide_banner', '-loglevel', 'warning', '-stats',
       '-framerate', String(FPS), '-start_number', String(from), '-i', join(framesDir, 'f%05d.png'),
       '-frames:v', String(to - from),
-      '-vf', 'scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int,format=yuv420p',
+      '-vf', 'scale=in_range=full:out_range=tv:out_color_matrix=bt709:flags=lanczos+accurate_rnd+full_chroma_int,format=yuv420p,setparams=range=tv:color_primaries=bt709:color_trc=bt709:colorspace=bt709',
       '-c:v', 'libx264', '-preset', draft ? 'veryfast' : 'slow', '-crf', String(crf),
       '-profile:v', 'high', '-level:v', '4.2', '-pix_fmt', 'yuv420p',
       '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', '-color_range', 'tv',

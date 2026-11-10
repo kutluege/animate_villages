@@ -31,8 +31,10 @@
     font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); transition: opacity .6s; }
   #loading.done { opacity: 0; }
 
-  #ui { position: fixed; inset: 0; pointer-events: none; transition: opacity .35s; }
-  #ui.hidden { opacity: 0; }
+  #ui { position: fixed; inset: 0; pointer-events: none; transition: opacity .6s; opacity: 0; }
+  body.ready #ui { opacity: 1; }
+  body.ready #ui.hidden { opacity: 0; }
+  #ui.hidden * { pointer-events: none !important; }
   .panel { pointer-events: auto; background: var(--glass); border: 1px solid var(--line);
     backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-radius: 16px; }
 
@@ -65,6 +67,12 @@
   #preview-bar { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); padding: 8px 14px;
     display: none; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
   #preview-bar.show { display: flex; }
+  #preview-bar button { padding: 3px 9px; font-size: 11px; }
+  /* Önizlemede alt panel çekilir: 9:16 kadrajın önüne geçmesin */
+  #dock, #hint { transition: opacity .3s, transform .3s; }
+  body.previewing #dock { opacity: 0; transform: translate(-50%, 16px); pointer-events: none; }
+  body.previewing #hint, body.previewing #title { opacity: 0; }
+  #title { transition: opacity .3s; }
   #preview-bar .track { width: 180px; height: 3px; background: rgba(255,255,255,.15); border-radius: 3px; overflow: hidden; }
   #preview-bar .fill { height: 100%; width: 0; background: var(--accent); }
   #preview-bar .tc { font-variant-numeric: tabular-nums; color: var(--ink); }
@@ -74,7 +82,20 @@
   #status .bad { color: #ff9b8a; }
   #status .ok { color: #b9e3b0; }
   #hint { position: absolute; right: 18px; bottom: 22px; font-size: 11px; color: var(--muted); pointer-events: none; }
-  @media (max-width: 720px) { #hint, #status { display: none; } #title h1 { font-size: 18px; } }
+  @media (max-width: 720px) {
+    #hint, #status { display: none !important; }
+    #title { left: 16px; top: 14px; } #title h1 { font-size: 18px; } #title p { font-size: 10.5px; }
+    #dock { bottom: max(12px, env(safe-area-inset-bottom)); width: calc(100vw - 24px); padding: 10px 12px 12px; gap: 8px; border-radius: 14px; }
+    #row1 { gap: 8px; align-items: center; }
+    #clock { font-size: 22px; }
+    #phase { font-size: 10.5px; }
+    #row1 button span { display: none; }
+    #row1 button { width: 36px; height: 36px; padding: 0; justify-content: center; }
+    #row1 button svg { width: 13px; height: 13px; }
+    .ticks span:nth-child(even) { visibility: hidden; }
+    #preview-bar { top: 10px; } #preview-bar .track { width: 90px; }
+  }
+  @media (max-height: 520px) { #hint { display: none; } #dock { bottom: 10px; padding: 8px 14px 10px; gap: 6px; } }
 </style>
 </head>
 <body>
@@ -84,15 +105,15 @@
   <div id="title"><h1>Mecidiyeköy</h1><p>Gündüzden geceye</p></div>
   <div id="status" class="panel"></div>
   <div id="preview-bar" class="panel">
-    <span>Video önizleme</span><div class="track"><div class="fill"></div></div><span class="tc">0.0 / 36 sn</span>
+    <span>Video önizleme</span><div class="track"><div class="fill"></div></div><span class="tc">0.0 / 36 sn</span><button id="preview-close" title="Önizlemeyi kapat (Esc)">Kapat</button>
   </div>
   <div id="dock" class="panel">
     <div id="row1">
-      <div id="clock">16:30</div><div id="phase">İkindi</div><div class="spacer"></div>
+      <div id="clock">18:54</div><div id="phase">Altın saat</div><div class="spacer"></div>
       <button id="play" title="Gündüz ↔ gece oynat (Boşluk)"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg><span>Oynat</span></button>
       <button id="preview" title="Kamera rotası ve kurguyla videoyu gerçek zamanlı önizle (V)"><svg viewBox="0 0 12 12"><rect x="3" y="0.5" width="6" height="11" rx="1.2"/></svg><span>Videoyu önizle</span></button>
     </div>
-    <input id="tod" type="range" min="6" max="24" step="0.01" value="16.5" aria-label="Günün saati">
+    <input id="tod" type="range" min="6" max="24" step="0.01" value="18.9" aria-label="Günün saati">
     <div class="ticks"><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span><span>24:00</span></div>
   </div>
   <div id="hint">Sürükle: döndür · Sağ tık: kaydır · Teker: yakınlaş · H: arayüz</div>

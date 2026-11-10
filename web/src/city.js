@@ -9,6 +9,8 @@ import { buildTraffic } from './city/traffic.js';
 import { buildLamps } from './city/lamps.js';
 import { buildProps } from './city/props.js';
 import { smooth } from './city/util.js';
+import { prepareLanduse, buildLanduse } from './city/landuse.js';
+import { buildFill } from './city/fill.js';
 
 const SHOP_CLS = { primary: 0.9, secondary: 0.85, link: 0.6, minor: 0.4, path: 0.7 };
 
@@ -16,10 +18,17 @@ export async function create(ctx) {
   const t0 = performance.now();
   const root = new THREE.Group(); root.name = 'city';
   const U = {
-    uLightsOn: { value: 0 }, uTrail: { value: 0 }, uCarI: { value: 0 }, uStripI: { value: 0 },
+    uLightsOn: { value: 0 }, uT: { value: 0 }, uCarLight: { value: 0 }, uCarI: { value: 0 }, uStripI: { value: 0 },
   };
 
-  const net = buildRoads(ctx, U);
+  // arazi kullanımı (data/landuse.json). ?cityLanduse=<url> yalnızca sınama için başka dosya yükler.
+  let luData = ctx.data.landuse;
+  const luUrl = ctx.params?.get?.('cityLanduse');
+  if (luUrl && /^[\w\-./]+\.json$/.test(luUrl)) {
+    try { const r = await fetch(new URL(luUrl, location.origin), { cache: 'no-store' }); if (r.ok) luData = await r.json(); } catch (e) { console.warn('[city] cityLanduse yüklenemedi', e); }
+  }
+  const LU = prepareLanduse(luData);
+  const net = buildRoads(ctx, U, { landAt: LU.areas.length ? LU.at : null });
   root.add(net.group);
 
   // dükkân sırası: ana cadde/sokak kenarındaki binaların zemin katı
@@ -53,9 +62,16 @@ export async function create(ctx) {
   root.add(lamps.group);
   const props = buildProps(ctx, U, blds.footprints, isInside);
   root.add(props.group);
+  const land = buildLanduse(ctx, LU, net, isInside);
+  root.add(land.group);
+  // dolgu: veri kutusu = bina izlerinin kapsamı
+  let bx0 = 1e9, bz0 = 1e9, bx1 = -1e9, bz1 = -1e9;
+  for (const f of blds.footprints) { bx0 = Math.min(bx0, f.cx); bx1 = Math.max(bx1, f.cx); bz0 = Math.min(bz0, f.cz); bz1 = Math.max(bz1, f.cz); }
+  const fill = ctx.params?.get?.('cityFill') === '0' || !blds.footprints.length ? null : buildFill(ctx, U, [bx0, bz0, bx1, bz1]);
+  if (fill) root.add(fill.group);
 
   ctx.scene.add(root);
-  const stats = { buildings: blds.footprints.length, roads: net.roads.length, lamps: lamps.count, ...traffic.counts, ...props.counts, ms: Math.round(performance.now() - t0) };
+  const stats = { buildings: blds.footprints.length, roads: net.roads.length, lamps: lamps.count, ...traffic.counts, ...props.counts, ...land.counts, ...(fill?.counts || {}), ms: Math.round(performance.now() - t0) };
   console.info('[city] hazır', JSON.stringify(stats));
   if (typeof window !== 'undefined') window.__city = { stats, root };
 
@@ -64,12 +80,13 @@ export async function create(ctx) {
     update(state) {
       const on = state.lightsOn;
       U.uLightsOn.value = on;
-      U.uTrail.value = 22 * smooth(0.05, 0.7, on);
-      U.uCarI.value = 5.5 * smooth(0.0, 0.35, on);
+      U.uCarLight.value = 4 * smooth(0.0, 0.3, on);
+      U.uCarI.value = 6 * smooth(0.0, 0.35, on);
       U.uStripI.value = 8;
       traffic.update(state);
       lamps.update(state);
       props.update(state);
+      fill?.update(state);
     },
     dispose() {
       ctx.scene.remove(root);

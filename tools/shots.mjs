@@ -1,10 +1,10 @@
 // Sabit kadrajlardan ekran görüntüleri → out/shots/
 //   npm run shots
-//   npm run shots -- --atmo b --tod 16.5,19.2,21.5 --size 1080x1920 --view genel,meydan --t 10 --q draft
+//   npm run shots -- --atmo a --out out/benim-klasorum --tod 16.5,19.2,21.5 --size 1080x1920 --view genel,meydan --t 10 --q draft
 // Varsayılan: tüm kadrajlar × gündüz (16:30) / altın saat (18:45) / gece (21:30), 540×960 dikey.
 // Ayrıca --video 0,12,24,35 → edit.js'in o saniyelerdeki kareleri (shotAt ile).
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { openBrowser, openScene, parseArgs } from './lib-browser.mjs';
 import { ROOT } from './serve.mjs';
 
@@ -23,11 +23,12 @@ const todName = (h) => `${String(Math.floor(h)).padStart(2, '0')}${String(Math.r
 
 const args = parseArgs();
 const [w, h] = String(args.size || '540x960').split('x').map(Number);
-const atmo = args.atmo && args.atmo !== true ? String(args.atmo) : '';
+const atmo = args.atmo && args.atmo !== true ? String(args.atmo) : 'b'; // varsayılan atmosfer B
 const tods = args.tod ? String(args.tod).split(',').map(Number).filter(Number.isFinite) : DEFAULT_TODS;
 const views = args.view ? String(args.view).split(',').filter((v) => VIEWS[v]) : Object.keys(VIEWS);
 const t = Number.isFinite(Number(args.t)) ? Number(args.t) : 10;
-const outDir = join(ROOT, 'out', 'shots');
+// --out out/<ajan-adı> (CONTRACT §4b); varsayılan out/shots
+const outDir = args.out && args.out !== true ? resolve(ROOT, String(args.out)) : join(ROOT, 'out', 'shots');
 mkdirSync(outDir, { recursive: true });
 
 const env = await openBrowser({ swiftshader: !!args.swiftshader });

@@ -30,17 +30,25 @@ export function parseArgs(argv = process.argv.slice(2)) {
   return out;
 }
 
-/** Sunucu (rastgele boş port) + tarayıcı. close() ikisini de kapatır. */
+async function devServerUp(port = 5173) {
+  try {
+    const r = await fetch(`http://127.0.0.1:${port}/web/src/main.js`, { method: 'HEAD', signal: AbortSignal.timeout(1500) });
+    return r.ok;
+  } catch { return false; }
+}
+
+/** Sunucu + tarayıcı. 5173'te çalışan sunucu varsa onu kullanır (CONTRACT §4b), yoksa geçici bir port açar. */
 export async function openBrowser({ swiftshader = false } = {}) {
-  const server = await startServer({ port: 0, quiet: true });
-  const port = server.address().port;
+  const reuse = await devServerUp(5173);
+  const server = reuse ? null : await startServer({ port: 0, quiet: true });
+  const port = reuse ? 5173 : server.address().port;
   const browser = await chromium.launch({
     args: swiftshader ? ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'] : gpuArgs(),
   });
   return {
     base: `http://127.0.0.1:${port}`,
     browser,
-    async close() { await browser.close().catch(() => {}); await new Promise((r) => server.close(r)); },
+    async close() { await browser.close().catch(() => {}); if (server) await new Promise((r) => server.close(r)); },
   };
 }
 

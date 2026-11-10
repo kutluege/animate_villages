@@ -40,8 +40,13 @@ float rdRough = 0.92;
   float ds = fwidth(s), da = fwidth(ac);
   vec3 col;
   if (code < 4.5) {
-    vec3 asph = code > 3.5 ? vec3(0.075, 0.034, 0.03) : vec3(0.05, 0.051, 0.053);
-    asph *= mix(0.78, 1.18, n1) * mix(0.92, 1.08, n2);
+    vec3 asph = code > 3.5 ? vec3(0.15, 0.075, 0.065) : vec3(0.115, 0.115, 0.118);
+    asph *= mix(0.84, 1.12, n1) * mix(0.93, 1.07, n2);
+    // kenar oluğu: kaldırım dibinde koyu, kirli bant
+    asph *= 1.0 - 0.28 * smoothstep(hw - 0.55, hw - 0.05, abs(ac));
+    // ince çatlak/yama çizgileri
+    float cr = cityNoise(vWp.xz * vec2(0.9, 2.3) + 41.0);
+    asph *= 1.0 - 0.12 * smoothstep(0.47, 0.5, cr) * smoothstep(0.53, 0.5, cr);
     float pt = smoothstep(0.66, 0.70, cityNoise(vWp.xz * 0.045 + 7.0));
     asph = mix(asph, asph * vec3(0.72, 0.73, 0.75), pt);
     float lw = 2.0 * hw / lanes;
@@ -49,7 +54,7 @@ float rdRough = 0.92;
     asph *= 1.0 - 0.16 * cityBox(lf, 0.40, 0.60, dL) * (0.6 + 0.4 * n3);
     col = asph;
     float m = 0.0;
-    vec3 mc = code > 3.5 ? vec3(0.62, 0.42, 0.05) : vec3(0.60, 0.60, 0.58);
+    vec3 mc = code > 3.5 ? vec3(0.72, 0.5, 0.06) : vec3(0.74, 0.74, 0.72);
     float endF = smoothstep(4.0, 8.0, s) * smoothstep(4.0, 8.0, sT - s);
     for (int i = 1; i < 8; i++) {
       float fi = float(i);
@@ -69,7 +74,7 @@ float rdRough = 0.92;
     }
     float far = smoothstep(0.1, 0.35, max(da, ds * 0.25));
     m *= 1.0 - 0.7 * far;
-    m *= mix(0.65, 1.0, n2);
+    m *= mix(0.78, 1.0, n2);
     col = mix(col, mc, m);
     rdRough = mix(0.93, 0.6, m);
   } else if (code < 5.5 || (code > 6.5 && code < 7.5)) {
@@ -84,6 +89,10 @@ float rdRough = 0.92;
     col = vec3(0.27, 0.265, 0.25) * mix(0.82, 1.1, n1) * mix(0.95, 1.04, cityH(floor(tp.x), floor(tp.y), 6.0));
     float curb = cityBox(abs(ac), hw - 0.02, hw + 0.28, da);
     col = mix(col, vec3(0.42, 0.41, 0.39), curb);
+  } else if (code > 17.5) {
+    col = mix(vec3(0.15, 0.115, 0.08), vec3(0.21, 0.165, 0.11), n2) * mix(0.85, 1.1, n1);
+    col = mix(col, col * 0.75, smoothstep(0.6, 1.0, abs(ac) / max(hw, 0.5)));
+    rdRough = 1.0;
   } else {
     col = mix(vec3(0.045, 0.075, 0.025), vec3(0.085, 0.10, 0.035), n1) * mix(0.8, 1.15, n2);
     rdRough = 1.0;
@@ -105,14 +114,20 @@ class MaxHeap {
   get size() { return this.a.length; }
 }
 
-export function buildRoads(ctx, U) {
+export function buildRoads(ctx, U, opts = {}) {
   const { heightAt } = ctx;
   const src = ctx.data.roads?.roads || [];
   const roads = [];
+  // landmarks.json osmIds içindeki yollar/alanlar simge yapı ajanının (viyadük hariç: onu yalnız city.js çiziyor)
+  const lmSkip = new Set();
+  for (const l of ctx.data.landmarks?.landmarks || []) {
+    if (l.key === 'viaduct') continue;
+    for (const o of l.osmIds || []) { const m = /^(way|node|relation)\/(\d+)$/.exec(o); if (m) lmSkip.add(m[1][0] + m[2]); }
+  }
   // ── 1. süz + yeniden örnekle (orijinal köşelerin indeksi tutulur)
   for (const r of src) {
     if (!r || !Array.isArray(r.pts) || r.pts.length < 2) continue;
-    if (r.tunnel || (r.layer ?? 0) < 0) continue;
+    if (r.tunnel || (r.layer ?? 0) < 0 || lmSkip.has(r.id)) continue;
     const cls = CLS[r.kind];
     if (!cls) continue;
     const pts = [], orig = [];
@@ -211,6 +226,12 @@ export function buildRoads(ctx, U) {
     }
   }
   for (const r of roads) {
+    if (opts.landAt && (r.cls === 'path' || r.cls === 'service' || r.cls === 'minor')) {
+      const m = r.pts[Math.floor(r.pts.length / 2)];
+      const a = opts.landAt(m[0], m[1]);
+      if (a && a.kind === 'cemetery') r.inCemetery = true;
+    }
+    if (r.inCemetery) { ribbon(B.path, r, -r.halfW, r.halfW, 18, 0); continue; }
     const code = CODE[r.cls];
     if (r.cls === 'path') { ribbon(B.path, r, -r.halfW, r.halfW, r.kind === 'platform' ? 7 : 5, 0); continue; }
     ribbon(r.cls === 'busway' ? B.bus : B.road, r, -r.halfW, r.halfW, code, 0);
@@ -233,7 +254,7 @@ export function buildRoads(ctx, U) {
     const ids = pts.map((p) => b.v(p[0], heightAt(p[0], p[1]) + yOff, p[1], 0, 1, 0, white, { aRd: [0, 0, 999, 1], aRd2: [code, 0, 0, 0] }));
     for (const t of tris) b.tri(ids[t[0]], ids[t[1]], ids[t[2]], 0, 1, 0);
   }
-  for (const a of ctx.data.roads?.areas || []) if (Array.isArray(a.pts)) polyFill(B.walk, a.pts, 5, 0.2);
+  for (const a of ctx.data.roads?.areas || []) if (Array.isArray(a.pts) && !lmSkip.has(a.id)) polyFill(B.walk, a.pts, 5, 0.2);
   for (const g of ctx.data.points?.greens || []) if (Array.isArray(g.pts)) polyFill(B.walk, g.pts, 9, 0.12);
 
   // ── 4. yapı: tabliye, ayaklar, istinat duvarları, bariyerler
@@ -403,5 +424,5 @@ export function buildRoads(ctx, U) {
     busGrid.query(x, z, 12, (it) => { const d = (it[0] - x) ** 2 + (it[1] - z) ** 2; if (d < best) { best = d; y = it[2]; } });
     return y ?? heightAt(x, z) + YOFF.busway;
   }
-  return { group, roads, busY, meshes, dispose() { for (const m of [...meshes, struct]) { m.geometry.dispose(); m.material.dispose(); } } };
+  return { group, roads, busY, lmSkip, meshes, dispose() { for (const m of [...meshes, struct]) { m.geometry.dispose(); m.material.dispose(); } } };
 }

@@ -4,6 +4,9 @@
 `tools/fetch-overpass.py`, `tools/fetch-overture.py`, `tools/fetch-cop30.py` (dosya varsa yeniden indirmez).
 Python: `pip install numpy scipy shapely tifffile imagecodecs overturemaps`. Node bağımlılığı yok.
 İndirme tarihi: 2026-11-10. Ayrıntılı istatistik: `data/raw/build-stats.json`.
+**Tur 2 (2026-11-10):** tek ek Overpass sorgusu `tools/fetch-overpass-landuse.py` → `raw/overpass-landuse.json`
+(landuse/leisure/natural/amenity alanları, duvar/çit, ibadethaneler; overpass.kumi.systems aynasından; ilk deneme
+tüm aynalarda 502 verdi, veri gelmedi, aynı sorgu bir kez yinelendi). Yeni çıktı `landuse.json`; landmarks düzeltildi.
 
 **Orijin** (41.0665 K, 28.9920 D) = D100 orta refüjündeki **Mecidiyeköy Metrobüs peronları** (way 745420396, merkez ≈ (4, 3)).
 Ona göre: Trump Towers (31, −192) ~190 m K · Mecidiyeköy Meydanı (269, −6) ~270 m D, viyadüğün batı ucunun altında ·
@@ -51,11 +54,13 @@ Trump Office 145 · Şişli Elit Residence 140 · Marriott 135 · w1175523984 10
 | key | yükseklik | kaynak |
 |---|---|---|
 | trump_towers | 155 / 145 m (+ podyum 20 m) | Wikipedia; podyum **estimate** |
-| torun_center | 160 m (4 iz) | OSM; CTBUH 2 konut kulesi 160 m. 4. iz muhtemelen Quasar Residence (160 m) — **doğrulanamadı**; ofis kulesi hangisi bilinmiyor |
+| torun_center | 160 m (w801 varsayılan ofis, w798 rezidans; + w803/805 40 m) | OSM; 3. Torun kulesi OSM'de yok; ofis ataması **doğrulanamadı** (kaynak 36 kat ≈150 m tahmin) |
+| quasar | 156 m (w799 Fairmont + heliport, w800 Residences, w802 likör fabrikası) | ScraperBase (40 kattan tahmini); buildings.json OSM 160 m'yi korur |
 | cevahir | 34 m | **estimate** (6 kat, OSM/Wikipedia) |
 | sisli_plaza | 170.1 m | Wikipedia (liste 152 m der); kule izi/konumu **bilinmiyor** |
 | viaduct | tabliye 9 m | **estimate**; geometri OSM bridge=viaduct (D100 iki yön + metrobüs) |
-| metrobus_station | sundurma 5 m | **estimate** |
+| metrobus_station | sundurma ~5.6 m | **estimate**; gerçek metrobüs peronu w1305577747 (+w1412628025), üst geçit w375233084 (açık yollar centerline+width) |
+| bus_platforms | sundurma 3.6 m | **estimate**; İETT otobüs peronları w745420396 (orijin burada) + w957443632/33/34 |
 | metro_station | giriş köşkü 3 m | **estimate**; 15 giriş noktası |
 | square | 0 | OSM place=square |
 | metrobus_line | — | busway grafiğinden iki yönlü kesintisiz rota (doğu/batı, 1855 m, köşe başına `layer`) |
@@ -64,6 +69,16 @@ Trump Office 145 · Şişli Elit Residence 140 · Marriott 135 · w1175523984 10
 1508 parça; `kind` = OSM highway (busway = metrobüs, subway = metro tüneli, platform). `bridge`/`tunnel`/`layer` OSM'den
 (köprüde layer yoksa 1). Köprü etiketli: D100 ("1. Çevre Yolu") viyadük + batı köprüleri, metrobüs köprüleri, Çağlayan bağlantıları.
 `bridgeType: "viaduct"` ana viyadükte. Genişlik: `lanes × 3.3` ya da türe göre varsayılan (tahmin). Ek: `areas` = yaya alanı poligonları.
+
+## Arazi kullanımı (landuse.json, Tur 2)
+`{ areas: [{ id, kind, name?, footprint, holes?, osm, area, kindSource? }], walls: [{ id, kind, pts, height? }] }`;
+alanlar büyükten küçüğe sıralı (sonra çizilen üstte). 92 alan: cemetery 5 (≈450 000 m²; Zincirlikuyu kapsam dışı
+çoğunlukla), park 18, grass 24, parking 18 (yer altı/katlı hariç), construction 10, pitch 11, plaza 3, forest 2, water 1.
+Orijin güneyi (x −270…150, z 30…300) %82 mezarlık: Ermenî Kabristanı, Ermeni Katolik, Metamorfos Rum, İtalyan Musevî;
+Metamorfos Rum Kilisesi buildings.json'da (w761268822). Duvar/çit 36 çizgi (mezarlık çevre duvarı w52871994 dahil).
+**Torun Center arsası** OSM'de yalnız `landuse=commercial`; `plaza` olarak eklendi, `kindSource: "estimate"`.
+Mezarlık içindeki 17 servis/patika yolu roads.json'da `kind: "path"`, `inCemetery: true`, `osmKind` = asıl tür.
+points.json'a ibadethane/tarihî düğümler (place_of_worship, historic) eklendi.
 
 ## Arazi (terrain.json)
 COP30 (yüzey modeli) → morfolojik açma 7 px (~200 m) + Gauss σ=3 px → 50 m ızgara, 41×43, x −1000…1000, z −950…1150.
