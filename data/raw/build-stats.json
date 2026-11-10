@@ -1,0 +1,368 @@
+{
+ "sizes": {
+  "buildings.json": 606934,
+  "roads.json": 293039,
+  "terrain.json": 10308,
+  "landmarks.json": 12500,
+  "points.json": 47688
+ },
+ "buildings": 2972,
+ "heightSource": {
+  "estimate": 2700,
+  "osm_levels": 219,
+  "osm": 53
+ },
+ "ms_added": 905,
+ "outlines_replaced_by_parts": 23,
+ "terrain": {
+  "raw_min": 3.6269752979278564,
+  "raw_max": 139.62777709960938,
+  "h0": 118.51230014193568
+ },
+ "top": [
+  [
+   "w728793798",
+   160.0,
+   "osm",
+   null,
+   [
+    615.3,
+    177.5
+   ]
+  ],
+  [
+   "w728793799",
+   160.0,
+   "osm",
+   null,
+   [
+    641.2,
+    168.5
+   ]
+  ],
+  [
+   "w728793800",
+   160.0,
+   "osm",
+   "Torun Center",
+   [
+    720.4,
+    159.2
+   ]
+  ],
+  [
+   "w728793801",
+   160.0,
+   "osm",
+   null,
+   [
+    566.4,
+    124.6
+   ]
+  ],
+  [
+   "w1222286465",
+   155.0,
+   "osm_levels",
+   "Trump Residence Tower",
+   [
+    46.7,
+    -179.8
+   ]
+  ],
+  [
+   "w1107093994",
+   152.0,
+   "osm",
+   null,
+   [
+    -503.1,
+    -149.2
+   ]
+  ],
+  [
+   "w1455454989",
+   145.0,
+   "osm_levels",
+   "Trump Office Tower",
+   [
+    14.3,
+    -306.0
+   ]
+  ],
+  [
+   "w1457770436",
+   140.0,
+   "osm_levels",
+   null,
+   [
+    8.2,
+    540.3
+   ]
+  ],
+  [
+   "w761269718",
+   135.0,
+   "osm",
+   "Marriott",
+   [
+    -349.2,
+    279.1
+   ]
+  ],
+  [
+   "w1175523984",
+   108.6,
+   "osm_levels",
+   null,
+   [
+    -867.8,
+    848.8
+   ]
+  ],
+  [
+   "w463251163",
+   75.0,
+   "osm",
+   "Selenium Residence",
+   [
+    697.6,
+    966.0
+   ]
+  ],
+  [
+   "w1455964212",
+   65.2,
+   "osm_levels",
+   null,
+   [
+    -266.0,
+    -230.4
+   ]
+  ]
+ ],
+ "height_median": 16.1,
+ "levels_hist": {
+  "1": 193,
+  "2": 15,
+  "3": 208,
+  "4": 175,
+  "5": 981,
+  "6": 642,
+  "7": 569,
+  "8": 43,
+  "9": 33,
+  "10": 13,
+  "11": 1,
+  "12": 3,
+  "16": 1,
+  "25": 1,
+  "30": 1,
+  "34": 1,
+  "42": 4
+ },
+ "roads": 1508,
+ "road_kinds": {
+  "living_street": 110,
+  "trunk": 16,
+  "trunk_link": 14,
+  "tertiary": 119,
+  "primary": 86,
+  "residential": 484,
+  "secondary": 29,
+  "tertiary_link": 12,
+  "steps": 148,
+  "primary_link": 45,
+  "pedestrian": 10,
+  "service": 115,
+  "busway": 12,
+  "footway": 270,
+  "secondary_link": 7,
+  "subway": 17,
+  "platform": 7,
+  "unclassified": 5,
+  "corridor": 2
+ },
+ "bridges": [
+  [
+   "w23291917",
+   "trunk",
+   "1. Çevre Yolu",
+   "viaduct"
+  ],
+  [
+   "w23292026",
+   "trunk",
+   "1. Çevre Yolu",
+   null
+  ],
+  [
+   "w176284271",
+   "busway",
+   "Metrobüs",
+   "viaduct"
+  ],
+  [
+   "w227564881",
+   "trunk",
+   "1. Çevre Yolu",
+   null
+  ],
+  [
+   "w227564884",
+   "trunk",
+   "1. Çevre Yolu",
+   null
+  ],
+  [
+   "w227564887",
+   "trunk",
+   "1. Çevre Yolu",
+   null
+  ],
+  [
+   "w227564892",
+   "trunk",
+   "1. Çevre Yolu",
+   "viaduct"
+  ],
+  [
+   "w227564896",
+   "busway",
+   "Metrobüs",
+   null
+  ],
+  [
+   "w227564898",
+   "busway",
+   "Metrobüs",
+   null
+  ],
+  [
+   "w810749777",
+   "trunk",
+   "1. Çevre Yolu",
+   null
+  ],
+  [
+   "w810749779",
+   "busway",
+   "Metrobüs",
+   null
+  ],
+  [
+   "w810749781",
+   "busway",
+   "Metrobüs",
+   null
+  ],
+  [
+   "w810749784",
+   "trunk",
+   "1. Çevre Yolu",
+   null
+  ],
+  [
+   "w980539417",
+   "trunk_link",
+   "Çağlayan Kavşağı",
+   null
+  ],
+  [
+   "w980539418",
+   "trunk_link",
+   "Çağlayan Kavşağı",
+   null
+  ],
+  [
+   "w1463654688",
+   "service",
+   null,
+   null
+  ]
+ ],
+ "busway_routes": [
+  {
+   "dir": "eastbound",
+   "n": 37,
+   "start": [
+    -925.0,
+    -98.5
+   ],
+   "end": [
+    925.0,
+    -23.6
+   ],
+   "length": 1854.6,
+   "maxSegment": 145.9,
+   "onBridge": 812.5
+  },
+  {
+   "dir": "westbound",
+   "n": 36,
+   "start": [
+    925.0,
+    -23.6
+   ],
+   "end": [
+    -925.0,
+    -90.2
+   ],
+   "length": 1854.3,
+   "maxSegment": 145.9,
+   "onBridge": 847.3
+  }
+ ],
+ "landmark_centers": {
+  "trump_towers": [
+   31.2,
+   -192.0
+  ],
+  "sisli_plaza": [
+   -35.5,
+   653.8
+  ],
+  "torun_center": [
+   646.8,
+   145.3
+  ],
+  "cevahir": [
+   82.4,
+   411.8
+  ],
+  "viaduct": [
+   554.5,
+   -11.8
+  ],
+  "metrobus_station": [
+   4.2,
+   2.7
+  ],
+  "metro_station": [
+   64.1,
+   84.5
+  ],
+  "square": [
+   268.7,
+   -6.0
+  ],
+  "metrobus_line": [
+   0.0,
+   0.0
+  ]
+ },
+ "terrain_range": [
+  -86.4,
+  2.0,
+  118.5
+ ],
+ "points": {
+  "traffic_signals": 53,
+  "bus_stop": 61,
+  "subway_entrance": 15,
+  "tree/osm": 54,
+  "station": 3,
+  "metrobus_stop": 4,
+  "tree/synthetic": 394
+ }
+}

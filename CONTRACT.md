@@ -49,6 +49,21 @@ Her ajan yalnızca kendi dosyalarına yazar. Git commit/push'u orkestratör yapa
 - `points.json`: metro girişleri, duraklar, ağaçlar vb. `{ points: [{ kind, x, z, name? }] }`
 - `data/README.md`: kaynak, tarih, lisans, yükseklik istatistikleri, tahmin sayısı.
 
+Veri ajanının eklediği alanlar (ayrıntı `data/README.md`): binalarda `minHeight` (yerden yükseltilmiş parça tabanı),
+`part` (building:part mı), `landmark` (ait olduğu simge yapı anahtarı; city.js bunları çizmez). landmarks'ta
+`heightSource: "reference"` = kamuya açık bilinen yükseklik. Binaların %91'inin yüksekliği `estimate`.
+Bilinen boşluklar: Şişli Plaza kulesinin OSM izi yok; Torun Center izlerinden biri Quasar olabilir.
+
+## 4b. Işık anlaşması (modüller arası)
+- Doğrusal HDR iş akışı. Tone mapping, exposure ve bloom atmosferin; başka modül `renderer.toneMapping*` ayarlamaz.
+- Yayıcı yoğunlukları (bloom eşiği ≈ 1 varsayımıyla): yanan pencere ≈ 1.5–4, tabela/LED ≈ 3–6, sokak lambası ve
+  far/stop ≈ 6–12. Gündüz (`lightsOn = 0`) hepsi 0.
+- Atmosfer `scene.environment`'ı (gökten PMREM) tod'a göre günceller. Cam cepheler düşük pürüzlü/yüksek metalik
+  Standard/Physical malzeme kullanır ki gün batımı camda yansısın; kendi envMap'ini üretmez.
+- Gölge: tek yönlü güneş ışığı atmosferin; `castShadow/receiveShadow` bayraklarını ağ sahibi ayarlar.
+- Ekran görüntüsü/deneme çıktıları `out/<ajan-adı>/` altına; başkasının klasörüne yazma. 5173'te sunucu zaten
+  çalışıyorsa onu kullan, ikincisini açma.
+
 ## 5. Zaman — tek parametre
 Tüm görsel durum **`tod`** (günün saati, ondalık saat, 0–24) ile sürülür. İkinci girdi `t` (saniye,
 animasyon saati): trafik, yanıp sönme gibi hareketler `t`'nin **saf fonksiyonudur**.
