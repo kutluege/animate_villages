@@ -93,4 +93,66 @@ Ajan orkestratöre en fazla 150 kelime döner: ne yaptı, hangi dosyalar, neyi d
 Ham veri, uzun kod, kare dökümü rapora konmaz.
 
 ## Veri notları (veri ajanı doldurur)
-_(boş)_
+Üretim: `python tools/build_data.py [--overview]` (numpy, scipy, shapely, tifffile; ağ yok, deterministik).
+Kuşbakışı denetim: `out/shots/data_overview.png`, `data_overview_core.png`. Tahmin listesi: `docs/estimated_heights.md`.
+
+**Orijin (kesin):** `lat0=41.066886, lon0=28.991723` = Mecidiyeköy metrobüs peronu (OSM way 1305577747)
+merkezi, D-100 ekseninde. Y=0 ↔ 120.97 m (yumuşatılmış COP30). Dikkat: D-100 orijinde dolgu üstünde, yol kotu y≈+4.
+- Veri bbox'ı (ham indirme) x −900…946, z −842…1038; çekirdek (§1) x −648…695, z −566…761 (`meta.bbox`, `meta.core`).
+- **Mecidiyeköy Meydanı** (OSM way 1007293783, `pois.squares`): merkez (303, 37), viyadüğün batı ucunun hemen
+  güneyi/altı. Metrobüs peronları: (0,0) ve (−67,−5); İETT peron alanı (12,43). Metro: M2 Şişli-Mecidiyeköy
+  (88,263), M7 Mecidiyeköy (319,189).
+
+**Arazi:** ızgara 134×136, 20 m, x −1300…1360, z −1260…1440 (bbox + ~400 m). y aralığı ızgarada −108.6…+5.2,
+bbox'ta −81.7…+5.2, çekirdekte −56…+4. Orijin sırtın tepesinde; her yöne iner (KD'da %30'a varan eğim, Kağıthane'ye).
+COP30 %15 yüzdelik + Gauss (~50 m) ile yumuşatıldı; sokak ölçeğinde ayrıntı yok. `heights[iz*nx+ix]`, x=x0+ix·dx, z=z0+iz·dz.
+
+**Binalar (3005 kayıt):** `ring` açık (ilk nokta tekrarlanmaz), (x,z)'de saat yönünün tersine; `holes` 1 kayıtta.
+- Yükseklik kaynağı: osm 52, overture 0 (Overture yükseklikleri OSM'nin kopyası), levels 223, **estimate 2730 (%90.8)**;
+  çekirdekte 1242/1445. Tahminler 2.6–36 m, medyan ~17 m (komşu kat medyanı + tip + alan + tohum).
+- `height` = çatı üstü, `minHeight` = hacmin altı; ikisi de `baseY`'den ölçülür. `baseY` = ayak izi altındaki EN DÜŞÜK
+  zemin (bina havada kalmaz). Ek alan `groundY` (ortalama zemin, fark ≥0.5 m ise): eğimde çatıyı
+  `(groundY ?? baseY) + height`'a koymak daha doğru.
+- Şemaya ekler: `part:true` + `partOf` (building:part hacmi), `hasParts:true` (ana hat duruyor, üstünde parçalar var),
+  `footprint:"ms"|"overture-osm"` (ayak izi OSM'de yok, Overture'dan; 927'si Microsoft ML → kaba şekilli), `groundY`.
+- Parça kuralı: parçalar ana hattın ≥%60'ını kaplıyorsa ana hat atıldı (22 bina), yalnız parçalar var. Değilse ana hat
+  (podyum) + parçalar (kule) birlikte; ortak `baseY`. Hepsini çizmek doğru sonuç verir.
+- **Simge yapılar** (`landmark` alanı; şehir ajanı çizmez):
+  - `trump`: podyum `w163629174` (Trump AVM, x 14…82, z −292…−62, 9.6 m, 3 kat) + `w1222286465` Residence Tower
+    (x 41…70, z −139…−81; 39 kat → 124.8 m, minHeight 9.6) + `w1455454989` Office Tower (x 34…59, z −263…−218;
+    37 kat → 118.4 m). baseY −21.2 (arsa kuzeye sert iner; groundY −9.4). Yükseklikler kat×3.2 — ölçüm DEĞİL;
+    bilinen değerler ~155/145 m civarı (veride yok, simge ajanı doğrulasın).
+  - `torun`: dört kule `w728793798…801` (hepsi OSM height=160, 42 kat; x 535…789, z 141…220), alçak blok `w728793802`
+    (5 m), ve "Torun Center" adlı küçük ofis `w1321569694` (503,97; yüksekliği TAHMİN 25.7 m). OSM 4 kule gösteriyor;
+    gerçek kule sayısı/yükseklikleri doğrulanmadı.
+  - `cevahir`: `w46962419` (x −18…208, z 344…610; 32 600 m²; 6 kat → 19.2 m; baseY −16.3, groundY −7.9).
+- Diğer yüksekler (landmark değil, şehir ajanı çizer): Nurol Tower `w1107093994` 152 m (−466,−93); Marriott
+  `w761269718` 135 m (−313,331); Elit Residence kulesi `w1457770436` 115 m (28,570).
+
+**Yollar (1492):** `cls` = OSM highway değeri (trunk, trunk_link, primary…, residential, service, living_street, busway,
+footway, steps, pedestrian, platform, corridor). `pts` ≤15 m aralıkla sıklaştırıldı; `y` mutlak (arazi + ofset).
+- **D-100** = `cls:"trunk"`, ad "1. Çevre Yolu", yön başına ayrı tek yönlü yol (3–4 şerit), z≈−60…+30 koridoru, B–D.
+- **Viyadük** = `viaduct:true` (+`bridge:true`): `w23291917` ve `w227564892` (D-100'ün iki yönü) + `w176284271`
+  (ortadaki metrobüs), x 208…1080. Tabliye düz kiriş: y +3.5 (batı) → −0.2 (doğu), zeminden 7–13 m; altından
+  Büyükdere Cd. (x≈375) ve meydan geçer. Kısa köprüler x −600…−420, −300, 60…120.
+- **Metrobüs** = `busway:true` (12 yol), D-100'ün ortasında; kimi yerde tek çift-yönlü yol (7.5 m), kimi yerde iki tek
+  yönlü (4 m). Tek sürekli çizgi için `pois.metrobusLines` (34 hattı, yön başına sıralı `[x,y,z]`, x −1079…1080).
+- Kotlar MODEL, ölçüm değil (OSM'de `ele` yok): köprü = zemin + 6 m×layer (viyadük 7 m), rampalar komşu yollara
+  %3.5–6 eğimle yayılır. Yani `bridge:false` olup `y − heightAt > 0.5` olan yollar var (D-100 x −700…220 arası 1–6 m
+  dolgu üstünde) → dolgu/istinat duvarı ya da etek gerekir.
+- Tüneller `tunnel:true`, y zeminin altında (taşıt: Abide-i Hürriyet Cd. alt geçidi, batı uçta; kalanı yaya alt
+  geçitleri/metro koridorları, `indoor:true` olabilir). Yüzeyde çizme.
+- Genişlik: yalnız 1 yolda `width` etiketi var; kalanı şerit×~3.3–3.6 m (+banket) ya da sınıf varsayılanı.
+  Ana yollar (trunk/primary/busway) arazi ızgarası sınırına, diğerleri bbox+40 m'ye kırpıldı; parçalar `w123_1` gibi.
+
+**POI (`pois.json`):** `stations` (metro/metrobüs; x,y,z), `entrances` (15 metro girişi), `busStops` (65, `metrobus` bayrağı),
+`signals` [[x,z]] (53), `trees` [[x,z]] (**yalnız 54** — OSM'de ağaç neredeyse yok, prosedürel ekim gerekir),
+`greens` (59 çokgen: grass/park/playground/pitch/garden/dog_park/wood), `squares` (ring + center),
+`platforms`, `metrobusLines`.
+
+**Ham veride eksik / bilinen kusurlar**
+- Orijinin GB'sındaki büyük boşluk (x −350…150, z 60…400, içinde yalnız patikalar): ham veride arazi kullanımı
+  çokgeni yok (mezarlık olması muhtemel; `landuse=cemetery` indirilmemiş). Bina yok diye hata sanma.
+- Ölçülmüş yükseklik çok az (52 bina); doku yükseklikleri büyük oranda tahmin. Trump/Cevahir kat sayısından.
+- Yol/köprü kotu, şerit çizgisi, kaldırım, bina cephe/çatı bilgisi yok. `w728378108` height=3 etiketi 4 katla
+  çelişiyordu → kat kullanıldı (`meta.heightTagWarnings`).

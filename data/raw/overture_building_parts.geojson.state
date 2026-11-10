@@ -1,0 +1,14 @@
+{
+  "last_release": "2026-10-21.0",
+  "last_run": "2026-11-10T13:23:38.035583+00:00",
+  "theme": "buildings",
+  "type": "building_part",
+  "bbox": {
+    "xmin": 28.981,
+    "ymin": 41.0575,
+    "xmax": 29.003,
+    "ymax": 41.0745
+  },
+  "backend": "geojson",
+  "output": "C:\\Users\\USER\\Desktop\\ege_repolar\\animate_villages\\data\\raw\\overture_building_parts.geojson"
+}
