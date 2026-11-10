@@ -31,20 +31,24 @@ Değerler ajan tamamlanma bildiriminden alınır; bildirimde yoksa "yok".
 | 25 | kamera-kurgu | 6 | 531495 | 23 | 631127 |
 | 26 | denetçi | 5 | 257563 | 13 | 145436 |
 | 27 | kamera-kurgu | 7 | 561449 | 14 | 459093 |
+| 28 | denetçi | 6 | 286930 | 9 | 75516 |
+
+Satır 23–28: kullanıcının ilk nihai videodan sonraki geri bildirimiyle yapılan yeniden kurgu
+(40 sn, uzun alacakaranlık, mezarlık + Cevahir, yol üstü binaların süzülmesi).
 
 ## Toplam
 
-- Satır (ajan çağrısı / tur girişi): **22**
+- Satır (ajan çağrısı / tur girişi): **28** (ilk teslime kadar 22; ilk teslimdeki toplamlar: 5 880 453 token, 716 araç çağrısı, 16 897 211 ms)
 - Ayrı ajan sayısı: **8** (iskelet, veri, şehir dokusu, simge yapılar, atmosfer A, atmosfer B, kamera-kurgu, denetçi)
-- Tur sayısı: **3** tam üretim turu + kamera-kurgu için 2 bitiş turu (rötuş + yeniden kodlama); **4** denetim turu
-- subagent_tokens, satırların düz toplamı: **5 880 453**
-- tool_uses toplamı: **716**
-- duration_ms toplamı: **16 897 211** (ajanlar paralel çalıştığı için duvar saati değil)
+- Tur sayısı: **3** tam üretim turu + kamera-kurgu için 2 bitiş turu (rötuş + yeniden kodlama) + geri bildirim sonrası **1** üretim turu ve 1 kamera rötuşu; **6** denetim turu
+- subagent_tokens, satırların düz toplamı: **8 309 941**
+- tool_uses toplamı: **816**
+- duration_ms toplamı: **18 870 617** (ajanlar paralel çalıştığı için duvar saati değil)
 
 Not (orkestratörün yorumu, bildirimde yazmıyor): aynı ajana geri gönderilen turlarda
 `subagent_tokens` her seferinde bir öncekinden büyük geldi (ör. iskelet 82 522 → 87 989, yalnız
 4 araç çağrısıyla); değer ajan başına kümülatif görünüyor. Öyleyse düz toplam fazla sayar; her
-ajanın SON bildirimindeki değerlerin toplamı **2 180 749**. Kıyaslamada hangisinin kullanılacağı
+ajanın SON bildirimindeki değerlerin toplamı **2 423 674** (ilk teslimde 2 180 749). Kıyaslamada hangisinin kullanılacağı
 öbür oturumun defteriyle aynı yönteme göre seçilmeli. Orkestratörün kendi token kullanımı bu
 deftere dahil değil.
 
