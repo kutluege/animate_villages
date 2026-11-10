@@ -78,6 +78,11 @@ export async function create(ctx) { … return { object3D?, update(state), dispo
 - `edit.js`: `export const DURATION = 36; export function shotAt(t) → { position:[x,y,z], target:[x,y,z], fov, tod, roll? }`
   Saf fonksiyon. Videoda `tod`'u kurgu belirler.
 - main.js eksik modülü hata vermeden atlar (paralel geliştirme için).
+- `roll` birimi **derece**. Modüller isteğe bağlı `resize(w, h, dpr)` döndürebilir (post-process hedefleri için).
+- Ek ctx alanları: `ctx.render` (bool, render modunda mıyız), `ctx.ground` (arazi Object3D'si; yoksa undefined).
+  Veri dosyası yoksa ilgili `ctx.data.*` alanı `null` gelir; modül buna dayanıklı olmalı.
+- `?testscene=1`: çatıyı tek başına sınayan yer tutucu kutular (gerçek modüllerle birlikte kullanma).
+- Headless Chromium GPU bayrakları `tools/lib-browser.mjs` içinde; kendi Playwright betiğini yazarsan oradan al.
 
 ## 7. Determinizm (pazarlıksız)
 - `Math.random`, `Date.now`, `performance.now`, `clock.getDelta` sahne durumunu **etkileyemez**. Yalnızca `ctx.rng(seed)`.

@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mecidiyeköy — Gündüzden Geceye</title>
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/build/three.module.js",
+    "three/addons/": "./vendor/three/addons/"
+  }
+}
+</script>
+<style>
+  :root {
+    --glass: rgba(14, 16, 22, 0.58);
+    --line: rgba(255, 255, 255, 0.12);
+    --ink: #f2efe9;
+    --muted: rgba(242, 239, 233, 0.62);
+    --accent: #ffb86b;
+    --font: "Inter", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: #07080b; color: var(--ink); font-family: var(--font); overflow: hidden; }
+  #stage { position: fixed; inset: 0; display: grid; place-items: center; }
+  #stage canvas { display: block; }
+  body.render #ui, body.render #loading { display: none !important; }
+
+  #loading { position: fixed; inset: 0; display: grid; place-items: center; pointer-events: none;
+    font-size: 13px; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); transition: opacity .6s; }
+  #loading.done { opacity: 0; }
+
+  #ui { position: fixed; inset: 0; pointer-events: none; transition: opacity .35s; }
+  #ui.hidden { opacity: 0; }
+  .panel { pointer-events: auto; background: var(--glass); border: 1px solid var(--line);
+    backdrop-filter: blur(14px) saturate(1.2); -webkit-backdrop-filter: blur(14px) saturate(1.2); border-radius: 16px; }
+
+  #title { position: absolute; left: 24px; top: 22px; pointer-events: none; text-shadow: 0 1px 12px rgba(0,0,0,.45); }
+  #title h1 { margin: 0; font-size: 22px; font-weight: 650; letter-spacing: -.01em; }
+  #title p { margin: 4px 0 0; font-size: 12px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+
+  #dock { position: absolute; left: 50%; bottom: 22px; transform: translateX(-50%);
+    width: min(720px, calc(100vw - 32px)); padding: 14px 18px 16px; display: grid; gap: 12px; }
+  #row1 { display: flex; align-items: baseline; gap: 12px; }
+  #clock { font-size: 30px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  #phase { font-size: 12px; color: var(--muted); letter-spacing: .14em; text-transform: uppercase; }
+  #row1 .spacer { flex: 1; }
+
+  #tod { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 6px; outline: none; margin: 4px 0;
+    background: linear-gradient(90deg, #f6e7c8 0%, #ffd9a0 48%, #ff9a5a 61%, #c0607a 68%, #3b4a8a 76%, #141b33 88%, #0b0f1e 100%); }
+  #tod::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%;
+    background: #fff; border: 3px solid rgba(0,0,0,.35); box-shadow: 0 2px 10px rgba(0,0,0,.4); cursor: grab; }
+  #tod::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #fff; border: 3px solid rgba(0,0,0,.35); }
+  .ticks { display: flex; justify-content: space-between; font-size: 10.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+  button { font: inherit; color: var(--ink); background: rgba(255,255,255,.07); border: 1px solid var(--line);
+    border-radius: 999px; padding: 7px 14px; font-size: 12.5px; cursor: pointer; display: inline-flex; align-items: center; gap: 7px;
+    transition: background .2s, border-color .2s; }
+  button:hover { background: rgba(255,255,255,.14); }
+  button.on { background: rgba(255,184,107,.18); border-color: rgba(255,184,107,.55); color: #ffe2bf; }
+  button:disabled { opacity: .4; cursor: default; }
+  button svg { width: 12px; height: 12px; fill: currentColor; }
+
+  #preview-bar { position: absolute; left: 50%; top: 18px; transform: translateX(-50%); padding: 8px 14px;
+    display: none; align-items: center; gap: 12px; font-size: 12px; color: var(--muted); }
+  #preview-bar.show { display: flex; }
+  #preview-bar .track { width: 180px; height: 3px; background: rgba(255,255,255,.15); border-radius: 3px; overflow: hidden; }
+  #preview-bar .fill { height: 100%; width: 0; background: var(--accent); }
+  #preview-bar .tc { font-variant-numeric: tabular-nums; color: var(--ink); }
+
+  #status { position: absolute; right: 18px; top: 18px; font-size: 11px; color: var(--muted); padding: 8px 12px;
+    display: grid; gap: 3px; max-width: 280px; }
+  #status .bad { color: #ff9b8a; }
+  #status .ok { color: #b9e3b0; }
+  #hint { position: absolute; right: 18px; bottom: 22px; font-size: 11px; color: var(--muted); pointer-events: none; }
+  @media (max-width: 720px) { #hint, #status { display: none; } #title h1 { font-size: 18px; } }
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="loading">Mecidiyeköy yükleniyor…</div>
+<div id="ui">
+  <div id="title"><h1>Mecidiyeköy</h1><p>Gündüzden geceye</p></div>
+  <div id="status" class="panel"></div>
+  <div id="preview-bar" class="panel">
+    <span>Video önizleme</span><div class="track"><div class="fill"></div></div><span class="tc">0.0 / 36 sn</span>
+  </div>
+  <div id="dock" class="panel">
+    <div id="row1">
+      <div id="clock">16:30</div><div id="phase">İkindi</div><div class="spacer"></div>
+      <button id="play" title="Gündüz ↔ gece oynat (Boşluk)"><svg viewBox="0 0 12 12"><path d="M2 1l9 5-9 5z"/></svg><span>Oynat</span></button>
+      <button id="preview" title="Kamera rotası ve kurguyla videoyu gerçek zamanlı önizle (V)"><svg viewBox="0 0 12 12"><rect x="3" y="0.5" width="6" height="11" rx="1.2"/></svg><span>Videoyu önizle</span></button>
+    </div>
+    <input id="tod" type="range" min="6" max="24" step="0.01" value="16.5" aria-label="Günün saati">
+    <div class="ticks"><span>06:00</span><span>09:00</span><span>12:00</span><span>15:00</span><span>18:00</span><span>21:00</span><span>24:00</span></div>
+  </div>
+  <div id="hint">Sürükle: döndür · Sağ tık: kaydır · Teker: yakınlaş · H: arayüz</div>
+</div>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>

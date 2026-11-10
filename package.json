@@ -1,0 +1,20 @@
+{
+  "name": "mecidiyekoy-gunduzden-geceye",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Mecidiyeköy çekirdeği — gerçek veriye dayalı three.js sahnesi, gündüzden geceye dikey video.",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "shots": "node tools/shots.mjs",
+    "render": "node tools/render.mjs",
+    "vendor": "node tools/vendor.mjs",
+    "postinstall": "node tools/vendor.mjs"
+  },
+  "dependencies": {
+    "three": "0.170.0"
+  },
+  "devDependencies": {
+    "playwright": "1.65.0"
+  }
+}
