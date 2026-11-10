@@ -54,6 +54,16 @@ Veri ajanının eklediği alanlar (ayrıntı `data/README.md`): binalarda `minHe
 `heightSource: "reference"` = kamuya açık bilinen yükseklik. Binaların %91'inin yüksekliği `estimate`.
 Bilinen boşluklar: Şişli Plaza kulesinin OSM izi yok; Torun Center izlerinden biri Quasar olabilir.
 
+Tur 2 eklemeleri:
+- `data/landuse.json`: `{ areas: [{ id, kind, name?, footprint: [[x,z],…], holes? }] }`, `kind ∈ cemetery | park | grass |
+  forest | pitch | parking | construction | plaza | water`. `ctx.data.landuse` olarak gelir (yoksa null). Zemini city.js çizer.
+  Orijinin güneyindeki geniş alan (x −270…150, z 30…300) gerçekte Şişli gayrimüslim mezarlıkları: selviler, mermer, duvar.
+- landmarks.json anahtarları düzeltilir: `quasar` ayrı anahtar; `metrobus_station` gerçek metrobüs platformunu gösterir,
+  İETT otobüs peronları `bus_platforms` olur.
+- Seçilen atmosfer **B**. `?atmo` verilmezse B yüklenir.
+- Veri kutusunun dışı: şehir ufukta aniden bitmesin diye city.js kutu dışına düşük ayrıntılı, **veriye dayanmayan**
+  dolgu doku çizebilir (`userData.procedural = true`); yakın planda görünmemeli, simge yapı içermemeli.
+
 ## 4b. Işık anlaşması (modüller arası)
 - Doğrusal HDR iş akışı. Tone mapping, exposure ve bloom atmosferin; başka modül `renderer.toneMapping*` ayarlamaz.
 - Yayıcı yoğunlukları (bloom eşiği ≈ 1 varsayımıyla): yanan pencere ≈ 1.5–4, tabela/LED ≈ 3–6, sokak lambası ve
