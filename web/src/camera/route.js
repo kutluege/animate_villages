@@ -36,26 +36,28 @@ export const SHOTS = [
   {
     t0: 0,
     t1: CUT,
-    posV0: [-48.8, -0.7, 20.5],
+    posV0: [-41.3, -0.6, 11.5],
     posV1: [-13, 1.6, 8],
-    tgtV0: [-36, 2, 38],
+    tgtV0: [-30, 2, 34],
     tgtV1: [0, 0, 0],
     // [t, x, y, z]
     pos: [
       // Viyadük altı: DÜZ çapraz (pusula 247°). Güney ayak sırasını (844,41) ile (812,43) ayaklarının
       // ortasından keser; her ayağa ≥5 m (ayak konumları şehir modülünden; check.mjs denetler).
-      [0.0, 870.2, -3.4, 24.3],
-      [0.4, 850.7, -3.7, 32.5],
-      [0.8, 831.2, -4.0, 40.7],
+      // t=0 noktası, karşıdan gelen minibüs şeridinin (z≈26) güneyinde: ilk karelerde araç tavanı sıyrılmaz
+      [0.0, 860.5, -3.5, 30.8],
+      [0.433, 842.6, -3.8, 35.9],
+      [0.867, 824.7, -3.9, 43.4],
       [1.3, 806.8, -2.9, 50.9],
-      [2.0, 770.5, 4.0, 62],
-      [2.7, 730, 15.5, 65],
-      // buradan sonra sağa: viyadüğün ÜSTÜNE (tabliye +20 m), D-100 sıkışıklığı boyunca batıya
-      [3.5, 680, 32.5, 60],
-      [4.3, 627, 45.5, 51],
-      [5.1, 570, 54.5, 43.5],
-      [6.0, 504, 61.5, 40],
-      [7.1, 424, 70.5, 42],
+      // çıkıştan sonra hız ~48 m/sn'ye iner (kuleler okunur, dönüş ivmesi düşer), sonra yeniden hızlanır
+      [2.1, 770.5, 4.5, 58],
+      [2.95, 729, 16, 52.5],
+      // sağa: viyadüğün ÜSTÜNE (tabliye +30 m), D-100 sıkışıklığı boyunca batıya
+      [3.8, 678, 32, 43.5],
+      [4.55, 626, 45.5, 40],
+      [5.3, 570, 54.5, 40],
+      [6.15, 504, 61.5, 40],
+      [7.15, 424, 70.5, 42],
       [8.2, 344, 78.5, 42],
       [9.2, 267, 84, 40.5],
       [10.2, 190, 87, 39.5],
@@ -76,13 +78,14 @@ export const SHOTS = [
       { t: 0.4, az: 242, pitch: -3, d: 115 },
       { t: 0.8, az: 230, pitch: 7, d: 125 },
       { t: 1.3, az: 217, pitch: 25, d: 140 }, // ışığa çıkış: Torun C · B · A yelpazesi
-      { t: 2.0, az: 212, pitch: 36, d: 140 }, // dipten yukarı
-      { t: 2.7, az: 218, pitch: 26, d: 150 },
-      { t: 3.4, az: 242, pitch: 3, d: 210 },
-      { t: 4.1, az: 260, pitch: -10, d: 240 }, // viyadük üstü: D-100 sıkışıklığı
-      { t: 5.1, az: 268, pitch: -9, d: 260 },
-      { t: 6.0, az: 276, pitch: -6, d: 280 },
-      { t: 7.1, az: 284, pitch: -5, d: 300 },
+      { t: 2.0, az: 213, pitch: 35, d: 140 }, // dipten yukarı
+      { t: 2.6, az: 229, pitch: 15, d: 160 },
+      { t: 3.2, az: 251, pitch: -6, d: 210 }, // erken dönüş: viyadük üstü D-100 sıkışıklığı
+      { t: 3.8, az: 262, pitch: -10, d: 240 },
+      { t: 4.4, az: 266, pitch: -10, d: 250 },
+      { t: 5.3, az: 268, pitch: -9, d: 260 },
+      { t: 6.15, az: 276, pitch: -6, d: 280 },
+      { t: 7.15, az: 284, pitch: -5, d: 300 },
       { t: 8.2, az: 292, pitch: -4, d: 300 },
       { t: 9.2, p: [55, 72, -105] }, // Trump Residence izlenir
       { t: 10.2, p: [52, 82, -110] },

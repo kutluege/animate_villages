@@ -21,3 +21,6 @@ Değerler ajan tamamlanma bildiriminden alınır; bildirimde yoksa "yok".
 | 15 | simge yapılar | 3 | 241287 | 6 | 92095 |
 | 16 | atmosfer B | 3 | 298863 | 15 | 465701 |
 | 17 | kamera-kurgu | 3 | 404279 | 16 | 668356 |
+| 18 | şehir dokusu | 3 | 472928 | 40 | 1236174 |
+| 19 | denetçi | 3 | 185505 | 9 | 196914 |
+| 20 | kamera-kurgu | 4 | 446089 | 22 | 534940 |

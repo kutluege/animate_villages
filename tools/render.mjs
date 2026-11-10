@@ -12,6 +12,9 @@
 //     --fresh           var olan kareleri at, baştan üret
 //     --keep            kaynak değişmiş olsa bile eski kareleri koru (yalnız eksikleri üret)
 //     --no-encode       yalnız kareler
+//     --encode-only     tarayıcı/sunucu açmadan DİSKTEKİ karelerden yeniden kodla (kare üretmez;
+//                       eksik kare varsa durur). --draft/--atmo/--from/--to/--step/--out ile birlikte.
+//     --crf N --maxrate M   kodlama ayarını geçersiz kıl (ör. --crf 21 --maxrate 12M)
 //     --jobs J          paralel sayfa sayısı (varsayılan 1)
 //     --out yol.mp4     çıktı adını değiştir
 //     --port P          (varsayılan 5174)
@@ -154,7 +157,15 @@ export function sourceSignature() {
 
 export const frameName = (i) => `f${String(i).padStart(5, '0')}.png`;
 
-function encode({ dir, frames, fps, step, out, crf, preset }) {
+// Kodlama ayarları. Taslak: hızlı, sabit CRF. Nihai: CRF + VBV tavanı — 36 sn için ~45–60 MB
+// (GitHub 100 MB sınırının altında, sosyal medya yeniden sıkıştırmasına yetecek kadar yüksek);
+// aq-mode=3 karanlık gradyanlara (gece göğü) bit ayırır, bantlanmayı azaltır.
+export const ENCODE = {
+  draft: { crf: 20, preset: 'medium' },
+  final: { crf: 19, preset: 'slow', maxrate: '14M', bufsize: '28M', x264: 'aq-mode=3:aq-strength=0.9:deblock=-1,-1:colorprim=bt709:transfer=bt709:colormatrix=bt709' },
+};
+
+function encode({ dir, frames, fps, step, out, crf, preset, maxrate, bufsize, x264 }) {
   // Kareler ffmpeg'e SIRALI bir dizi olarak, sabit kare hızıyla verilir (-framerate fps -i s%05d.png):
   // zaman damgası yuvarlaması / fps dönüştürmesi yok → her PNG tam bir video karesi (adım K ise K kare).
   // Dizi, kare dosyalarına sabit bağ (hardlink; olmazsa kopya) içeren geçici bir klasördür.
@@ -181,6 +192,8 @@ function encode({ dir, frames, fps, step, out, crf, preset }) {
     '-an',
     '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2:flags=lanczos:out_color_matrix=bt709:out_range=tv,format=yuv420p',
     '-c:v', 'libx264', '-preset', preset, '-crf', String(crf),
+    ...(maxrate ? ['-maxrate', maxrate, '-bufsize', bufsize || maxrate] : []),
+    ...(x264 ? ['-x264-params', x264] : []),
     '-profile:v', 'high', '-level', '4.2', '-pix_fmt', 'yuv420p',
     '-colorspace', 'bt709', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-color_range', 'tv',
     '-g', String(fps * 2), '-bf', '2',
@@ -204,7 +217,7 @@ function encode({ dir, frames, fps, step, out, crf, preset }) {
 async function main() {
   const o = parseArgs(process.argv.slice(2), {
     draft: 'bool', atmo: 'str', from: 'num', to: 'num', step: 'num', fresh: 'bool', keep: 'bool',
-    'no-encode': 'bool', jobs: 'num', out: 'str', port: 'num', w: 'num', h: 'num', help: 'bool',
+    'no-encode': 'bool', 'encode-only': 'bool', crf: 'num', maxrate: 'str', jobs: 'num', out: 'str', port: 'num', w: 'num', h: 'num', help: 'bool',
   });
   if (o.help) {
     console.log(fs.readFileSync(fileURLToPath(import.meta.url), 'utf8').split('\n').filter((l) => l.startsWith('//')).map((l) => l.slice(3)).join('\n'));
@@ -216,6 +229,45 @@ async function main() {
   const atmo = o.atmo === 'b' ? 'b' : 'a';
   const step = Math.max(1, Math.round(o.step ?? 1));
   const jobs = Math.max(1, Math.min(8, Math.round(o.jobs ?? 1)));
+
+  const enc = { ...(draft ? ENCODE.draft : ENCODE.final) };
+  if (o.crf !== undefined) enc.crf = o.crf;
+  if (o.maxrate) {
+    enc.maxrate = o.maxrate;
+    enc.bufsize = String(parseFloat(o.maxrate) * 2) + o.maxrate.replace(/^[\d.]+/, '');
+  }
+  const officialOut = draft ? path.join(OUT, 'draft', 'draft.mp4') : path.join(OUT, 'final', 'mecidiyekoy.mp4');
+
+  if (o['encode-only']) {
+    const t0e = Date.now();
+    const dir = path.join(OUT, 'frames', `${w}x${h}_${atmo}`);
+    let man;
+    try {
+      man = JSON.parse(fs.readFileSync(path.join(dir, 'manifest.json'), 'utf8'));
+    } catch {
+      throw new Error(`kare klasörü yok: ${path.relative(ROOT, dir)} (önce kareleri üret)`);
+    }
+    const { fps, total } = man;
+    const from = Math.max(0, Math.round(o.from ?? 0));
+    const to = Math.min(total - 1, Math.round(o.to ?? total - 1));
+    const frames = [];
+    for (let i = from; i <= to; i += step) frames.push(i);
+    const lost = frames.filter((i) => !fs.existsSync(path.join(dir, frameName(i))));
+    if (lost.length) throw new Error(`${lost.length} kare eksik (ilk: ${lost[0]}); --encode-only kare üretmez`);
+    if (man.sig !== sourceSignature()) console.warn('[uyarı] kareler şimdiki kaynaktan eski bir anlık görüntüye ait (yalnız yeniden kodlanıyor).');
+    const full = from === 0 && to === total - 1;
+    const out = o.out ? path.resolve(ROOT, o.out) : full ? officialOut : path.join(OUT, 'tmp', `${draft ? 'draft' : 'final'}_${atmo}_f${from}-${to}${step > 1 ? `_s${step}` : ''}.mp4`);
+    encode({ dir, frames, fps, step, out, ...enc });
+    const size = fs.statSync(out).size;
+    console.log(`[video] ${path.relative(ROOT, out)}  (${(size / 1e6).toFixed(1)} MB, ${((size * 8) / ((frames.length * step) / fps) / 1e6).toFixed(1)} Mbps, crf ${enc.crf}${enc.maxrate ? ', maxrate ' + enc.maxrate : ''})`);
+    if (!draft && full && step === 1 && !o.out) {
+      const cover = path.join(OUT, 'final', 'cover.png');
+      fs.copyFileSync(path.join(dir, frameName(total - 1)), cover);
+      console.log(`[kapak] ${path.relative(ROOT, cover)}`);
+    }
+    console.log(`[bitti] ${((Date.now() - t0e) / 1000).toFixed(1)} sn`);
+    return;
+  }
 
   const base = await ensureServer(o.port ?? 5174);
   const browser = await launchBrowser();
@@ -284,13 +336,13 @@ async function main() {
     }
 
     if (!o['no-encode']) {
-      const official = draft ? path.join(OUT, 'draft', 'draft.mp4') : path.join(OUT, 'final', 'mecidiyekoy.mp4');
+      const official = officialOut;
       const out = o.out
         ? path.resolve(ROOT, o.out)
         : full
           ? official
           : path.join(OUT, 'tmp', `${draft ? 'draft' : 'final'}_${atmo}_f${from}-${to}${step > 1 ? `_s${step}` : ''}.mp4`);
-      encode({ dir, frames, fps, step, out, crf: draft ? 20 : 15, preset: draft ? 'medium' : 'slow' });
+      encode({ dir, frames, fps, step, out, ...enc });
       console.log(`[video] ${path.relative(ROOT, out)}  (${(fs.statSync(out).size / 1e6).toFixed(1)} MB, ${(frames.length * step / fps).toFixed(2)} sn)`);
       if (!draft && full && step === 1) {
         const cover = path.join(OUT, 'final', 'cover.png');
