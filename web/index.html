@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mecidiyeköy — gündüzden geceye</title>
+    <style>
+      html, body { margin: 0; height: 100%; background: #07090d; overflow: hidden; }
+      #stage { position: fixed; inset: 0; }
+      #stage canvas { display: block; position: absolute; left: 0; top: 0; }
+    </style>
+    <script>
+      // __ready, modül betiği yüklenmeden önce de var olsun (render araçları hemen bekleyebilsin).
+      window.__ready = new Promise(function (resolve) { window.__resolveReady = resolve; });
+    </script>
+  </head>
+  <body>
+    <div id="stage"></div>
+    <script type="module" src="/src/core/main.js"></script>
+  </body>
+</html>
