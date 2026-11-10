@@ -71,16 +71,10 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
       acc -= l;
     }
   }
-  // viyadük altı: tabliyenin altına asılı sodyum armatürler — "alt şehir" erken yanar
-  for (const p of roadInfo.piers) {
-    const jit = rng();
-    for (const s of [-1, 1]) {
-      const x = p.x + s * 5.5;
-      const z = p.z + s * 1.5;
-      const gy = ground.gY(x, z);
-      ground.gN(x, z, nrm);
-      L.push({ x, y: p.y - 1.5, z, by: 0, cx: x, cy: gy + 0.3, cz: z, nx: nrm[0], ny: nrm[1], nz: nrm[2], col: SODIUM, r: 13, th: 0.02 + 0.1 * jit, pole: false, size: 0.7 });
-    }
+  // viyadük altı: tabliyeye asılı sodyum armatürler — "alt şehir" gündüz de soluk yanar
+  for (const f of roadInfo.fixtures) {
+    ground.gN(f.x, f.z, nrm);
+    L.push({ x: f.x, y: f.y, z: f.z, by: 0, cx: f.x, cy: f.gy + 0.34, cz: f.z, nx: nrm[0], ny: nrm[1], nz: nrm[2], col: SODIUM, r: 10, th: 0.02 + 0.1 * rng(), pole: false, size: 0.5, min: 0.32 });
   }
 
   const n = L.length;
@@ -107,14 +101,14 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
   const iPar = new Float32Array(n * 3);
   const dPos = new Float32Array(n * 3);
   const dNrm = new Float32Array(n * 3);
-  const dPar = new Float32Array(n * 2);
+  const dPar = new Float32Array(n * 3);
   L.forEach((l, i) => {
     iPos.set([l.x, l.y, l.z], i * 3);
     iCol.set(l.col, i * 3);
-    iPar.set([l.size, l.th, rng()], i * 3);
+    iPar.set([l.size, l.th, l.min || 0], i * 3);
     dPos.set([l.cx, l.cy, l.cz], i * 3);
     dNrm.set([l.nx, l.ny, l.nz], i * 3);
-    dPar.set([l.r, l.th], i * 2);
+    dPar.set([l.r, l.th, l.min || 0], i * 3);
   });
   const hg = new THREE.InstancedBufferGeometry();
   hg.setAttribute('position', new THREE.BufferAttribute(quad, 3));
@@ -133,25 +127,29 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
       c *= 1.0 - ff * 0.8;
     #endif`;
   const headMat = new THREE.ShaderMaterial({
-    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uLit: { value: 0 }, uPx: { value: 0.001 } }]),
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uLit: { value: 0 }, uPx: { value: 0.001 }, uFrac: { value: 0.7 } }]),
     vertexShader: /* glsl */ `
       attribute vec3 iPos; attribute vec3 iCol; attribute vec3 iPar;
-      uniform float uLit; uniform float uPx;
+      uniform float uLit; uniform float uPx; uniform float uFrac;
       varying vec2 vQ; varying vec3 vC;
       #include <common>
       #include <fog_pars_vertex>
       void main(){
-        float on = smoothstep(iPar.y, iPar.y + 0.05, uLit);
+        float on = max(iPar.z, smoothstep(iPar.y, iPar.y + 0.05, uLit));
         vec4 mvPosition = viewMatrix * vec4(iPos, 1.0);
         float dist = -mvPosition.z;
         float s0 = iPar.x;
         float s = max(s0, dist * uPx * 1.6);
         float gain = (s0 * s0) / (s * s);
+        // yakında ekran boyutu sınırı: parıltı yüksekliğin ~%0,55'ini aşmaz (hale topu olmasın)
+        float sMax = dist * uFrac * 0.0055;
+        float nearK = clamp(sMax / s, 0.0, 1.0);
+        s = min(s, max(sMax, 0.06));
         mvPosition.xy += position.xy * s * 1.6 * step(0.001, on);
         vQ = position.xy;
         // ısınma: önce soluk pembe-kırmızı, sonra asıl renk
         vec3 warm = mix(vec3(1.0, 0.35, 0.3), iCol, smoothstep(0.0, 0.8, on));
-        vC = warm * on * (1.6 + 2.2 * gain) * mix(0.3, 1.0, gain);
+        vC = warm * on * (1.6 + 2.2 * gain) * mix(0.3, 1.0, gain) * mix(0.45, 1.0, nearK);
         gl_Position = projectionMatrix * mvPosition;
         #include <fog_vertex>
       }`,
@@ -176,6 +174,7 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
   });
   headMat.uniforms.uLit = ctx.uniforms.uLit;
   headMat.uniforms.uPx = shared.uPx;
+  headMat.uniforms.uFrac = shared.uFrac;
   const heads = new THREE.Mesh(hg, headMat);
   heads.name = 'city-lamp-heads';
   heads.frustumCulled = false;
@@ -190,18 +189,18 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
   dg.setAttribute('iPos', new THREE.InstancedBufferAttribute(dPos, 3));
   dg.setAttribute('iNrm', new THREE.InstancedBufferAttribute(dNrm, 3));
   dg.setAttribute('iCol', new THREE.InstancedBufferAttribute(iCol, 3));
-  dg.setAttribute('iPar', new THREE.InstancedBufferAttribute(dPar, 2));
+  dg.setAttribute('iPar', new THREE.InstancedBufferAttribute(dPar, 3));
   dg.instanceCount = n;
   const poolMat = new THREE.ShaderMaterial({
     uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uLit: { value: 0 } }]),
     vertexShader: /* glsl */ `
-      attribute vec3 iPos; attribute vec3 iNrm; attribute vec3 iCol; attribute vec2 iPar;
+      attribute vec3 iPos; attribute vec3 iNrm; attribute vec3 iCol; attribute vec3 iPar;
       uniform float uLit;
       varying vec2 vQ; varying vec3 vC;
       #include <common>
       #include <fog_pars_vertex>
       void main(){
-        float on = smoothstep(iPar.y, iPar.y + 0.05, uLit);
+        float on = max(iPar.z * 0.55, smoothstep(iPar.y, iPar.y + 0.05, uLit));
         vec3 nn = normalize(iNrm);
         vec3 tx = normalize(cross(vec3(0.0, 0.0, 1.0), nn));
         vec3 tz = cross(nn, tx);
@@ -219,7 +218,7 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
       void main(){
         float r = length(vQ);
         if (r > 1.0) discard;
-        float a = pow(1.0 - r, 2.2) * 0.34 + exp(-r * r * 30.0) * 0.25;
+        float a = pow(1.0 - r, 2.0) * 0.62 + exp(-r * r * 22.0) * 0.5;
         vec3 c = vC * a;
         ${FOGF}
         gl_FragColor = vec4(c, 1.0);
@@ -244,9 +243,7 @@ export function buildLamps(ctx, net, ground, bld, roadInfo, group, shared) {
   return {
     count: n,
     update(state) {
-      const v = state.lit > 0.001;
-      heads.visible = v;
-      pools.visible = v;
+      void state; // asgari parlaklıklı armatürler gündüz de görünür
     },
   };
 }

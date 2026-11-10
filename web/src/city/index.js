@@ -11,6 +11,8 @@ import { buildRoads } from './roads.js';
 import { buildTraffic } from './traffic.js';
 import { buildLamps } from './lamps.js';
 import { buildTrees } from './trees.js';
+import { createDecals } from './decals.js';
+import { buildStreet } from './street.js';
 
 export async function create(ctx) {
   const { THREE, scene, camera, renderer } = ctx;
@@ -18,15 +20,18 @@ export async function create(ctx) {
   group.name = 'city';
   scene.add(group);
 
-  const shared = { uPx: { value: 0.001 } }; // 1 m uzaklıkta 1 pikselin dünya boyu
+  const shared = { uPx: { value: 0.001 }, uFrac: { value: 0.7 } }; // 1 m uzaklıkta 1 pikselin dünya boyu
 
   const net = prepareNetwork(ctx);
   const ground = buildGround(ctx, net, group);
   const bld = buildBuildings(ctx, ground, net, group);
-  const roadInfo = buildRoads(ctx, net, ground, group);
+  const decals = createDecals(ctx);
+  const roadInfo = buildRoads(ctx, net, ground, group, decals);
   const lamps = buildLamps(ctx, net, ground, bld, roadInfo, group, shared);
-  const traffic = buildTraffic(ctx, net, group, shared);
+  const traffic = buildTraffic(ctx, net, group, shared, roadInfo);
   const trees = buildTrees(ctx, ground, bld, roadInfo, group);
+  const street = buildStreet(ctx, net, ground, bld, roadInfo, decals, group);
+  decals.finish(group);
 
   const sz = new THREE.Vector2();
   const info = {
@@ -36,6 +41,10 @@ export async function create(ctx) {
     parked: traffic.parked,
     lamps: lamps.count,
     trees: trees.count,
+    people: street.people,
+    shelters: street.shelters,
+    signs: street.signs,
+    decals: decals.count,
   };
 
   if (typeof window !== 'undefined') {
@@ -56,7 +65,8 @@ export async function create(ctx) {
     groundAt: ground.gY,
     update(state) {
       const h = (ctx.size && ctx.size.height) || renderer.getSize(sz).y;
-      shared.uPx.value = (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(1, h);
+      shared.uFrac.value = 2 * Math.tan((camera.fov * Math.PI) / 360);
+      shared.uPx.value = shared.uFrac.value / Math.max(1, h);
       traffic.update(state);
       lamps.update(state);
     },

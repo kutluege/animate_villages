@@ -10,6 +10,7 @@
 //   aSty   : (tip, katYüksekliği, panelGenişliği, yananOran)   tip: 0 mat · 1 ofis camı ·
 //            2 konut camı · 3 AVM cephesi · 4 cam çatı · 5 ışıklı katı (aSty.y = θ, aSty.w = şiddet)
 //   aSty2  : (spandrelOranı, dikmeGücü, taçYüksekliği, derzKatAralığı)
+//   aSty4  : (lobiKatSayısı, panelNormalSapması rad, güneşParlamaTavanı, dikmeAçıklığı)
 //   aSty3  : (spandrelAçıklığı, ışıkSıcaklığı 0 soğuk…1 sıcak, taçIşıkŞiddeti, taçSıcaklığı)
 
 const VERT_PARS = /* glsl */ `
@@ -18,16 +19,18 @@ attribute vec3 aTan;
 attribute vec4 aSty;
 attribute vec4 aSty2;
 attribute vec4 aSty3;
+attribute vec4 aSty4;
 varying vec4 vFac;
 varying vec3 vTanV;
 varying vec4 vSty;
 varying vec4 vSty2;
 varying vec4 vSty3;
+varying vec4 vSty4;
 varying vec3 vLmW;
 `;
 
 const VERT_MAIN = /* glsl */ `
-vFac = aFac; vSty = aSty; vSty2 = aSty2; vSty3 = aSty3;
+vFac = aFac; vSty = aSty; vSty2 = aSty2; vSty3 = aSty3; vSty4 = aSty4;
 vTanV = normalize(mat3(viewMatrix) * mat3(modelMatrix) * aTan);
 vLmW = (modelMatrix * vec4(position, 1.0)).xyz;
 `;
@@ -38,6 +41,7 @@ varying vec3 vTanV;
 varying vec4 vSty;
 varying vec4 vSty2;
 varying vec4 vSty3;
+varying vec4 vSty4;
 varying vec3 vLmW;
 uniform float uLit;
 uniform float uNight;
@@ -66,6 +70,8 @@ float lmRough = 0.85;
 float lmMetal = 0.0;
 float lmGlass = 0.0;
 vec3 lmTint = vec3(0.5);
+float lmSpecCap = 1.0e6;
+float lmSd = 0.0;
 vec2 lmJit = vec2(0.0);
 vec3 lmEmis = vec3(0.0);
 float lmNightAmp = mix(0.55, 1.0, uNight);
@@ -87,68 +93,82 @@ if (lmType < 0.5) {
   float sp = (1.0 - smoothstep(spF - fwV, spF + fwV, ff)) * step(0.001, spF);
   float mw = 0.04 * vSty2.y / panelW;
   float mul = lmLine(min(pf, 1.0 - pf), mw, fwU);
-  float jointN = vSty2.w;
-  float joint = (jointN > 0.5 && mod(fi + 1.5, jointN) < 1.0) ? 1.0 : 0.0;
+  float mechN = vSty2.w;
+  float mech = (mechN > 0.5 && mod(fi + 1.5, mechN) < 1.0) ? 1.0 : 0.0;
   float crownH = vSty2.z;
-  float crown = crownH > 0.0 ? 1.0 - smoothstep(crownH - 0.25, crownH + 0.25, vFac.z) : 0.0;
-  float base = 1.0 - smoothstep(0.0, 0.4, vFac.y); // (taban hattı)
-
-  vec3 glassCol = diffuseColor.rgb * (0.86 + 0.28 * h1 * detail) * (0.94 + 0.12 * hf);
-  vec3 spCol = mix(diffuseColor.rgb * 0.45, vec3(0.62, 0.65, 0.68), vSty3.x);
-  vec3 col = mix(glassCol, spCol, sp);
-  col = mix(col, vec3(0.30, 0.31, 0.33), mul * 0.85);
-  col = mix(col, vec3(0.035, 0.04, 0.045), joint);
+  float crown = crownH > 0.0 ? 1.0 - smoothstep(crownH - 0.15, crownH + 0.15, vFac.z) : 0.0;
+  float lobby = (vSty4.x > 0.5 && fi < vSty4.x && vFac.y > 0.0) ? 1.0 : 0.0;
   float louver = 0.5 + 0.5 * sin(vFac.y * 9.0);
-  col = mix(col, mix(vec3(0.42, 0.44, 0.47), vec3(0.58, 0.6, 0.63), louver), crown);
+
+  vec3 glassCol = diffuseColor.rgb * (0.88 + 0.24 * h1 * detail) * (0.95 + 0.1 * hf);
+  vec3 spCol = mix(diffuseColor.rgb * 0.3, vec3(0.62, 0.65, 0.68), vSty3.x);
+  vec3 mulCol = mix(vec3(0.09, 0.095, 0.1), vec3(0.74, 0.76, 0.78), vSty4.w);
+  vec3 col = mix(glassCol, spCol, sp);
+  col = mix(col, mulCol, mul * 0.9);
+  // mekanik kat: panjurlu, camdan biraz koyu (siyah bant değil)
+  col = mix(col, diffuseColor.rgb * mix(0.4, 0.6, louver), mech * (1.0 - mul));
+  col = mix(col, vec3(0.74, 0.77, 0.8), crown * 0.5);
   diffuseColor.rgb = col;
   lmTint = glassCol;
 
-  float glassAmt = (1.0 - sp) * (1.0 - mul) * (1.0 - joint) * (1.0 - crown);
-  lmRough = mix(0.42, 0.045 + 0.09 * h2, glassAmt);
-  lmRough = mix(lmRough, 0.55, max(joint, crown));
-  lmMetal = mix(0.35, 0.9, glassAmt);
-  lmGlass = glassAmt * 0.9 + sp * 0.12;
-  // panel düzensizliği: her cam hafifçe farklı yöne bakar + geniş dalga ("oil-canning")
-  lmJit = (vec2(h1, h2) - 0.5) * 0.045 * detail * glassAmt
+  // derz/doğrama MAT kalır: parlamanın içinde koyu çizgi olarak okunur
+  float glassAmt = (1.0 - sp) * (1.0 - mul) * (1.0 - mech);
+  lmRough = mix(0.62, 0.09 + 0.11 * h2, glassAmt);
+  lmMetal = mix(0.08, 0.9, glassAmt);
+  lmGlass = glassAmt * 0.95;
+  lmSpecCap = mix(0.5, vSty4.z * (0.55 + 0.9 * h1), glassAmt);
+  // panel düzensizliği: her cam hafifçe farklı yöne bakar (yansıma panel panel kırılır) + geniş dalga
+  lmJit = (vec2(h1, h2) - 0.5) * vSty4.y * (0.35 + 0.65 * detail) * glassAmt
         + vec2(sin(vFac.x * 0.21 + fi * 1.3 + lmSeed), sin(vFac.y * 0.17 + pi * 0.7)) * 0.008;
 
-  // ---- pencereler: θ eşiğiyle tek tek ----
-  float on; float th; vec3 lc; float inten;
+  // ---- ışıklar: θ eşiğiyle birim birim (kat bölgesi / daire odası) ----
+  float on = 0.0; float th = 0.5; vec3 lc = vec3(1.0); float inten = 0.0;
   float warm = vSty3.y;
   if (lmType < 1.5) {
-    // ofis: kat kat, kat içinde bölge bölge
-    float zw = 4.0 + floor(8.0 * lmHash(vec3(fi, 7.0, lmSeed)));
-    float hfc = lmHash(vec3(fi, 13.0, lmSeed));
-    float colm = mod(pi + 0.5, 6.0) < 1.0 ? 0.12 : 1.0; // taşıyıcı kolon aksı
-    float zone = floor((pu + 40.0 * hf) / zw);
+    // OFİS: kat boyu bantlar. Kat durumu: tam dolu / yarı dolu / karanlık; 15 m'lik kiracı bölgeleri.
+    float stt = lmHash(vec3(fi, 21.0, lmSeed));
+    float full = step(stt, litFrac * 0.6);
+    float part = step(stt, litFrac * 1.25) * (1.0 - full);
+    float zone = floor(pu / 10.0 + lmHash(vec3(fi, 22.0, lmSeed)));
     float hz = lmHash(vec3(zone, fi, lmSeed + 5.3));
     float hz2 = lmHash(vec3(zone, fi, lmSeed + 6.9));
-    float floorOn = step(hf, litFrac + 0.12);
-    on = floorOn * step(hz, 0.82) + (1.0 - floorOn) * step(hz, 0.10);
-    th = 0.05 + 0.9 * fract(0.62 * lmHash(vec3(fi, 11.0, lmSeed)) + 0.38 * hz2);
-    lc = mix(vec3(0.84, 0.92, 1.0), vec3(1.0, 0.82, 0.56), clamp(warm + (hfc - 0.5) * 0.9 + (hz2 - 0.5) * 0.3, 0.0, 1.0));
-    // tavan armatür şeritleri: üstte parlak, altta mobilya karanlığı
-    inten = (0.42 + 0.4 * hz) * mix(0.3, 1.0, smoothstep(0.3, 0.95, ff)) * (0.5 + 0.65 * h1) * colm;
+    on = full * step(hz, 0.94) + part * step(hz, 0.5) + (1.0 - full - part) * step(hz, 0.05);
+    th = 0.05 + 0.72 * lmHash(vec3(fi, 11.0, lmSeed)) + 0.18 * hz2;
+    float hfc = lmHash(vec3(fi, 13.0, lmSeed));
+    float tone = clamp(warm + step(0.8, hfc) * 0.6 + (hz2 - 0.5) * 0.12, 0.0, 1.0);
+    lc = mix(vec3(0.80, 0.90, 1.0), vec3(1.0, 0.84, 0.6), tone);
+    float colm = mod(pi + 0.5, 6.0) < 1.0 ? 0.25 : 1.0; // taşıyıcı kolon aksı
+    float blind = hz2 > 0.8 ? 0.5 : 1.0;                 // yarı inik stor
+    // tavan armatür bandı üstte parlak, altı masa/mobilya karanlığı
+    inten = mix(0.4, 1.0, smoothstep(0.45, 0.7, ff)) * (0.86 + 0.14 * h1) * colm * blind * 0.8;
   } else {
-    // konut: iki panellik pencere grupları, sıcak; bir kısmı perdeli/loş
-    float cell = floor(pu * 0.5);
-    float hc = lmHash(vec3(cell, fi, lmSeed + 5.3));
-    float hc2 = lmHash(vec3(cell, fi, lmSeed + 8.1));
-    on = step(hc, litFrac);
-    th = 0.04 + 0.92 * hc2;
-    float tv = step(0.93, hc2 + hc * 0.1);
-    lc = mix(mix(vec3(1.0, 0.9, 0.74), vec3(1.0, 0.66, 0.34), clamp(warm * (0.55 + 0.9 * hc2), 0.0, 1.0)), vec3(0.55, 0.7, 1.0), tv);
-    inten = (0.35 + 0.95 * fract(hc * 7.31)) * mix(0.6, 1.0, ff) * (0.85 + 0.3 * h1);
+    // KONUT: 5 panellik daireler (salon + 2 oda). Daire bir birim olarak yanar; odalar ardından.
+    float ap = pu / 5.0; float au = floor(ap); ap -= au;
+    float room = ap < 0.42 ? 0.0 : (ap < 0.72 ? 1.0 : 2.0);
+    float ha = lmHash(vec3(au, fi, lmSeed + 5.3));
+    float hstack = lmHash(vec3(au, 31.0, lmSeed));
+    float hr = lmHash(vec3(au * 3.0 + room, fi, lmSeed + 8.1));
+    float occ = step(ha, litFrac * (0.55 + 0.9 * hstack));
+    on = occ * (room < 0.5 ? 1.0 : step(hr, 0.42));
+    th = 0.04 + 0.78 * lmHash(vec3(au, fi, lmSeed + 6.6)) + (room < 0.5 ? 0.0 : 0.03 + 0.12 * hr);
+    float tn = fract(ha * 9.7 / max(litFrac, 0.05));
+    vec3 wc = mix(vec3(1.0, 0.72, 0.42), vec3(1.0, 0.60, 0.30), fract(ha * 41.3));
+    lc = tn < 0.64 ? wc : (tn < 0.88 ? vec3(1.0, 0.88, 0.72) : vec3(0.72, 0.84, 1.0));
+    lc = mix(vec3(1.0, 0.78, 0.5), lc, warm);
+    float dim = fract(ha * 23.1) > 0.62 ? 0.38 : 1.0;    // perdeli / loş
+    float wall = lmLine(min(min(abs(ap - 0.42), abs(ap - 0.72)), min(ap, 1.0 - ap)) * 5.0, 0.16, fwU);
+    inten = dim * (0.8 + 0.2 * hr) * mix(0.5, 1.0, smoothstep(0.2, 0.9, ff)) * (1.0 - wall) * (room < 0.5 ? 1.0 : 0.8);
   }
-  float a = on * lmOn(th) * glassAmt;
-  lmEmis += lc * inten * a * 1.05 * lmNightAmp;
-  lmGlass *= 1.0 - 0.6 * a;
-  // taç: mekanik kat / tepe LED hattı
-  float cw = vSty3.w;
-  vec3 cc = mix(vec3(0.75, 0.88, 1.0), vec3(1.0, 0.82, 0.58), cw);
-  lmEmis += cc * crown * vSty3.z * lmOn(0.34) * (0.55 + 0.45 * louver) * lmNightAmp;
-  // taban hattı çok hafif koyulaşır
-  diffuseColor.rgb *= 1.0 - 0.3 * base;
+  float a = on * lmOn(th) * glassAmt * (1.0 - lobby);
+  lmEmis += lc * inten * a * lmNightAmp;
+  // lobi: çift kat yüksekliğinde, erken yanan sıcak taban
+  float la = lobby * glassAmt * lmOn(0.06);
+  lmEmis += vec3(1.0, 0.8, 0.55) * la * (0.9 + 0.4 * h1) * 1.25 * lmNightAmp;
+  lmGlass *= 1.0 - 0.6 * max(a, la);
+  // taç: tepe LED hattı
+  vec3 cc = mix(vec3(0.75, 0.88, 1.0), vec3(1.0, 0.84, 0.62), vSty3.w);
+  lmEmis += cc * crown * vSty3.z * lmOn(0.34) * lmNightAmp;
+  diffuseColor.rgb *= 1.0 - 0.3 * (1.0 - smoothstep(0.0, 0.4, vFac.y));
 } else if (lmType < 3.5) {
   // ---- AVM / podyum cephesi ----
   float floorH = vSty.y, bayW = vSty.z, litFrac = vSty.w;
@@ -229,6 +249,9 @@ const FRAG_NORMAL = /* glsl */ `
 {
   vec3 lmUpV = normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz);
   normal = normalize(normal + vTanV * lmJit.x + lmUpV * lmJit.y);
+  // güneşin yansıma doğrultusuna yakınlık: parlama tavanı çekirdekte yüksek, kenarda düşük → sıcak nokta korunur
+  vec3 lmSunV = normalize((viewMatrix * vec4(uLmSun, 0.0)).xyz);
+  lmSd = max(dot(reflect(-normalize(vViewPosition), normal), lmSunV), 0.0);
 }
 `;
 
@@ -240,7 +263,7 @@ const FRAG_EMISSIVE = /* glsl */ `
   float lmF = pow(1.0 - clamp(dot(lmV, lmN), 0.0, 1.0), 5.0);
   float sd = max(dot(lmR, uLmSun), 0.0);
   // alçak güneş: dar çekirdek + geniş hale → cephe boyunca kayan, panel panel kırılan parıltı
-  vec3 glow = uLmGlow * (pow(sd, 140.0) * 2.5 * uLmCore + pow(sd, 18.0) * 0.42 * mix(0.3, 1.0, uLmCore) + pow(sd, 4.0) * 0.10);
+  vec3 glow = uLmGlow * (pow(sd, 140.0) * 1.5 * uLmCore + pow(sd, 18.0) * 0.42 * mix(0.3, 1.0, uLmCore) + pow(sd, 4.0) * 0.10);
   vec3 sky = mix(uLmHor, uLmZen, smoothstep(0.0, 0.55, lmR.y));
   sky = mix(sky, uLmHor * 0.28 + vec3(0.012), smoothstep(0.0, -0.25, lmR.y));
   lmEmis += lmGlass * (glow + sky * uLmEnvFallback * mix(lmTint, vec3(1.0), lmF));
@@ -279,9 +302,10 @@ export function makeFacadeMaterial(ctx) {
       .replace('#include <roughnessmap_fragment>', `#include <roughnessmap_fragment>\nroughnessFactor = lmRough;`)
       .replace('#include <metalnessmap_fragment>', `#include <metalnessmap_fragment>\nmetalnessFactor = lmMetal;`)
       .replace('#include <normal_fragment_maps>', `#include <normal_fragment_maps>\n${FRAG_NORMAL}`)
+      .replace('#include <lights_fragment_end>', '#include <lights_fragment_end>\nreflectedLight.directSpecular = min(reflectedLight.directSpecular, vec3(lmSpecCap * (0.4 + 1.9 * pow(lmSd, 8.0))));')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${FRAG_EMISSIVE}`);
   };
-  material.customProgramCacheKey = () => 'landmarks-facade-v1';
+  material.customProgramCacheKey = () => 'landmarks-facade-v3';
 
   const C = (r, g, b) => new THREE.Color(r, g, b);
   const ZD = C(0.2, 0.4, 0.82), HD = C(0.62, 0.76, 0.95);

@@ -45,6 +45,7 @@ class Builder {
     this.a = [];
     this.b = [];
     this.c = [];
+    this.d = [];
   }
   // v: {p:[x,y,z], f:[u,v,topD]}
   tri(v0, v1, v2, n, t, st, seed) {
@@ -65,6 +66,7 @@ class Builder {
       this.a.push(...st.a);
       this.b.push(...st.b);
       this.c.push(...st.c);
+      this.d.push(...(st.d || [0, 0, 0, 0]));
     }
   }
   quad(v0, v1, v2, v3, n, t, st, seed) {
@@ -183,6 +185,7 @@ class Builder {
     g.setAttribute('aSty', A(this.a, 4));
     g.setAttribute('aSty2', A(this.b, 4));
     g.setAttribute('aSty3', A(this.c, 4));
+    g.setAttribute('aSty4', A(this.d, 4));
     g.computeBoundingSphere();
     g.computeBoundingBox();
     return g;
@@ -315,8 +318,9 @@ export function build(ctx) {
       const st = {
         col: [0.3, 0.42, 0.58],
         a: [type, 3.85, 1.5, lit], // podyum üstü 36/34 kat
-        b: [0.2, 0.7, 1.4, 0],
-        c: [0.6, warm, 1.7, 0.05],
+        b: [0.2, 0.7, 1.4, 18],
+        c: [0.2, warm, 1.7, 0.05],
+        d: [0, 0.11, 3.0, 0.2],
       };
       B.wall(b.ring, podTop, top, podTop, st, seed);
       // çatı: parapetin 1.2 m altında koyu eğik düzlem
@@ -343,45 +347,62 @@ export function build(ctx) {
 
   // ================= TORUN CENTER =================
   {
-    const torunTower = (b, H, type, lit, seed, warm) => {
+    // Yarım düzlem kırpma (Sutherland–Hodgman): n·(p−o) ≥ 0 tarafı kalır.
+    const clip = (ring, o, n) => {
+      const out = [];
+      const d = (p) => (p[0] - o[0]) * n[0] + (p[1] - o[1]) * n[1];
+      for (let i = 0; i < ring.length; i++) {
+        const p = ring[i], q = ring[(i + 1) % ring.length];
+        const dp = d(p), dq = d(q);
+        if (dp >= 0) out.push(p);
+        if (dp >= 0 !== dq >= 0) {
+          const t = dp / (dp - dq);
+          out.push([p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t]);
+        }
+      }
+      return out;
+    };
+    // Her kule, birbirine göre kaymış iki cam dilim olarak kurulur (ayak izi L biçimli: veriden);
+    // dilimlerden biri 3 kat alçak → basamaklı tepe. Dilim yükseklik farkı VARSAYIM (bkz. sources.md).
+    const torunTower = (b, H, type, lit, seed, warm, lowSide) => {
       if (!b) return;
       const g = ground(b);
-      const top = g + H;
-      const floors = type === 2 ? 42 : 38;
-      const st = {
-        col: [0.26, 0.33, 0.36],
-        a: [type, H / floors, 1.35, lit],
-        b: [0.16, 1.7, 6.0, 11],
-        c: [0.08, warm, 0.42, 0.75],
-      };
-      B.wall(b.ring, b.baseY - 2, top, g, st, seed);
-      B.cap(THREE, b.ring, top - 1.5, roofDark, seed);
-      // çatı mekaniği: küçültülmüş hacim
-      const c = centroid(b.ring);
       const xs = b.ring.map((p) => p[0]), zs = b.ring.map((p) => p[1]);
-      const bx = (Math.min(...xs) + Math.max(...xs)) / 2, bz = (Math.min(...zs) + Math.max(...zs)) / 2;
-      let mx = c[0], mz = c[1];
-      if (!inside(b.ring, mx, mz)) { mx = bx; mz = bz; }
-      B.box(mx, top - 1.5, mz, 12, 5.5, 9, [1, 0], mech, seed);
-      addBeacon(mx, top + 5.2, mz, RED, 2.2, seed * 0.21, 7);
-      // dış köşelerde sabit ikaz ışıkları
-      const hull = [[Math.min(...xs), Math.min(...zs)], [Math.max(...xs), Math.min(...zs)], [Math.max(...xs), Math.max(...zs)], [Math.min(...xs), Math.max(...zs)]];
-      for (const h of hull) {
-        const p = b.ring.reduce((m, q) => (Math.hypot(q[0] - h[0], q[1] - h[1]) < Math.hypot(m[0] - h[0], m[1] - h[1]) ? q : m));
-        addBeacon(p[0], top + 0.8, p[1], RED, 99, 0, 3.5);
-      }
-      info[b.id] = { top: +top.toFixed(1), base: +g.toFixed(1) };
+      const dir = Math.max(...xs) - Math.min(...xs) >= Math.max(...zs) - Math.min(...zs) ? [1, 0] : [0, 1];
+      const c = centroid(b.ring);
+      const halves = [clip(b.ring, c, dir), clip(b.ring, c, [-dir[0], -dir[1]])];
+      const floors = type === 2 ? 42 : 38;
+      halves.forEach((ring, k) => {
+        if (ring.length < 3) return;
+        const top = g + H - (k === lowSide ? 11.4 : 0);
+        const st = {
+          col: [0.34, 0.45, 0.5], // açık mavi-yeşil yansıtıcı cam
+          a: [type, H / floors, 1.35, lit],
+          b: [0.13, 1.5, 0.9, 14], // ince koyu spandrel, belirgin dikey dikme, tepe LED hattı, 14 katta bir mekanik
+          c: [0.1, warm, 1.5, 0.7],
+          d: [2, 0.1, 3.0, 0.8], // çift katlı lobi, panel sapması, parlama tavanı, açık renk dikme
+        };
+        B.wall(ring, b.baseY - 2, top, g, st, seed + k * 0.37);
+        B.cap(THREE, ring, top - 1.8, roofDark, seed);
+        const rc = centroid(ring);
+        if (inside(ring, rc[0], rc[1])) {
+          B.box(rc[0], top - 1.8, rc[1], 9, 4.6, 7, dir, mech, seed);
+          if (k !== lowSide) addBeacon(rc[0], top + 3.4, rc[1], RED, 2.2, seed * 0.21, 8);
+        }
+        for (const p of ring) addBeacon(p[0] + (rc[0] - p[0]) * 0.04, top + 0.6, p[1] + (rc[1] - p[1]) * 0.04, RED, 99, 0, 3.2);
+      });
+      info[b.id] = { top: +(g + H).toFixed(1), base: +g.toFixed(1) };
     };
     // Araştırma: 3 kule (2 konut 160 m + 1 ofis 144 m). OSM'deki dört ayak izinden sıra hâlindeki
     // üçü kule sayıldı; hangisinin ofis olduğu DOĞRULANMADI (batıdaki varsayıldı).
-    torunTower(byId.get(ID.torunA), HEIGHTS.torunOffice, 1, 0.55, 21.3, 0.2);
-    torunTower(byId.get(ID.torunB), HEIGHTS.torunResidence, 2, 0.4, 22.9, 0.8);
-    torunTower(byId.get(ID.torunC), HEIGHTS.torunResidence, 2, 0.44, 23.4, 0.8);
+    torunTower(byId.get(ID.torunA), HEIGHTS.torunOffice, 1, 0.6, 21.3, 0.15, 0);
+    torunTower(byId.get(ID.torunB), HEIGHTS.torunResidence, 2, 0.5, 22.9, 0.9, 1);
+    torunTower(byId.get(ID.torunC), HEIGHTS.torunResidence, 2, 0.52, 23.4, 0.9, 0);
 
     const bar = byId.get(ID.torunBar);
     if (bar) {
       const g = ground(bar);
-      const st = { col: [0.27, 0.33, 0.36], a: [1, 4.0, 1.35, 0.5], b: [0.2, 1.7, 3.0, 0], c: [0.1, 0.3, 0.5, 0.75] };
+      const st = { col: [0.34, 0.45, 0.5], a: [1, 4.0, 1.35, 0.5], b: [0.14, 1.5, 0.9, 0], c: [0.1, 0.3, 1.2, 0.7], d: [2, 0.1, 3.0, 0.8] };
       B.wall(bar.ring, bar.baseY - 2, g + HEIGHTS.torunBar, g, st, 24.6);
       B.cap(THREE, bar.ring, g + HEIGHTS.torunBar - 1.2, roofDark, 24.6);
       const e = facingEdge(bar.ring, [-0.2, -1], 20);
@@ -398,7 +419,7 @@ export function build(ctx) {
     const sm = byId.get(ID.torunSmall);
     if (sm) {
       const g = ground(sm);
-      const st = { col: [0.27, 0.34, 0.38], a: [1, 3.7, 1.35, 0.5], b: [0.2, 1.4, 0, 0], c: [0.1, 0.3, 0, 0] };
+      const st = { col: [0.34, 0.45, 0.5], a: [1, 3.7, 1.35, 0.5], b: [0.14, 1.5, 0, 0], c: [0.1, 0.3, 0, 0], d: [1, 0.1, 3.0, 0.8] };
       B.wall(sm.ring, sm.baseY - 2, g + HEIGHTS.torunSmall, g, st, 26.8);
       B.cap(THREE, sm.ring, g + HEIGHTS.torunSmall - 1, roofDark, 26.8);
     }

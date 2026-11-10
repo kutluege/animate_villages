@@ -51,7 +51,12 @@ export async function create(ctx) {
   sun.shadow.bias = -0.00012;
   const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 1);
   hemi.name = 'atmo-b-hemi';
-  scene.add(sun, sun.target, hemi);
+  // Zeminden seken ışık: aşağıdan yukarı, gölgesiz. Tabliye/kiriş/saçak altları güneşli zeminin
+  // yansımasıyla okunur (şehir modülü aşağı bakan yüzlerde ortam ışığını kıstığı için hemi yetmiyor).
+  const bounce = new THREE.DirectionalLight(0xffffff, 0);
+  bounce.name = 'atmo-b-bounce';
+  bounce.castShadow = false;
+  scene.add(sun, sun.target, hemi, bounce, bounce.target);
 
   // Kimse castShadow kurmadıysa (yer tutucu modüller) gölge görülebilsin diye yedek.
   let anyCaster = false;
@@ -214,6 +219,7 @@ export async function create(ctx) {
     skyU.uDiscR.value = P.discR;
     skyU.uCloudCov.value = P.cloudCov;
     skyU.uCloudOp.value = P.cloudOp;
+    skyU.uCloudUnder.value = P.cloudUnder;
     skyU.uStars.value = smooth(-5, -13, e);
     skyU.uMoonK.value = mk;
     skyU.uSkyTime.value = state.t;
@@ -235,6 +241,17 @@ export async function create(ctx) {
     hemi.groundColor.setRGB(P.hemiGnd[0], P.hemiGnd[1], P.hemiGnd[2]);
     hemi.intensity = P.hemiI;
     fitShadow(dir);
+    {
+      const k = sunK * Math.max(0, Math.sin(state.sunElev)) * P.bounce;
+      bounce.intensity = k;
+      bounce.visible = k > 0;
+      bounce.color.setRGB(P.hemiGnd[0], P.hemiGnd[1], P.hemiGnd[2]);
+      // güneşin geldiği yandan, alttan (güneşli zemin o tarafta)
+      bounce.position.set(state.sunDir.x * 0.45, -1, state.sunDir.z * 0.45);
+      bounce.target.position.set(0, 0, 0);
+      bounce.updateMatrixWorld();
+      bounce.target.updateMatrixWorld();
+    }
 
     // environment (cam yansıması): yalnız saat değişince
     if (envKey !== state.tod) {
@@ -258,7 +275,9 @@ export async function create(ctx) {
     set3(f.uFogTint, P.fogTint);
     f.uExposure.value = P.exposure;
     post.bloom.strength = P.bloomS;
-    post.bloom.threshold = P.bloomT;
+    post.bpreU.uThreshold.value = P.bloomT;
+    post.bpreU.uClamp.value = P.bloomClamp;
+    post.finalU.uBloomCap.value = P.bloomCap;
     post.bloom.radius = P.bloomR;
     const g = post.finalU;
     g.uStreak.value = P.streak;

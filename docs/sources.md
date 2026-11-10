@@ -51,6 +51,33 @@ indiği için ayak izindeki en yüksek zemin + 9.6 m'dir (güney/D-100 cephesind
   "Cevahir" tabelalarının yeri/rengi.
 - Metro giriş totemleri: `pois.entrances` konumlarında genel kırmızı ışıklı kutu; gerçek totem tasarımı değil.
 
+## Tur 2 — Torun Center yeniden araştırma (2026-11-10)
+Bulunan (metin):
+- Mimar **Emre Arolat (EAA)**; "3 kuleden oluşan proje", "42 katlı kuleler"; kamuya açık **10 000 m² kent
+  meydanı**; kule podyumunda **iki katlı yatay "garden office"ler** (Hürriyet, 2014).
+- EAA proje sayfası: yapı alanı 258 000 m² (arama özeti; sayfa `emrearolat.com/?p=1988` araçla AÇILAMADI).
+- CTBUH: East 160 m, South 160 m, Office 144 m (değişmedi).
+
+Bulunamayan: **cephe sistemi, cam rengi, kule tepe biçimi, kuleler arası ilişki ve podyumun biçimi hakkında
+hiçbir metin kaynağı bulunamadı** (EAA sayfası engelli, emlakkulisi 403, cephe firması araması sonuçsuz).
+Fotoğraf da yok. Dolayısıyla Tur 2'deki biçim kararları VARSAYIMDIR:
+- Her kule, OSM'deki L biçimli ayak izi ağırlık merkezinden ikiye bölünerek **birbirine kaymış iki cam dilim**
+  olarak kuruldu; dilimlerden biri 3 kat (11.4 m) alçak → basamaklı tepe. (Ayak izi veri; bölme ve fark varsayım.)
+- Açık mavi-yeşil yansıtıcı cam, açık renk dikey dikmeler, ince koyu spandrel, 14 katta bir panjurlu mekanik
+  kat (Tur 1'deki siyah bantlar kaldırıldı), cam parapet + tepe LED hattı, çift kat yüksekliğinde ışıklı lobi.
+- Podyum/garden office: veride yalnız `w728793802` (5 m, 1 kat) var; Hürriyet "iki katlı" der. Veri korundu,
+  ayrı podyum ayak izi UYDURULMADI. Meydan modellenmedi.
+- **Dördüncü ayak izi (`w728793801`) hâlâ varsayım:** 40 m yatay blok. Kaynaklar 3 kule dediği için kule
+  yapılmadı; ne olduğu ve yüksekliği doğrulanmadı.
+- Hangi kulenin ofis (144 m) olduğu hâlâ varsayım (batıdaki).
+
+Ek URL'ler: https://www.hurriyet.com.tr/3-buyukler-ali-sami-yende-bulusuyor-26242747 ·
+https://emrearolat.com/?p=1988 (açılamadı) · https://emlakkulisi.com/guncel/torunlar-gyo-torun-center-resimleri/510743 (403)
+
+Gece ışık örüntüsü (ofis kat bantları, 5 panellik daire birimleri, mekanik katlar, lobi) ve gün batımı parlaması
+(panel başına normal sapması, mat derzler, parlama tavanı) birer görsel modeldir; gerçek yapıların kat planına
+ya da aydınlatmasına dayanmaz.
+
 ## URL'ler
 - https://en.wikipedia.org/wiki/Trump_Towers_Istanbul — 155 m / 145 m, 39 / 37 kat, mimar
 - https://www.skyscrapercenter.com/complex/503 ve https://www.skyscrapercenter.com/building/trump-tower-2/4192 — 156 m / 145.1 m (arama özeti)

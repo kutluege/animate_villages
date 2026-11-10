@@ -144,6 +144,18 @@ export function carGeometry(THREE) {
     vb.quad([-2.16, 0.68, z - 0.26], [-2.16, 0.68, z + 0.26], [-2.16, 0.86, z + 0.26], [-2.16, 0.86, z - 0.26], [-1, 0, 0], TAIL, 3);
   }
   vb.quad([2.16, 0.36, 0.7], [2.16, 0.36, -0.7], [2.16, 0.52, -0.7], [2.16, 0.52, 0.7], [1, 0, 0], TRIM, 0);
+  // plakalar, marşpiyel bandı, tampon
+  vb.quad([2.165, 0.4, 0.26], [2.165, 0.4, -0.26], [2.165, 0.5, -0.26], [2.165, 0.5, 0.26], [1, 0, 0], [0.85, 0.85, 0.82], 0);
+  vb.quad([-2.165, 0.5, -0.26], [-2.165, 0.5, 0.26], [-2.165, 0.6, 0.26], [-2.165, 0.6, -0.26], [-1, 0, 0], [0.85, 0.85, 0.82], 0);
+  vb.quad([-2.162, 0.3, -0.89], [-2.162, 0.3, 0.89], [-2.162, 0.46, 0.89], [-2.162, 0.46, -0.89], [-1, 0, 0], TRIM, 0);
+  for (const s of [1, -1]) {
+    const z = s * (hw + 0.014);
+    const q = [[-2.1, 0.3, z], [2.1, 0.3, z], [2.1, 0.43, z], [-2.1, 0.43, z]];
+    if (s > 0) vb.quad(q[0], q[1], q[2], q[3], [0, 0, 1], TRIM, 0);
+    else vb.quad(q[3], q[2], q[1], q[0], [0, 0, -1], TRIM, 0);
+  }
+  // taksi tepe lambası: yalnız taksi sarısı örneklerde görünür (aPaint = 4)
+  vb.box(-0.3, 1.41, -0.26, -0.05, 1.54, 0.26, [1.0, 0.85, 0.25], 4);
   return vb.build(THREE);
 }
 
@@ -189,17 +201,25 @@ export function vehicleMaterial(THREE, uniforms, lamps) {
   mat.onBeforeCompile = (sh) => {
     sh.uniforms.uLit = uniforms.uLit;
     sh.vertexShader = sh.vertexShader
-      .replace('#include <common>', '#include <common>\nattribute float aPaint; varying float vPaint;')
+      .replace('#include <common>', '#include <common>\nattribute float aPaint; attribute float aAo; varying float vPaint; varying float vAo;')
+      .replace(
+        '#include <begin_vertex>',
+        `#include <begin_vertex>
+        #ifdef USE_INSTANCING_COLOR
+          if (aPaint > 3.5) transformed *= step(0.6, instanceColor.r) * step(instanceColor.b, 0.05) * step(0.3, instanceColor.g);
+        #endif`,
+      )
       .replace(
         '#include <color_vertex>',
         `#include <color_vertex>
         vPaint = aPaint;
+        vAo = aAo;
         #ifdef USE_INSTANCING_COLOR
           vColor.rgb = aPaint > 0.5 && aPaint < 1.5 ? color.rgb * instanceColor.rgb : color.rgb;
         #endif`,
       );
     sh.fragmentShader = sh.fragmentShader
-      .replace('#include <common>', '#include <common>\nvarying float vPaint; uniform float uLit;')
+      .replace('#include <common>', '#include <common>\nvarying float vPaint; varying float vAo; uniform float uLit;')
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
@@ -211,10 +231,22 @@ export function vehicleMaterial(THREE, uniforms, lamps) {
         ${lamps ? `{
           float lampOn = smoothstep(0.02, 0.22, uLit);
           if (vPaint > 1.5 && vPaint < 2.5) totalEmissiveRadiance += vec3(1.0, 0.95, 0.85) * 5.0 * lampOn;
-          if (vPaint > 2.5) totalEmissiveRadiance += vec3(1.0, 0.05, 0.02) * 3.0 * lampOn;
+          if (vPaint > 2.5 && vPaint < 3.5) totalEmissiveRadiance += vec3(1.0, 0.05, 0.02) * 3.0 * lampOn;
+          if (vPaint > 3.5) totalEmissiveRadiance += vec3(1.0, 0.8, 0.2) * 2.5 * lampOn;
         }` : ''}`,
       );
   };
-  mat.customProgramCacheKey = () => `city-vehicle-${lamps ? 1 : 0}`;
+  {
+    const prev = mat.onBeforeCompile;
+    mat.onBeforeCompile = (sh) => {
+      prev(sh);
+      // tabliye altındaki araçlar: ortam ışığı kısılır
+      sh.fragmentShader = sh.fragmentShader.replace(
+        '#include <aomap_fragment>',
+        '#include <aomap_fragment>\n{ float cAo = mix(1.0, 0.32, vAo); reflectedLight.indirectDiffuse *= cAo; reflectedLight.indirectSpecular *= cAo; }',
+      );
+    };
+  }
+  mat.customProgramCacheKey = () => `city-vehicle2-${lamps ? 1 : 0}`;
   return mat;
 }

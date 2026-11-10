@@ -144,13 +144,14 @@ let maxYaw = 0;
 let maxYawAcc = 0;
 for (let i = 0; i <= N; i++) {
   const s = S[i];
-  const a = S[Math.max(0, i - 1)];
-  const c = S[Math.min(N, i + 1)];
+  // kesmenin iki yanı ayrı çekimdir: türevler kesmeyi aşmaz
+  const a = i > 0 && S[i - 1].p.shot === s.p.shot ? S[i - 1] : s;
+  const c = i < N && S[i + 1].p.shot === s.p.shot ? S[i + 1] : s;
   const span = (c.t - a.t) || dt;
   s.v = Math.hypot(c.p.pos[0] - a.p.pos[0], c.p.pos[1] - a.p.pos[1], c.p.pos[2] - a.p.pos[2]) / span;
   s.yawRate = unwrap(a.az, c.az) / span;
   s.pitchRate = (c.pitch - a.pitch) / span;
-  if (i > 0 && i < N) {
+  if (a !== s && c !== s) {
     s.acc = Math.hypot(...[0, 1, 2].map((k) => (c.p.pos[k] - 2 * s.p.pos[k] + a.p.pos[k]) / (dt * dt)));
     maxA = Math.max(maxA, s.acc);
   }
@@ -158,6 +159,7 @@ for (let i = 0; i <= N; i++) {
   maxYaw = Math.max(maxYaw, Math.abs(s.yawRate));
 }
 for (let i = 1; i < N; i++) {
+  if (S[i - 1].p.shot !== S[i + 1].p.shot) continue;
   S[i].yawAcc = (S[i + 1].yawRate - S[i - 1].yawRate) / (2 * dt);
   maxYawAcc = Math.max(maxYawAcc, Math.abs(S[i].yawAcc));
 }
@@ -252,7 +254,7 @@ function glintReport() {
   ];
   const cam = new THREE.PerspectiveCamera(40, 9 / 16, 2, 20000);
   const notTrump = (b) => b.landmark === 'trump';
-  for (let t = 16; t <= 21.51; t += 0.5) {
+  for (let t = 15.5; t <= 20.39; t += 0.4) {
     const sun = sunAt(todAt(t));
     const Sx = sun.dir.x;
     const Sy = sun.dir.y;
@@ -289,7 +291,7 @@ function glintReport() {
     lines.push(
       `${t.toFixed(1).padStart(5)} ${todAt(t).toFixed(2).padStart(6)} ${((sun.azim * 180) / Math.PI).toFixed(1).padStart(6)} ${((sun.elev * 180) / Math.PI).toFixed(1).padStart(5)}  | ${u.toFixed(1).padStart(6)} ${G[1].toFixed(1).padStart(6)}  ${on ? 'EVET ' : 'hayır'} | ${ndc.x.toFixed(2).padStart(6)} ${ndc.y.toFixed(2).padStart(6)} ${inFrame ? ' ' : '!'}    | ${off.toFixed(1).padStart(6)}°          | ${blocked ? 'KAPALI ' + blocked.id : 'açık'}`,
     );
-    if (t >= 17 && t <= 20.5 && (!on || !inFrame || blocked)) note(t, `doruk: yansıma ${!on ? 'cephe dışında' : !inFrame ? 'kadraj dışında' : 'kapalı'}`);
+    if (t >= 16.5 && t <= 20.2 && (!on || !inFrame || blocked)) note(t, `doruk: yansıma ${!on ? 'cephe dışında' : !inFrame ? 'kadraj dışında' : 'kapalı'}`);
   }
   return lines;
 }

@@ -13,6 +13,7 @@ export function makeSkyUniforms() {
     uDiscR: { value: 0.02 },
     uCloudCov: { value: 0.3 },
     uCloudOp: { value: 0.5 },
+    uCloudUnder: { value: 0 },
     uStars: { value: 0 },
     uMoonK: { value: 0 },
     uSkyTime: { value: 0 },
@@ -22,7 +23,7 @@ export function makeSkyUniforms() {
 export const SKY_GLSL = /* glsl */ `
 uniform vec3 uSunDir, uMoonDir;
 uniform vec3 cZen, cMid, cMidSun, cHor, cHorSun, cGlow, cDisc, cCloudLit, cCloudDark;
-uniform float uGlowPow, uDiscR, uCloudCov, uCloudOp, uStars, uMoonK, uSkyTime;
+uniform float uGlowPow, uDiscR, uCloudCov, uCloudOp, uCloudUnder, uStars, uMoonK, uSkyTime;
 
 float skyHash2(vec2 p){ vec3 p3 = fract(vec3(p.xyx) * .1031); p3 += dot(p3, p3.yzx + 33.33); return fract((p3.x + p3.y) * p3.z); }
 float skyHash3(vec3 p){ p = fract(p * .1031); p += dot(p, p.zyx + 31.32); return fract((p.x + p.y) * p.z); }
@@ -46,8 +47,8 @@ vec3 skyGrad(vec3 d, out float b){
   w *= w;
   vec3 hor = mix(cHor, cHorSun, w);
   vec3 mid = mix(cMid, cMidSun, w);
-  float a = 1.0 - exp(-h * 9.0);
-  b = 1.0 - exp(-h * 2.8);
+  float a = 1.0 - exp(-h * 7.0);
+  b = 1.0 - exp(-h * h * 9.0 - h * 1.2);
   vec3 c = mix(mix(hor, mid, a), cZen, b);
   // ufkun altı: zemin pusu
   c = mix(c, hor * 0.5, smoothstep(-0.1, -0.55, d.y));
@@ -105,6 +106,8 @@ vec3 skyFull(vec3 d){
   if (cov > 0.0){
     float g2 = dot(d, uSunDir) * 0.5 + 0.5;
     float lit = smoothstep(0.25, 1.0, g2) * (0.55 + 0.45 * n);
+    // alçak güneş: bulut altları her yönde alttan yanar (ince kenarlar daha çok)
+    lit = max(lit, uCloudUnder * (1.0 - 0.75 * smoothstep(0.35, 0.95, cov / max(uCloudOp, 1e-3))) * (0.45 + 0.55 * exp(-d.y * 2.2)));
     vec3 cc = mix(cCloudDark, cCloudLit, lit);
     c = mix(c, cc, cov);
   }
@@ -115,7 +118,7 @@ vec3 skyFull(vec3 d){
 #ifdef SKY_ENV
   // camdaki yansıma: PMREM'de kaybolmasın diye biraz iri, ateşböceği olmasın diye kısık
   disc = 1.0 - smoothstep(uDiscR * 1.2, uDiscR * 1.8, ls);
-  c += min(cDisc, vec3(48.0)) * disc * up;
+  c += min(cDisc, vec3(26.0)) * disc * up;
 #else
   c += cDisc * disc * up * (1.0 - 0.5 * cov);
 #endif

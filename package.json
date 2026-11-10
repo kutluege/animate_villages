@@ -6,7 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "render": "node tools/render.mjs",
+    "draft": "node tools/render.mjs --draft",
+    "shots": "node tools/shots.mjs"
   },
   "dependencies": {
     "three": "^0.187.0"

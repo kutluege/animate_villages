@@ -4,7 +4,7 @@
 //   /                         serbest kamera (OrbitControls) + arayüz
 //   /?film=1                  kamera rotası gerçek zamanlı (9:16 sahne)
 //   /?render=1&w=1080&h=1920  arayüz yok, döngü yok; kareler yalnız aşağıdaki çağrılarla çizilir
-//   ortak: ?atmo=a|b (varsayılan a) · ?tod=15.5 (serbest kip başlangıç saati)
+//   ortak: ?atmo=a|b (varsayılan b) · ?tod=15.5 (serbest kip başlangıç saati)
 //
 // Render arayüzü (hepsi, kare ÇİZİLDİKTEN sonra çözülen Promise döndürür)
 //   await window.__ready            → { ok, mode, modules:{city,landmarks,atmo,camera}, warnings, fps, duration, frames, width, height }
@@ -47,7 +47,7 @@ const params = {
   mode: RENDER ? 'render' : flag('film') ? 'film' : 'free',
   render: RENDER,
   film: flag('film'),
-  atmo: q.get('atmo') === 'b' ? 'b' : 'a',
+  atmo: q.get('atmo') === 'a' ? 'a' : 'b', // varsayılan B (seçilen yorum); A için ?atmo=a
   width: Math.max(16, Math.round(num('w', 1080))),
   height: Math.max(16, Math.round(num('h', 1920))),
   fps: FPS,
@@ -147,15 +147,22 @@ function call(name, fn, ...args) {
   }
 }
 
+// __setView: kamerayı TAM olarak kurar — önceki film karesinden (kamera modülünden) hiçbir
+// şey sızmaz. Verilmeyen alanlar sabit varsayılana döner (son karenin değerine değil).
+const VIEW_DEFAULT = { pos: [-520, 420, 720], target: [0, 40, 0], fov: 40 };
 function applyView(v) {
-  if (v.pos) camera.position.fromArray(v.pos);
-  if (v.up) camera.up.fromArray(v.up);
+  const pos = Array.isArray(v.pos) ? v.pos : VIEW_DEFAULT.pos;
+  const target = Array.isArray(v.target) ? v.target : VIEW_DEFAULT.target;
+  camera.position.set(pos[0], pos[1], pos[2]);
+  if (Array.isArray(v.up)) camera.up.fromArray(v.up);
   else camera.up.set(0, 1, 0);
-  if (v.target) camera.lookAt(v.target[0], v.target[1], v.target[2]);
-  if (Number.isFinite(v.fov) && v.fov !== camera.fov) {
-    camera.fov = v.fov;
-    camera.updateProjectionMatrix();
-  }
+  camera.lookAt(target[0], target[1], target[2]);
+  camera.fov = Number.isFinite(v.fov) ? v.fov : VIEW_DEFAULT.fov;
+  camera.zoom = 1;
+  camera.filmOffset = 0;
+  if (camera.view) camera.clearViewOffset();
+  camera.aspect = size.width / size.height;
+  camera.updateProjectionMatrix();
 }
 
 /** Tek kare: durumu kur, modülleri güncelle, çiz. Eşzamanlı. */

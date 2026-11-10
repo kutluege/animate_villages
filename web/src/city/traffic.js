@@ -21,10 +21,12 @@ const CAR_COLORS = [
   [0x8e1f1c, 5], [0xd9aa12, 5], [0x6b5a48, 2], [0x3d5a4a, 1.5],
 ].map(([h, w]) => ({ c: lin(h), w }));
 
+const BUS_COLORS = [0x8c1d24, 0x8c1d24, 0x3c7a4a, 0xd8b21a, 0x2f5f9f, 0xcfcfca].map(lin);
+const VAN_COLORS = [0xd9aa12, 0xd9aa12, 0xd9aa12, 0xd2d2ce, 0xd2d2ce, 0x9fb7cf, 0x2a2c30, 0x8d9296].map(lin); // sarı = dolmuş
 const K = 6; // iz başına parça
 const fluidity = (tod) => (tod >= 12 ? smoothstep(18.9, 20.5, tod) : 1 - smoothstep(4.5, 6.5, tod));
 
-export function buildTraffic(ctx, net, group, shared) {
+export function buildTraffic(ctx, net, group, shared, roadInfo) {
   const { THREE } = ctx;
   const rng = ctx.rng('city/traffic');
   const pick = () => {
@@ -54,15 +56,15 @@ export function buildTraffic(ctx, net, group, shared) {
       const th = 0.02 + 0.22 * rng();
       const br = 0.65 + 0.7 * rng();
       if (rng() < 0.06) continue; // boşluk
-      if (rightmost && r < 0.05 && i + 1 < N && reg.gap < 13) {
+      if (rightmost && r < (ln.type === 1 ? 0.1 : 0.05) && i + 1 < N && reg.gap < 13) {
         // otobüs / kamyon: iki yuva kaplar
         const bus = rng() < 0.6;
-        V.push({ lane: li, s0: (i + 0.5) * reg.gap + 2.5, kind: 1, len: bus ? 11.8 : 8.5, wid: 2.5, hgt: bus ? 3.0 : 3.3, col: bus ? [0.75, 0.75, 0.72] : pick(), hide, th, br });
+        V.push({ lane: li, s0: (i + 0.5) * reg.gap + 2.5, kind: 1, len: bus ? 11.8 : 8.5, wid: 2.5, hgt: bus ? 3.0 : 3.3, col: bus ? BUS_COLORS[Math.floor(rng() * BUS_COLORS.length)] : pick(), hide, th, br });
         i++;
         rng(); rng(); rng(); rng(); rng(); rng();
         continue;
       }
-      if (r > 0.9) V.push({ lane: li, s0: i * reg.gap + jit * 0.3, kind: 2, len: 1, wid: 1, hgt: 0.95 + 0.1 * rng(), half: 2.7, col: rng() < 0.6 ? [0.85, 0.85, 0.83] : pick(), hide, th, br });
+      if (r > 0.9) V.push({ lane: li, s0: i * reg.gap + jit * 0.3, kind: 2, len: 1, wid: 1, hgt: 0.95 + 0.1 * rng(), half: 2.7, col: VAN_COLORS[Math.floor(rng() * VAN_COLORS.length)], hide, th, br });
       else V.push({ lane: li, s0: i * reg.gap + jit, kind: 0, len: 0.92 + 0.14 * rng(), wid: 1, hgt: 0.94 + 0.16 * rng(), col: pick(), hide, th, br });
     }
   }
@@ -89,6 +91,7 @@ export function buildTraffic(ctx, net, group, shared) {
     m.castShadow = true;
     m.receiveShadow = true;
     m.name = ['city-cars', 'city-buses', 'city-vans'][k];
+    g.setAttribute('aAo', new THREE.InstancedBufferAttribute(new Float32Array(Math.max(1, counts[k])), 1).setUsage(THREE.DynamicDrawUsage));
     group.add(m);
     return m;
   });
@@ -120,7 +123,9 @@ export function buildTraffic(ctx, net, group, shared) {
       }
     }
   }
-  const pk = new THREE.InstancedMesh(cars.geometry, vehicleMaterial(THREE, ctx.uniforms, false), Math.max(1, parked.length));
+  const pkGeo = cars.geometry.clone();
+  pkGeo.setAttribute('aAo', new THREE.InstancedBufferAttribute(Float32Array.from(parked.length ? parked.map((p) => roadInfo.underDeck(p[0], p[2], p[1])) : [0]), 1));
+  const pk = new THREE.InstancedMesh(pkGeo, vehicleMaterial(THREE, ctx.uniforms, false), Math.max(1, parked.length));
   pk.name = 'city-parked';
   const m4 = new THREE.Matrix4();
   parked.forEach((p, i) => {
@@ -187,7 +192,9 @@ export function buildTraffic(ctx, net, group, shared) {
         vec3 sideV = cross(aDir, vd);
         float sl = length(sideV);
         sideV = sl > 1e-4 ? sideV / sl : vec3(0.0, 1.0, 0.0);
-        float hw = mix(0.74, 1.15, aParam.z);
+        // kameraya yakın izler incelir ve söner (yakında ışık levhası gibi durmasın)
+        float nearF = smoothstep(14.0, 85.0, dist);
+        float hw = mix(0.74, 1.15, aParam.z) * mix(0.45, 1.0, nearF);
         float minHw = dist * uPx * 1.15;
         float gain = min(1.0, hw / minHw);
         hw = max(hw, minHw);
@@ -195,8 +202,8 @@ export function buildTraffic(ctx, net, group, shared) {
         float toward = dot(aDir, vd);
         float wr = smoothstep(-0.14, 0.14, toward);
         vec3 c = mix(vec3(1.0, 0.055, 0.02) * 1.7, vec3(1.0, 0.93, 0.8) * 2.2, wr);
-        c = mix(c, mix(vec3(1.0, 0.5, 0.3), vec3(0.72, 0.9, 1.0), wr) * 2.6, aParam.z * 0.75);
-        vCol = c * aParam.w * gain;
+        c = mix(c, vec3(0.38, 0.86, 1.0) * 2.6, aParam.z);
+        vCol = c * aParam.w * gain * mix(0.14, 1.0, nearF);
         vP = vec3(aParam.x, aParam.y, gain);
         vec4 mvPosition = viewMatrix * vec4(wp, 1.0);
         gl_Position = projectionMatrix * mvPosition;
@@ -240,6 +247,100 @@ export function buildTraffic(ctx, net, group, shared) {
   trails.renderOrder = 20;
   group.add(trails);
 
+  // ---- metrobüs ışık şeridi: D-100'ün ortasında kesintisiz, akan camgöbeği bant ----------
+  {
+    const gp = [];
+    const gd = [];
+    const gq = [];
+    const gi = [];
+    let gv = 0;
+    const q6 = new Float32Array(6);
+    for (const path of net.busLines) {
+      const Lp = path.length;
+      let prev = -1;
+      for (let s = 0; s <= Lp; s += 8) {
+        path.at(s, q6);
+        const th = 0.08 + 0.5 * clamp(Math.abs(q6[0]) / 1500, 0, 1);
+        const fade = smoothstep(0, 60, s) * smoothstep(0, 60, Lp - s);
+        for (let sd = 0; sd < 2; sd++) {
+          gp.push(q6[0], q6[1] + 1.75, q6[2]);
+          gd.push(q6[3], q6[4], q6[5]);
+          gq.push(sd ? 1 : -1, s, th, fade);
+        }
+        if (prev >= 0) gi.push(prev, prev + 1, gv, prev + 1, gv + 1, gv);
+        prev = gv;
+        gv += 2;
+      }
+    }
+    if (gv) {
+      const gg = new THREE.BufferGeometry();
+      gg.setAttribute('position', new THREE.Float32BufferAttribute(gp, 3));
+      gg.setAttribute('aDir', new THREE.Float32BufferAttribute(gd, 3));
+      gg.setAttribute('aParam', new THREE.Float32BufferAttribute(gq, 4));
+      gg.setIndex(gi);
+      const gm = new THREE.ShaderMaterial({
+        uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, { uPx: { value: 0.001 }, uLit: { value: 0 }, uTime: { value: 0 } }]),
+        vertexShader: /* glsl */ `
+          attribute vec3 aDir; attribute vec4 aParam;
+          uniform float uPx; uniform float uLit;
+          varying vec4 vG;
+          #include <common>
+          #include <fog_pars_vertex>
+          void main(){
+            vec3 wp = position;
+            vec3 toCam = cameraPosition - wp;
+            float dist = length(toCam);
+            vec3 sideV = cross(aDir, toCam / dist);
+            float sl = length(sideV);
+            sideV = sl > 1e-4 ? sideV / sl : vec3(0.0, 1.0, 0.0);
+            float hw = 1.55;
+            float minHw = dist * uPx * 1.4;
+            float gain = sqrt(min(1.0, hw / minHw));
+            wp += sideV * aParam.x * max(hw, minHw);
+            float on = smoothstep(aParam.z, aParam.z + 0.05, uLit);
+            vG = vec4(aParam.x, aParam.y, on * aParam.w * gain, 0.0);
+            vec4 mvPosition = viewMatrix * vec4(wp, 1.0);
+            gl_Position = projectionMatrix * mvPosition;
+            #include <fog_vertex>
+          }`,
+        fragmentShader: /* glsl */ `
+          uniform float uTime;
+          varying vec4 vG;
+          #include <common>
+          #include <fog_pars_fragment>
+          void main(){
+            float across = pow(max(0.0, 1.0 - vG.x * vG.x), 1.3);
+            float flow = 0.72 + 0.28 * sin(vG.y * 0.045 - uTime * 0.9) * sin(vG.y * 0.0113 + 1.3 + uTime * 0.13);
+            vec3 c = vec3(0.26, 0.8, 1.0) * 2.3 * across * flow * vG.z;
+            #ifdef USE_FOG
+              #ifdef FOG_EXP2
+                float ff = 1.0 - exp(-fogDensity * fogDensity * vFogDepth * vFogDepth);
+              #else
+                float ff = smoothstep(fogNear, fogFar, vFogDepth);
+              #endif
+              c *= 1.0 - ff * 0.7;
+            #endif
+            gl_FragColor = vec4(c, 1.0);
+            #include <tonemapping_fragment>
+            #include <colorspace_fragment>
+          }`,
+        blending: THREE.AdditiveBlending,
+        depthWrite: false,
+        transparent: true,
+        side: THREE.DoubleSide,
+        fog: true,
+      });
+      gm.uniforms.uPx = shared.uPx;
+      gm.uniforms.uLit = ctx.uniforms.uLit;
+      gm.uniforms.uTime = ctx.uniforms.uTime;
+      const glowMesh = new THREE.Mesh(gg, gm);
+      glowMesh.name = 'city-metrobus-glow';
+      glowMesh.frustumCulled = false;
+      glowMesh.renderOrder = 19;
+      group.add(glowMesh);
+    }
+  }
+
   // ---- akışkanlık integrali (film zamanı) ------------------------------------------------
   const NT = DURATION * FPS + 1;
   const Ftab = new Float32Array(NT);
@@ -255,6 +356,7 @@ export function buildTraffic(ctx, net, group, shared) {
 
   const o = new Float32Array(6);
   const mArr = meshes.map((m) => m.instanceMatrix.array);
+  const aoAttr = meshes.map((m) => m.geometry.attributes.aAo);
 
   function update(state) {
     const t = state.t;
@@ -289,6 +391,7 @@ export function buildTraffic(ctx, net, group, shared) {
       arr[b + 4] = ux * sy; arr[b + 5] = uy * sy; arr[b + 6] = uz * sy; arr[b + 7] = 0;
       arr[b + 8] = rx * sz; arr[b + 9] = 0; arr[b + 10] = rz * sz; arr[b + 11] = 0;
       arr[b + 12] = o[0]; arr[b + 13] = o[1]; arr[b + 14] = o[2]; arr[b + 15] = 1;
+      aoAttr[v.kind].array[v.slot] = roadInfo.underDeck(o[0], o[2], o[1]);
 
       if (!showTrails || sc < 0.02) continue;
       const on = smoothstep(v.th, v.th + 0.04, lit);
@@ -316,6 +419,7 @@ export function buildTraffic(ctx, net, group, shared) {
       tv++;
     }
     for (const m of meshes) m.instanceMatrix.needsUpdate = true;
+    for (const a of aoAttr) a.needsUpdate = true;
     trails.visible = showTrails && tv > 0;
     if (trails.visible) {
       tg.setDrawRange(0, tv * K * 6);

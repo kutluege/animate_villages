@@ -51,9 +51,35 @@ void main(){
   col = max(col, vec3(0.0)) * uExposure;
   // HDR tepe sıkıştırma (renk tonu korunur): cam üstündeki güneş parlaması bloom'u patlatmasın
   float m = max(col.r, max(col.g, col.b));
-  const float KNEE = 1.6, PEAK = 3.8;
-  if (m > KNEE) col *= (KNEE + (PEAK - KNEE) * (1.0 - exp(-(m - KNEE) / (PEAK - KNEE)))) / m;
+  // (rasyonel omuz: dizde eğim 1, PEAK'e asimptot — parlamanın içinde ton farkı kalır)
+  const float KNEE = 1.2, PEAK = 3.4;
+  if (m > KNEE) col *= (KNEE + (m - KNEE) / (1.0 + (m - KNEE) / (PEAK - KNEE))) / m;
   gl_FragColor = vec4(col, 1.0);
+}
+`;
+
+// Bloom kaynağı (yarım çözünürlük): yumuşak dizli eşik + tavan. Yalnız eşiğin ÜSTÜNDEKİ fazla
+// bloom'a gider ve tavanla sınırlanır → geniş parlak alanlar (camdaki güneş, yakın lamba)
+// çevresini silmez; ince çekirdekler (pencere, far izi) net kalır.
+const BLOOM_PRE_FRAG = /* glsl */ `
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D tColor;
+uniform vec2 uTexel;
+uniform float uThreshold, uClamp;
+void main(){
+  vec3 c = vec3(0.0);
+  c += texture2D(tColor, vUv + uTexel * vec2(-0.5, -0.5)).rgb;
+  c += texture2D(tColor, vUv + uTexel * vec2( 0.5, -0.5)).rgb;
+  c += texture2D(tColor, vUv + uTexel * vec2(-0.5,  0.5)).rgb;
+  c += texture2D(tColor, vUv + uTexel * vec2( 0.5,  0.5)).rgb;
+  c *= 0.25;
+  float l = max(c.r, max(c.g, c.b));
+  float k = uThreshold * 0.5;
+  float soft = clamp(l - uThreshold + k, 0.0, 2.0 * k);
+  soft = soft * soft / (4.0 * k + 1e-4);
+  float ex = min(max(soft, l - uThreshold), uClamp);
+  gl_FragColor = vec4(c * (ex / max(l, 1e-4)), 1.0);
 }
 `;
 
@@ -97,6 +123,8 @@ varying vec2 vUv;
 uniform sampler2D tColor;
 uniform sampler2D tStreak;
 uniform sampler2D tStreakWide;
+uniform sampler2D tBloom;
+uniform float uBloomCap;
 uniform vec2 uRes;
 uniform float uStreak, uSplit, uSat, uCon, uVig, uGrain, uSeed, uCA, uNightK;
 uniform vec3 uStreakTint;
@@ -125,6 +153,10 @@ void main(){
   col.g = texture2D(tColor, vUv).g;
   col.b = texture2D(tColor, vUv - off).b;
 
+  // bloom: ayrı doku, yumuşak tavanlı (yakın kaynak kareyi yıkamasın)
+  vec3 bl = texture2D(tBloom, vUv).rgb;
+  bl /= 1.0 + max(bl.r, max(bl.g, bl.b)) / uBloomCap;
+  col += bl;
   col += (texture2D(tStreak, vUv).rgb * 0.5 + texture2D(tStreakWide, vUv).rgb) * uStreakTint * uStreak;
 
   col = tonemap(col);
@@ -186,6 +218,7 @@ export function createPost(renderer, skyUniforms) {
   depthTex.magFilter = THREE.NearestFilter;
   const rtScene = hdr(2, 2, { depthBuffer: true, depthTexture: depthTex, samples });
   const rtA = hdr(2, 2);
+  const rtB = hdr(2, 2);
   const rtS1 = hdr(2, 2);
   const rtS2 = hdr(2, 2);
   const rtS3 = hdr(2, 2);
@@ -216,7 +249,8 @@ export function createPost(renderer, skyUniforms) {
     uFogH: { value: 30 },
     uExposure: { value: 1 },
   };
-  const preU = { tColor: { value: rtA.texture }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1.6 } };
+  const preU = { tColor: { value: rtA.texture }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 2.1 } };
+  const bpreU = { tColor: { value: rtA.texture }, uTexel: { value: new THREE.Vector2() }, uThreshold: { value: 1 }, uClamp: { value: 1.6 } };
   const blurU = { tColor: { value: null }, uStep: { value: new THREE.Vector2() } };
   const finalU = {
     tColor: { value: rtA.texture },
@@ -232,18 +266,21 @@ export function createPost(renderer, skyUniforms) {
     uGrain: { value: 0.018 },
     uSeed: { value: 0 },
     uCA: { value: 0.0022 },
+    tBloom: { value: null },
+    uBloomCap: { value: 0.6 },
     uNightK: { value: 0 },
   };
 
   const fogMat = mk(FOG_FRAG, fogU);
   const preMat = mk(STREAK_PRE_FRAG, preU);
+  const bpreMat = mk(BLOOM_PRE_FRAG, bpreU);
   const blurMat = mk(STREAK_BLUR_FRAG, blurU);
   const finalMat = mk(FINAL_FRAG, finalU);
   const quad = new FullScreenQuad(fogMat);
 
   const bloom = new UnrealBloomPass(new THREE.Vector2(2, 2), 0.3, 0.6, 1.0);
-  // yumuşak eşik: yüzeyler eşiği geçerken bloom aniden "yanmasın"
-  bloom.highPassUniforms.smoothWidth.value = 1.0;
+  bloom.threshold = 0; // eşik kendi ön süzgecimizde
+  finalU.tBloom.value = bloom.renderTargetsHorizontal[0].texture;
 
   function setSize(w, h) {
     w = Math.max(2, Math.floor(w));
@@ -254,6 +291,8 @@ export function createPost(renderer, skyUniforms) {
     rtA.setSize(w, h);
     const qw = Math.max(2, Math.round(w / 4));
     const qh = Math.max(2, Math.round(h / 4));
+    rtB.setSize(Math.max(2, Math.round(w / 2)), Math.max(2, Math.round(h / 2)));
+    bpreU.uTexel.value.set(1 / w, 1 / h);
     rtS1.setSize(qw, qh);
     rtS2.setSize(qw, qh);
     rtS3.setSize(qw, qh);
@@ -300,11 +339,13 @@ export function createPost(renderer, skyUniforms) {
       }
     }
 
-    bloom.render(renderer, null, rtA, 0, false);
+    // bloom zinciri kaynağı rtB'den okur; sonucu (renderTargetsHorizontal[0]) son geçiş karıştırır
+    pass(bpreMat, rtB);
+    bloom.render(renderer, null, rtB, 0, false);
 
     renderer.autoClear = prevAuto;
     pass(finalMat, null);
   }
 
-  return { setSize, render, fogU, finalU, preU, bloom, samples };
+  return { setSize, render, fogU, finalU, preU, bpreU, bloom, samples };
 }
