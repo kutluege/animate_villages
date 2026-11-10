@@ -13,3 +13,14 @@ Orkestratörün kendi harcaması burada yok; oturum sonunda `/cost` ile ölçül
 | 6 | 1 | Şehir dokusu | 278.610 | 75 | 1494 |
 | 7 | 1 | Kamera/kurgu | 218.939 | 75 | 1728 |
 | 8 | 1 | Denetçi 1 | 129.599 | 47 | 311 |
+| 9 | 2 | Atmosfer B (devam) | 259.753 | 18 | 152 |
+| 10 | 2 | İskelet (devam) | 162.022 | 56 | 477 |
+| 11 | 2 | Kamera/kurgu (devam) | 271.601 | 32 | 610 |
+| 12 | 2 | Simge yapılar (devam) | 373.610 | 52 | 709 |
+| 13 | 2 | Veri (devam) | 195.711 | 30 | 755 |
+| 14 | 2 | Şehir dokusu (devam) | 415.076 | 59 | 851 |
+| 15 | 2 | Denetçi 2 | 130.130 | 42 | 429 |
+
+Not: "(devam)" satırları aynı ajana geri gönderilen turlardır. Bu satırlardaki token değeri bildirimde gelen ham
+sayıdır; yalnızca o tura mı ait yoksa ajanın o ana kadarki toplamı mı olduğu bildirimden anlaşılmıyor (araç çağrısı
+ve süre o tura ait görünüyor). Kesin maliyet için `/cost` esas alınmalı.
