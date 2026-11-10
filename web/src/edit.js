@@ -1,20 +1,20 @@
 // Kamera rotası + kurgu — "Mecidiyeköy'de bir gün, gündüzden geceye" (CONTRACT §6).
 // Saf modül: içe aktarma yok, durum yok. shotAt(t) yalnızca t'nin fonksiyonudur.
 //
-// Tek kesintisiz plan (kesme yok), 50 sn:
+// Tek kesintisiz plan (kesme yok), 48.5 sn:
 //   A  0–4      Metrobüs şeridinin üstünden, D100 trafiğinin hemen üstünde dik yukarı bakışla kulelerin dibine.
 //   B  4–10     Konut kulesi ile Medianova arasından kuzeye, ikiz kulelerin arasından batıya.
 //   C  10–14    Apartman denizinin üstünde, batan güneş kadrajda; kuleye dönüş.
 //   D  14–17    Batı cephesi önünde yay: yansıma cam boyunca kayar.
 //   E  17–23    Alacakaranlık: Trump'tan dönüp metrobüs hattının üstünden doğuya.
 //   F  23–29    Güneye, mezarlıkların koyu selvileri üstünden Cevahir'e.
-//   G  29–35    Cevahir'in cam çatısı üstünden çapraz geçiş.
-//   H  35–42    Torun Center'a dönerken gece iner.
-//   I  42–50    Son dönüş: viyadük üstünden Trump ikizine; ışık şeridi gözü kulelere taşır, son 1.5 sn sakin.
+//   G  29–35    Cevahir: kuzeybatıdan çaprazdan (cephe + cam çatı), kuzey cephesi boyunca doğuya.
+//   H  35–41    Torun Center'a dönerken gece iner.
+//   I  41–48.5  Işık şeridine bakarak sola dönüş, Trump ikizi; şerit gözü kulelere taşır, son 1.7 sn sakin.
 // Eğriler: konum/bakış/fov için zamana göre doğal kübik spline (C2: hız ve ivme sürekli); son uçta hız 0.
 // tod: pozitif genlikli quintic smootherstep'lerin toplamı → monoton ve C2.
 
-export const DURATION = 50;
+export const DURATION = 48.5;
 
 // [t, konum x,y,z, bakış x,y,z, fov(dikey, derece)]
 const KEYS = [
@@ -41,17 +41,17 @@ const KEYS = [
   // F — güneye: mezarlıkların (Ermeni Katolik, Metamorfos) koyu selvileri üstünden Cevahir'e
   [25.4,  -12,  40.0,  55.0,    60,   0.0, 330,   64],
   [28.6,   12,  52.0, 175.0,    95,   8.0, 420,   62],
-  // G — Cevahir: cam çatının üstünden çapraz geçiş
-  [31.8,   45,  64.0, 290.0,   130,   5.0, 440,   62],
-  [35.0,  150,  72.0, 360.0,   330,  20.0, 380,   64],
+  // G — Cevahir: kuzeybatıdan çaprazdan (cephe + cam çatı birlikte), sonra kuzey cephesi boyunca doğuya
+  [31.8,   10,  62.0, 290.0,   120,   0.0, 470,   62],
+  [34.8,  115,  72.0, 268.0,   420,  20.0, 330,   63],
   // H — Torun Center'a dönerken gece
-  [38.4,  270,  80.0, 300.0,   600,  70.0, 140,   62],
-  [42.0,  400,  86.0, 200.0,   944,  70.0, -54,   62],
-  // I — son dönüş: viyadük üstüne, Trump ikizine; metrobüs/D100 ışık şeridi gözü kulelere taşır
-  [45.0,  440,  85.0,  90.0,   388,  45.0, -508,  63],
-  [47.6,  466,  85.0,   0.0,   -54,  20.0, -300,  65],
-  [48.6,  469.7, 85.0, -7.6,    21, -12.0, -141.6, 66],
-  [50.0,  470,  85.0, -8.0,     20, -12.5, -142,  66],
+  [38.2,  290,  80.0, 240.0,   620,  70.0, 135,   62],
+  [41.0,  420,  82.0, 175.0,   960,  60.0, -40,   62],
+  // I — dönüş: D100/metrobüs ışık şeridine alçaktan bakarak sola, Trump ikizine; son 1.7 sn sakin
+  [43.2,  448,  78.0, 115.0,   653, -140.0, -449, 63],
+  [45.2,  464,  80.0,  40.0,   120,  -80.0, -451, 65],
+  [46.9,  469.0, 84.6, -4.0,    20, -12.5, -142,  66],
+  [48.5,  470,  85.0, -8.0,     20, -12.5, -142,  66],
 ];
 
 // ───────── doğal kübik spline (başta doğal, sonda hız=0 kelepçeli) ─────────

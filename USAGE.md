@@ -36,3 +36,14 @@ ve süre o tura ait görünüyor). Kesin maliyet için `/cost` esas alınmalı.
 | 25 | 4 | Şehir dokusu (rötuş) | 574.591 | 20 | 214 |
 | 26 | 4 | Denetçi 4 (final MP4) | 71.064 | 18 | 102 |
 | 27 | 5 | Kamera/kurgu (rötuş + yeni tur) | 436.353 | 38 | 969 |
+| 28 | 5 | Simge yapılar (Cevahir) | 494.870 | 28 | 408 |
+| 29 | 5 | Denetçi 5 (50 sn final MP4) | 84.978 | 28 | 144 |
+| 30 | 5 | Simge yapılar (Cevahir çatı rötuşu) | 515.069 | 10 | 128 |
+| 31 | 5 | Kamera/kurgu (rötuş) | 454.923 | 11 | 401 |
+
+## Özet
+- 14 ayrı alt ajan (7 üretici, 5 denetçi; atmosfer A yalnızca 1. turda), 31 çalıştırma, 5 üretim turu + rötuşlar.
+- Her çalıştırmanın **ilk** bildirimindeki değerlerin toplamı (yeni ajanlar; kümülatif olma şüphesi yok): üreticiler
+  1.496.521 + denetçiler 525.463 = 2.021.984 token.
+- "(devam)" satırlarının ham toplamı 6.447.208; bu değerler büyük olasılıkla ajanın o ana kadarki bağlam toplamını
+  içerdiği için doğrudan toplanması harcamayı olduğundan büyük gösterebilir. Kesin karşılaştırma için `/cost`.

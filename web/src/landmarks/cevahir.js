@@ -19,6 +19,25 @@ export function buildCevahir(api, cvFp) {
   if (signedArea(poly) < 0) poly = poly.slice().reverse();
   const top = Math.max(cvFp.baseY + 34, Math.max(...poly.map(([x, z]) => heightAt(x, z))) + 22);
   const ob = obb(poly), fr = frame(ob.cx, ob.cz, ob.angle);
+  // ışık sızması: çatı yüzeyine düşen sıcak hâle (radyal doku, eklemeli); gece okunurluğu için
+  const spillTex = (() => {
+    const cv = document.createElement('canvas'); cv.width = cv.height = 128; const g = cv.getContext('2d');
+    const gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+    g.fillStyle = '#000'; g.fillRect(0, 0, 128, 128);
+    gr.addColorStop(0, 'rgb(255,196,140)'); gr.addColorStop(0.35, 'rgb(110,80,55)'); gr.addColorStop(0.7, 'rgb(28,20,14)'); gr.addColorStop(1, 'rgb(0,0,0)');
+    g.fillStyle = gr; g.fillRect(0, 0, 128, 128);
+    const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.NoColorSpace; return t;
+  })();
+  const spillMats = new Map();
+  const spill = (cx, cz, y, w, d, ang, I) => {
+    if (!spillMats.has(I)) {
+      const sm = new THREE.MeshStandardMaterial({ color: 0x000000, roughness: 1, metalness: 0, emissive: 0xffffff, emissiveMap: spillTex, emissiveIntensity: 0,
+        transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, polygonOffset: true, polygonOffsetFactor: -2, polygonOffsetUnits: -2 });
+      api.glows.push({ m: sm, k: 0.03, I }); spillMats.set(I, sm);
+    }
+    const g = new THREE.PlaneGeometry(w, d); g.rotateX(-Math.PI / 2); g.rotateY(-ang); g.translate(cx, y, cz);
+    const mesh = new THREE.Mesh(g, spillMats.get(I)); mesh.renderOrder = 2; root.add(mesh);
+  };
 
   // ── atrium deliği (cam çatının altı) — çokgenin içinde kalana dek küçült ──
   let hu = 34, hv = 18;
@@ -53,7 +72,7 @@ export function buildCevahir(api, cvFp) {
   const FH = 5.6, NF = 3, floorY = top - NF * FH;
   const atr = facade({ name: 'cevahir-atrium', baseY: floorY, seed: 107, floorH: FH, colW: 4.2, win: [0.08, 0.92, 0.12, 0.78],
     glass: L3(0x8a9aa0), glassRM: [0.12, 0.5], wall: L3(0xe9e2d4), wallRM: [0.6, 0.0], tilt: 0, roof: L3(0xd8cfbf),
-    lobbyH: NF * FH, lobbyC: [2.4, 1.75, 1.1], occ: 0, darkFrac: 0 });
+    lobbyH: NF * FH, lobbyC: [2.8, 2.0, 1.25], occ: 0, darkFrac: 0 });
   atr.userData.boost = 2.5;
   add(atr, flipGeo(loft([fr.rect(...holeR).map(([x, z]) => [x, floorY, z]), fr.rect(...holeR).map(([x, z]) => [x, top, z])], { top: false })));
   const marble = std(0xd9d1c3, 0.35, 0.05, { emissive: 0xffd8a8, emissiveIntensity: 0 });
@@ -81,7 +100,7 @@ export function buildCevahir(api, cvFp) {
 
   // ── cam çatı: kırma, yarı saydam; kaburgalar; çerçeve; içten sıcak hâle ──
   const roofGlass = std(0xd2e2e6, 0.06, 0.35, { transparent: true, opacity: 0.32, depthWrite: false, side: THREE.DoubleSide, emissive: 0xffc890, emissiveIntensity: 0 });
-  api.glows.push({ m: roofGlass, k: 0.02, I: 0.22 });
+  api.glows.push({ m: roofGlass, k: 0.02, I: 0.4 });
   const [u0, u1, v0, v1] = holeR;
   add(roofGlass, sectionLoft(fr, [
     { y: top, rect: [u0, u1, v0, v1] },
@@ -97,6 +116,7 @@ export function buildCevahir(api, cvFp) {
       add(darkSteel, strip3([pA[0], yA, pA[1]], [pB[0], yB, pB[1]], 0.3, 0.3));
     }
   }
+  { const [cx, cz] = fr(0, 0); spill(cx, cz, top + 0.06, 2 * hu + 46, 2 * hv + 40, fr.angle, 0.35); }
   // dev saat: cam çatıya asılı, kadranı aşağı (atriuma) bakar; akrep/yelkovan tod'un saf fonksiyonu
   {
     const [cx, cz] = fr(0, 0), cy = top + 1.2, R = 6.5;
@@ -178,7 +198,7 @@ export function buildCevahir(api, cvFp) {
   }
 
   // ── koridor ışıklıkları: atriumdan uzun/kısa eksen boyunca dar cam şeritler, gece içeriden sıcak (TAHMİN) ──
-  const skyMat = glow(0xffcf98, 1.1, 0.02, 0xa9b9bd, { metalness: 0.6, roughness: 0.12 });
+  const skyMat = glow(0xffcf98, 1.7, 0.02, 0xa9b9bd, { metalness: 0.6, roughness: 0.12 });
   const strips = [];
   for (const sg of [-1, 1]) {
     strips.push([[sg * (hu + 3), 0], [sg * ob.L * 0.43, 0], 4.5]);
@@ -193,6 +213,7 @@ export function buildCevahir(api, cvFp) {
     if ((r[1] - r[0]) * (r[3] - r[2]) < 40) continue;
     const ridge = va === vb ? [r[0], r[1], -0.3, 0.3] : [-0.3, 0.3, r[2], r[3]];
     add(skyMat, sectionLoft(fr, [{ y: top - 0.1, rect: r }, { y: top + 0.8, rect: r }, { y: top + 2.2, rect: ridge }]));
+    { const [cx, cz] = fr((r[0] + r[1]) / 2, (r[2] + r[3]) / 2); spill(cx, cz, top + 0.05, (r[1] - r[0]) + 16, (r[3] - r[2]) + 18, fr.angle, 0.3); }
     const rr = fr.rect(...r).map(([x, z]) => [x, top + 0.82, z]);
     for (let i = 0; i < 4; i++) add(darkSteel, strip3(rr[i], rr[(i + 1) % 4], 0.3, 0.2));
   }
@@ -200,12 +221,42 @@ export function buildCevahir(api, cvFp) {
   // ── çatı dokusu: tesisat odaları (jaluzili), klima sıraları, bakım yolları (TAHMİN) ──
   const free = (x, z, u, v, m2) => pointIn(poly, x, z) && !(Math.abs(u) < hu + m2 && Math.abs(v) < hv + m2);
   const louvre = std(0x6c7074, 0.55, 0.4), hvac = std(0x9a9ea0, 0.6, 0.3);
+  const svcLamp = glow(0xffe2b0, 6, 0.03, 0x666055);
+  // çatı yüzeyi: iki tonlu membran bölmeleri + açık renkli bakım yolu ızgarası (yüzey tonunda bölmeler; TAHMİN)
+  const memA = std(0x55585b, 0.9, 0), memB = std(0x6a6d70, 0.88, 0), path = std(0x8c8a84, 0.85, 0);
+  const BAY = 22;
+  for (let u = -ob.L / 2 + BAY / 2; u < ob.L / 2; u += BAY) for (let v = -ob.W / 2 + BAY / 2; v < ob.W / 2; v += BAY) {
+    const c = fr.rect(u - BAY / 2 + 1, u + BAY / 2 - 1, v - BAY / 2 + 1, v + BAY / 2 - 1);
+    if (!c.every(([x, z]) => pointIn(poly, x, z)) || (Math.abs(u) < hu + BAY / 2 + 1 && Math.abs(v) < hv + BAY / 2 + 1)) continue;
+    const ui = Math.round((u + ob.L) / BAY), vi = Math.round((v + ob.W) / BAY);
+    add((ui + vi) % 2 ? memA : memB, prism(c, top - 0.1, top + 0.04));
+  }
+  for (let u = -ob.L / 2 + BAY; u < ob.L / 2; u += BAY) {
+    for (let v = -ob.W / 2; v < ob.W / 2; v += 4) {
+      const a = fr(u, v), b = fr(u, v + 4);
+      if (pointIn(poly, ...a) && pointIn(poly, ...b) && !(Math.abs(u) < hu + 1 && Math.abs(v + 2) < hv + 1)) add(path, boxAlong(a, b, 1.0, top - 0.1, top + 0.08));
+    }
+  }
+  // parapet boyunca hafif aydınlatma (tüm kenarlar, iç yüz; TAHMİN)
+  const parapet = glow(0xffe6c4, 1.2, 0.03, 0x77736c);
+  {
+    const cx = ob.cx, cz = ob.cz;
+    for (let i = 0; i < poly.length; i++) {
+      const p = poly[i], q = poly[(i + 1) % poly.length];
+      const pi = [p[0] + (cx - p[0]) * 0.006, p[1] + (cz - p[1]) * 0.006], qi = [q[0] + (cx - q[0]) * 0.006, q[1] + (cz - q[1]) * 0.006];
+      add(concrete, boxAlong(p, q, 0.5, top - 0.1, top + 1.0));
+      add(parapet, strip3([pi[0], top + 0.9, pi[1]], [qi[0], top + 0.9, qi[1]], 0.18, 0.08));
+    }
+  }
   for (let i = 0; i < 9; i++) {
     const u = (rng() - 0.5) * ob.L * 0.75, v = (rng() - 0.5) * ob.W * 0.7, [x, z] = fr(u, v);
     const w = 12 + rng() * 10, d = 7 + rng() * 5;
     if (!free(x, z, u, v, Math.max(w, d) / 2 + 3) || !fr.rect(u - w / 2, u + w / 2, v - d / 2, v + d / 2).every(([a, b]) => pointIn(poly, a, b))) continue;
     const f2 = frame(x, z, fr.angle), h = 3.5 + rng() * 2;
     add(louvre, prism(f2.rect(-w / 2, w / 2, -d / 2, d / 2), top - 0.2, top + h));
+    // servis kapısı lambası + altında hâle
+    { const lp = f2(w / 2 - 2, -d / 2 - 0.25); add(svcLamp, boxAlong([lp[0] - 0.3, lp[1]], [lp[0] + 0.3, lp[1]], 0.25, top + 2.4, top + 2.7));
+      const sp = f2(w / 2 - 2, -d / 2 - 3); spill(sp[0], sp[1], top + 0.05, 10, 8, fr.angle, 0.4); }
     for (let k = 0.6; k < h - 0.3; k += 0.45) { const a = f2(-w / 2 - 0.05, -d / 2 - 0.05), b = f2(w / 2 + 0.05, -d / 2 - 0.05); add(darkSteel, strip3([a[0], top + k, a[1]], [b[0], top + k, b[1]], 0.1, 0.06)); }
   }
   for (let i = 0; i < 90; i++) {

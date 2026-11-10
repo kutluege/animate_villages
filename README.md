@@ -3,7 +3,7 @@
 Mecidiyeköy çekirdeğinin (41.060–41.072 K, 28.984–29.000 D) gerçek veriye dayalı three.js sahnesi ve aynı sahneden
 kare kare üretilen dikey video.
 
-- Video: [`out/final/mecidiyekoy.mp4`](out/final/mecidiyekoy.mp4) — 1080×1920, 30 fps, 36 sn, H.264, sessiz.
+- Video: [`out/final/mecidiyekoy.mp4`](out/final/mecidiyekoy.mp4) — 1080×1920, 30 fps, 48,5 sn, H.264, sessiz. Kapak karesi: [`out/final/kapak.png`](out/final/kapak.png).
 - Modüller arası sözleşme: [`CONTRACT.md`](CONTRACT.md). Veri ayrıntısı: [`data/README.md`](data/README.md),
   simge yapı ölçüleri ve kaynakları: [`data/landmarks-notes.md`](data/landmarks-notes.md).
 
