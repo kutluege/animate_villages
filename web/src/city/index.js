@@ -1,73 +1,64 @@
-// YER TUTUCU — sahibi (şehir dokusu ajanı) değiştirecek.
-// Arayüz örneği: create(ctx) → { update(state) }. Arazi örtüsü + veri varsa kaba bina
-// kütleleri ve yol çizgileri; veri yoksa tohumlu kutular. Diğer ajanlar ölçek görebilsin diye.
-import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+// ŞEHİR DOKUSU — zemin, sıradan binalar, yollar, viyadük, metrobüs, trafik, lambalar, ağaçlar.
+// Arayüz: create(ctx) → { update(state) } (CONTRACT §5). Işık/gök/sis/post atmosferindir; burada yalnız
+// geometri + malzeme + emisyon var. Rastgelelik ctx.rng, hareket yalnız state.t.
+//
+// Dışa açılan ek (isteğe bağlı): dönen nesnede `info` (sayımlar) ve `groundAt(x,z)` (yollar için
+// düzleştirilmiş zemin kotu — kamera/simge ajanı isterse kullanabilir).
+import { prepareNetwork } from './network.js';
+import { buildGround } from './ground.js';
+import { buildBuildings } from './buildings.js';
+import { buildRoads } from './roads.js';
+import { buildTraffic } from './traffic.js';
+import { buildLamps } from './lamps.js';
+import { buildTrees } from './trees.js';
 
 export async function create(ctx) {
-  const { THREE, scene, data, heightAt } = ctx;
+  const { THREE, scene, camera, renderer } = ctx;
   const group = new THREE.Group();
-  group.name = 'city-placeholder';
+  group.name = 'city';
   scene.add(group);
 
-  // Zemin: heightAt ile kabartılmış ızgara.
-  const S = 2400;
-  const N = 96;
-  const ground = new THREE.PlaneGeometry(S, S, N, N);
-  ground.rotateX(-Math.PI / 2);
-  const p = ground.attributes.position;
-  for (let i = 0; i < p.count; i++) p.setY(i, heightAt(p.getX(i), p.getZ(i)));
-  ground.computeVertexNormals();
-  group.add(new THREE.Mesh(ground, new THREE.MeshStandardMaterial({ color: 0x4a4d52, roughness: 0.95 })));
+  const shared = { uPx: { value: 0.001 } }; // 1 m uzaklıkta 1 pikselin dünya boyu
 
-  // Binalar: ring → kaba ekstrüzyon (landmark olanlar simge ajanına ait, atlanır).
-  const geos = [];
-  const list = Array.isArray(data.buildings) ? data.buildings : [];
-  for (const b of list) {
-    if (b.landmark || !b.ring || b.ring.length < 3) continue;
-    const shape = new THREE.Shape(b.ring.map(([x, z]) => new THREE.Vector2(x, -z)));
-    const min = b.minHeight || 0;
-    const g = new THREE.ExtrudeGeometry(shape, { depth: Math.max(2, (b.height || 9) - min), bevelEnabled: false });
-    g.rotateX(-Math.PI / 2);
-    g.translate(0, (b.baseY ?? heightAt(b.ring[0][0], b.ring[0][1])) + min, 0);
-    geos.push(g);
-  }
-  if (!list.length) {
-    const r = ctx.rng('city-placeholder');
-    for (let i = 0; i < 260; i++) {
-      const x = r.range(-650, 650);
-      const z = r.range(-650, 650);
-      if (Math.hypot(x, z) < 60) continue;
-      const h = 9 + 30 * r() * r() + (r() < 0.04 ? r.range(60, 150) : 0);
-      const g = new THREE.BoxGeometry(r.range(14, 34), h, r.range(14, 34));
-      g.rotateY(r.range(0, Math.PI));
-      g.translate(x, heightAt(x, z) + h / 2, z);
-      geos.push(g);
-    }
-  }
-  if (geos.length) {
-    const merged = mergeGeometries(geos.map((g) => (g.index ? g.toNonIndexed() : g)), false);
-    geos.forEach((g) => g.dispose());
-    group.add(new THREE.Mesh(merged, new THREE.MeshStandardMaterial({ color: 0xb9b4aa, roughness: 0.85 })));
-  }
+  const net = prepareNetwork(ctx);
+  const ground = buildGround(ctx, net, group);
+  const bld = buildBuildings(ctx, ground, net, group);
+  const roadInfo = buildRoads(ctx, net, ground, group);
+  const lamps = buildLamps(ctx, net, ground, bld, roadInfo, group, shared);
+  const traffic = buildTraffic(ctx, net, group, shared);
+  const trees = buildTrees(ctx, ground, bld, roadInfo, group);
 
-  // Yollar: çizgi olarak (viyadük kotu pts[.][1]'de).
-  const seg = [];
-  for (const rd of Array.isArray(data.roads) ? data.roads : []) {
-    const pts = rd.pts || [];
-    for (let i = 0; i + 1 < pts.length; i++) {
-      seg.push(pts[i][0], pts[i][1] + 0.6, pts[i][2], pts[i + 1][0], pts[i + 1][1] + 0.6, pts[i + 1][2]);
-    }
-  }
-  if (seg.length) {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(seg, 3));
-    group.add(new THREE.LineSegments(g, new THREE.LineBasicMaterial({ color: 0x1c1d20 })));
+  const sz = new THREE.Vector2();
+  const info = {
+    buildings: bld.count,
+    filler: bld.fillerCount,
+    vehicles: traffic.count,
+    parked: traffic.parked,
+    lamps: lamps.count,
+    trees: trees.count,
+  };
+
+  if (typeof window !== 'undefined') {
+    // denetim kancası (yalnız okuma): sayımlar + son çizimin draw call / üçgen sayısı
+    window.__city = { info, groundAt: ground.gY, renderInfo: () => {
+        // yalnız şehir grubunu düz çiz (post yok) → şehir katmanının draw call / üçgen sayısı (gölge geçişi dahil)
+        const vis = scene.children.map((c) => c.visible);
+        scene.children.forEach((c) => { if (c !== group && !c.isLight) c.visible = false; });
+        renderer.render(scene, camera);
+        const out = { calls: renderer.info.render.calls, triangles: renderer.info.render.triangles };
+        scene.children.forEach((c, i) => { c.visible = vis[i]; });
+        return out;
+      } };
   }
 
   return {
+    info,
+    groundAt: ground.gY,
     update(state) {
-      // Gerçek modül: trafik vb. yalnız state.t'nin saf fonksiyonu olmalı.
-      void state;
+      const h = (ctx.size && ctx.size.height) || renderer.getSize(sz).y;
+      shared.uPx.value = (2 * Math.tan((camera.fov * Math.PI) / 360)) / Math.max(1, h);
+      traffic.update(state);
+      lamps.update(state);
     },
   };
 }

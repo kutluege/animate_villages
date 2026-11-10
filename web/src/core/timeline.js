@@ -10,11 +10,11 @@ export const FRAMES = FPS * DURATION;
 
 // [film saniyesi, tod] — t artan, tod azalmayan olmalı.
 export const KEYS = [
-  [0, 15.0], // sert gündüz
-  [13, 18.6], // altın saat
-  [16, 19.0], // gün batımı camda …
-  [20, 19.8], // … ışıklar tek tek …
-  [27, 20.9],
+  [0, 15.0], // sert gündüz (viyadük altı)
+  [13, 18.5], // altın saat (Trump'ın yanından geçiş)
+  [16.7, 19.0], // gün batımı camda … (yavaş: güneş 6.7° → ufuk, ~4 sn)
+  [20.6, 19.62], // … güneş ufukta; ışıklar tek tek …
+  [27, 20.85], // … hepsi yandı
   [36, 22.5], // gece, kapak karesi
 ];
 
