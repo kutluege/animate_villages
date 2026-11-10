@@ -42,8 +42,10 @@ ve süre o tura ait görünüyor). Kesin maliyet için `/cost` esas alınmalı.
 | 31 | 5 | Kamera/kurgu (rötuş) | 454.923 | 11 | 401 |
 
 ## Özet
-- 14 ayrı alt ajan (7 üretici, 5 denetçi; atmosfer A yalnızca 1. turda), 31 çalıştırma, 5 üretim turu + rötuşlar.
-- Her çalıştırmanın **ilk** bildirimindeki değerlerin toplamı (yeni ajanlar; kümülatif olma şüphesi yok): üreticiler
-  1.496.521 + denetçiler 525.463 = 2.021.984 token.
-- "(devam)" satırlarının ham toplamı 6.447.208; bu değerler büyük olasılıkla ajanın o ana kadarki bağlam toplamını
-  içerdiği için doğrudan toplanması harcamayı olduğundan büyük gösterebilir. Kesin karşılaştırma için `/cost`.
+- 12 ayrı alt ajan (7 üretici, 5 denetçi; atmosfer A yalnızca 1. turda), 31 çalıştırma, 5 üretim turu + rötuşlar.
+- Her ajanın **ilk** bildirimindeki değerlerin toplamı: üreticiler 1.496.521 + denetçiler 525.463 = 2.021.984 token.
+- Devam/rötuş satırlarının ham toplamı 7.106.889. Bu değerler büyük olasılıkla ajanın o ana kadarki toplamını
+  gösterdiği için doğrudan toplanması harcamayı olduğundan büyük gösterir.
+- Değerler kümülatifse (her ajanın son bildirimi = o ajanın toplamı): üreticiler 2.446.803 + denetçiler 525.463 =
+  **2.972.266 token**. Kümülatif değilse üst sınır 2.021.984 + 7.106.889 = 9.128.873.
+- Orkestratörün kendi harcaması bu defterde yok. Kesin karşılaştırma için `/cost`.
