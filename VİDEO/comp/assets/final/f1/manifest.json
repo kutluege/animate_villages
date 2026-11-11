@@ -1,0 +1,7 @@
+{
+ "source": "C:/Users/USER/Desktop/ege_repolar/animate_villages/out/final/mecidiyekoy.mp4",
+ "from": 16.4,
+ "fps": 30,
+ "count": 120,
+ "pattern": "f%05d.jpg"
+}

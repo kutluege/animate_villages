@@ -1,0 +1,13 @@
+# Yeniden üretilebilir / büyük dosyalar depoya girmez.
+# out/: kareler, taslaklar, ajan ekran görüntüleri — yalnız bitmiş video ve kapak karesi içeride.
+out/*
+!out/icerik.mp4
+!out/kapak.*
+!out/icerik-kapak.*
+# Kare dizileri (tools/frames.mjs çıktısı; manifest.json + SOURCES.md içeride kalır → README "Kare dizisi" satırı)
+comp/assets/**/f[0-9][0-9][0-9][0-9][0-9].jpg
+# Ses ara ürünleri: audio.wav ← node tools/mix.mjs ; voice-raw.wav ← node tools/build-voice.mjs
+work/audio.wav
+work/voice-raw.wav
+work/*.tmp.f32
+node_modules/

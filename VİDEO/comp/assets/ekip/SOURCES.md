@@ -1,0 +1,5 @@
+# comp/assets/ekip — kaynaklar (hepsi projenin kendi çıktısı; internetten görsel yok)
+- `veri.jpg` ← `animate_villages2/out/shots/data_overview_core.png` (çekirdek veri krokisi, kırpma; 288×216)
+- `sehir.jpg` (9. sn), `kule.jpg` (16. sn), `isik.jpg` (37. sn) ← `out/final/mecidiyekoy.mp4` kareleri (kırpma; 288×216 = kart içi tam boyut)
+- `*-e.png` ← aynı karelerin ffmpeg `edgedetect` ile çıkarılmış kenar maskesi ("tel kafes")
+- `kamera/` ← `out/final/mecidiyekoy.mp4` 19,2–22,8 sn, 15 kare/sn (`tools/frames.mjs`)

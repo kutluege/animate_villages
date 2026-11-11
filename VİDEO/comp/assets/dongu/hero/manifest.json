@@ -1,0 +1,7 @@
+{
+ "source": "../out/final/mecidiyekoy.mp4",
+ "from": 41.9,
+ "fps": 20,
+ "count": 130,
+ "pattern": "f%05d.jpg"
+}
