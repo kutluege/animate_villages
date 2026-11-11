@@ -9,8 +9,8 @@
  "final_sonrasi_max": 0,
  "konusma_ses_eksi_muzik_dB": {
   "ortanca": 18,
-  "p10": 10.8,
-  "p90": 22.1
+  "p10": 10.5,
+  "p90": 22.6
  },
  "konusmada_ses_LUFS_p10_p50_p90": [
   -20.4,
@@ -18,69 +18,79 @@
   -11.7
  ],
  "konusmada_muzik_LUFS_p10_p50_p90": [
-  -35.3,
-  -32.2,
-  -29.8
+  -35.8,
+  -32.1,
+  -29.3
  ],
- "bosluk_ses_ortancasi_eksi_muzik_dB": 15.6,
- "efekt_eksi_muzik_dB_ortanca": 8.7,
+ "bosluk_ses_ortancasi_eksi_muzik_dB": 15.5,
+ "efekt_eksi_muzik_dB_ortanca": 9.4,
+ "acilis_efekt_eksi_muzik_dB_ortanca": 18.4,
+ "acilis_efekt_pencere_sayisi": 29,
+ "sure_sn": 151.6667,
+ "final_baslangic_sn": 119.66666666666667,
+ "sonis": [
+  117.209,
+  119.559
+ ],
+ "sifir_olmayan_ornek_final_sonrasi": 0,
  "sinirlayici": {
-  "calisan_ms": 980,
-  "en_fazla_kisma_dB": 0.32
+  "calisan_ms": 1604,
+  "en_fazla_kisma_dB": 1.06
  },
  "sahne_basina_muzik_LUFS": [
   {
    "id": "hook",
-   "muzik_LUFS": -31.2,
-   "konusma_farki_dB": 16.6
+   "muzik_LUFS": -39.8,
+   "konusma_farki_dB": 27.5
   },
   {
    "id": "gercek",
-   "muzik_LUFS": -31.8,
-   "konusma_farki_dB": 16.7
+   "muzik_LUFS": -31.7,
+   "konusma_farki_dB": 17.6
   },
   {
    "id": "vaat",
-   "muzik_LUFS": -31.7,
-   "konusma_farki_dB": 17.8
+   "muzik_LUFS": -31.3,
+   "konusma_farki_dB": 18.2
   },
   {
    "id": "baglam",
-   "muzik_LUFS": -32.2,
-   "konusma_farki_dB": 17.8
+   "muzik_LUFS": -32.1,
+   "konusma_farki_dB": 18.3
   },
   {
    "id": "ekip",
-   "muzik_LUFS": -31.6,
-   "konusma_farki_dB": 18.7
+   "muzik_LUFS": -31.1,
+   "konusma_farki_dB": 18.4
   },
   {
    "id": "maresal",
-   "muzik_LUFS": -32.6,
-   "konusma_farki_dB": 18.9
+   "muzik_LUFS": -32.4,
+   "konusma_farki_dB": 18.8
   },
   {
    "id": "dongu",
-   "muzik_LUFS": -31.7,
-   "konusma_farki_dB": 18.6
+   "muzik_LUFS": -31.5,
+   "konusma_farki_dB": 18.4
   },
   {
    "id": "senaryo",
-   "muzik_LUFS": -31.3,
-   "konusma_farki_dB": 17.4
+   "muzik_LUFS": -30.6,
+   "konusma_farki_dB": 17
   },
   {
    "id": "sonuc",
-   "muzik_LUFS": -30.4,
-   "konusma_farki_dB": 17.6
+   "muzik_LUFS": -30,
+   "konusma_farki_dB": 17.4
   }
  ],
- "video": {
-  "kaynak": "out/icerik.mp4 (hazır)",
-  "cikti": "out/secenekler/muzik-1.mp4",
-  "aac_bit_hizi": "320k",
+ "paket": {
+  "cikti": "out/icerik.mp4",
+  "muziksiz": "out/icerik-muziksiz.mp4",
+  "aac_bit_hizi": "192k",
   "mp4_LUFS": -14,
-  "mp4_true_peak_dBTP": -1.8,
-  "mp4_120_3sn_sonrasi_max": 0
+  "mp4_true_peak_dBTP": -1.6,
+  "mp4_final_sonrasi_max": 0,
+  "sure_sn": 151.666667
  }
 }

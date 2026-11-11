@@ -10,7 +10,7 @@ const FPS = 30;
 const SCENES = [
   { id: 'hook', first: 'burası neresi', owner: 'sahne-ajani-1' },
   { id: 'gercek', first: 'evet burası her gün', owner: 'sahne-ajani-1' },
-  { id: 'vaat', first: 'evet bu güzel ve kaotik', owner: 'sahne-ajani-1' },
+  { id: 'vaat', first: 'bu güzel ve kaotik', owner: 'sahne-ajani-1' },   // baştaki "Evet," tools/edit-voice.mjs ile kesildi
   { id: 'baglam', first: 'bunu yaparken tek bir sohbette', owner: 'sahne-ajani-2' },
   { id: 'ekip', first: 'onun yerine bir ekip', owner: 'sahne-ajani-2' },
   { id: 'maresal', first: 'size de tavsiyem', owner: 'sahne-ajani-2' },

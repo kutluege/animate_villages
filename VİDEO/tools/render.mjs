@@ -2,7 +2,7 @@
 //   node tools/render.mjs --draft              540×960, 15 fps → out/draft/icerik-draft.mp4
 //   node tools/render.mjs                      1080×1920, 30 fps → out/icerik.mp4
 //   node tools/render.mjs --draft --from 20 --to 31   kısmi (sesli) → out/draft/icerik-draft-20.0-31.0.mp4
-// Seçenekler: --fps N  --size WxH  --crf N  --workers N  --fresh  --no-encode  --no-audio  --png  --out dosya.mp4  --swiftshader
+// Seçenekler: --fps N  --size WxH  --crf N  --workers N  --fresh  --no-encode  --no-audio  --keep-audio  --png  --out dosya.mp4  --swiftshader
 // Kaldığı yerden devam eder: her karenin bağımlılık özeti (ortak kod + o anda görünen sahnelerin kod/asset'i) manifestte;
 // yalnızca değişen sahnelerin kareleri yeniden çizilir.
 import { createHash } from 'node:crypto';
@@ -155,7 +155,9 @@ try {
     let audio = null;
     if (!args['no-audio']) {
       audio = join(ROOT, 'work', 'audio.wav');
-      await mixAudio({ cues: info.sfx, duration: info.duration, timeline: info.timeline, out: audio });
+      // --keep-audio: work/audio.wav'a dokunma (yeniden karıştırma), olduğu gibi kullan — başka bir süreç o dosyayı okurken
+      if (args['keep-audio'] && existsSync(audio)) console.log('[render] ses: mevcut work/audio.wav kullanılıyor (--keep-audio)');
+      else await mixAudio({ cues: info.sfx, duration: info.duration, timeline: info.timeline, out: audio });
     }
     const len = (to - from) / FPS;
     const enc = [

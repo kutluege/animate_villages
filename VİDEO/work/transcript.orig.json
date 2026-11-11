@@ -1,0 +1,1923 @@
+{
+ "source": "work/voice.wav",
+ "duration": 119.866,
+ "note": "faster-whisper large-v3 kelime zamanları + work/spoken.txt elle düzeltmesi; zamanlar voice.wav saatine göre (sn).",
+ "words": [
+  {
+   "text": "Burası",
+   "start": 0.12,
+   "end": 0.29,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "neresi?",
+   "start": 0.29,
+   "end": 0.71,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Tanıyabildiniz",
+   "start": 0.71,
+   "end": 1.23,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "mi?",
+   "start": 1.23,
+   "end": 1.45,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Bir",
+   "start": 2.781,
+   "end": 2.864,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "dakika",
+   "start": 2.864,
+   "end": 3.03,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "ya.",
+   "start": 3.03,
+   "end": 3.25,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Burası",
+   "start": 3.41,
+   "end": 4.17,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "çok",
+   "start": 4.17,
+   "end": 4.33,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "tanıdık.",
+   "start": 4.33,
+   "end": 4.709,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Evet,",
+   "start": 5.757,
+   "end": 5.87,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "burası",
+   "start": 6.03,
+   "end": 6.81,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "her",
+   "start": 6.81,
+   "end": 6.97,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "gün",
+   "start": 6.97,
+   "end": 7.21,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "yüz",
+   "start": 7.21,
+   "end": 7.385,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "binlerce",
+   "start": 7.385,
+   "end": 7.85,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "insanın",
+   "start": 7.85,
+   "end": 8.23,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "geçtiği",
+   "start": 8.23,
+   "end": 8.59,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Mecidiyeköy.",
+   "start": 8.59,
+   "end": 9.19,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Evet,",
+   "start": 9.695,
+   "end": 9.812,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "bu",
+   "start": 9.892,
+   "end": 10.052,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "güzel",
+   "start": 10.052,
+   "end": 10.352,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "ve",
+   "start": 10.352,
+   "end": 10.472,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "kaotik",
+   "start": 10.472,
+   "end": 10.972,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "semtin",
+   "start": 10.972,
+   "end": 11.392,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "simülasyonunu",
+   "start": 11.392,
+   "end": 12.152,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Claude",
+   "start": 12.152,
+   "end": 12.552,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Code",
+   "start": 12.552,
+   "end": 12.652,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "kullanarak",
+   "start": 12.652,
+   "end": 13.112,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "gerçekleştirdim.",
+   "start": 13.112,
+   "end": 13.972,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Üstelik",
+   "start": 14.924,
+   "end": 15.252,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "bunu",
+   "start": 15.252,
+   "end": 15.372,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "nasıl",
+   "start": 15.372,
+   "end": 15.592,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "yaptığım,",
+   "start": 15.592,
+   "end": 16.052,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "ortaya",
+   "start": 16.052,
+   "end": 16.372,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "çıkan",
+   "start": 16.372,
+   "end": 16.632,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "sonuç",
+   "start": 16.632,
+   "end": 16.952,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "kadar",
+   "start": 16.952,
+   "end": 17.072,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "ilginç.",
+   "start": 17.072,
+   "end": 17.572,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Sonucu",
+   "start": 18.246,
+   "end": 18.532,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "görmek",
+   "start": 18.532,
+   "end": 18.832,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "için",
+   "start": 18.832,
+   "end": 19.012,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "videonun",
+   "start": 19.012,
+   "end": 19.332,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "sonuna",
+   "start": 19.332,
+   "end": 19.592,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "kadar",
+   "start": 19.592,
+   "end": 19.772,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "bekle.",
+   "start": 19.772,
+   "end": 20.041,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Bunu",
+   "start": 20.733,
+   "end": 21.154,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "yaparken",
+   "start": 21.154,
+   "end": 21.634,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "tek",
+   "start": 21.634,
+   "end": 22.034,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 22.034,
+   "end": 22.254,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "sohbette,",
+   "start": 22.254,
+   "end": 22.754,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "tek",
+   "start": 22.854,
+   "end": 22.974,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 22.974,
+   "end": 23.174,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "modelle",
+   "start": 23.174,
+   "end": 23.594,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "yazdırmadım.",
+   "start": 23.594,
+   "end": 24.281,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Çünkü",
+   "start": 24.919,
+   "end": 24.994,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "iş",
+   "start": 24.994,
+   "end": 25.254,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "büyüdükçe,",
+   "start": 25.254,
+   "end": 25.794,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "bildiğiniz",
+   "start": 25.794,
+   "end": 26.294,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "gibi,",
+   "start": 26.294,
+   "end": 26.514,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "modelin",
+   "start": 26.514,
+   "end": 26.934,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "bağlamı",
+   "start": 26.934,
+   "end": 27.314,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "şişer.",
+   "start": 27.314,
+   "end": 27.694,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Bağlam",
+   "start": 27.714,
+   "end": 28.354,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "şiştikçe",
+   "start": 28.354,
+   "end": 28.874,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "de",
+   "start": 28.874,
+   "end": 28.954,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "model",
+   "start": 28.954,
+   "end": 29.194,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "saçmalamaya",
+   "start": 29.194,
+   "end": 29.874,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "başlar.",
+   "start": 29.874,
+   "end": 30.254,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Onun",
+   "start": 30.78,
+   "end": 31.054,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "yerine",
+   "start": 31.054,
+   "end": 31.394,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 31.394,
+   "end": 31.494,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ekip",
+   "start": 31.494,
+   "end": 31.771,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "kurdum.",
+   "start": 31.879,
+   "end": 32.054,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Yönetici",
+   "start": 32.78,
+   "end": 33.154,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "model",
+   "start": 33.154,
+   "end": 33.334,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "işi",
+   "start": 33.334,
+   "end": 33.554,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "böldü:",
+   "start": 33.554,
+   "end": 34.014,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "veri,",
+   "start": 34.074,
+   "end": 34.794,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "şehir,",
+   "start": 34.794,
+   "end": 35.314,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "kuleler,",
+   "start": 35.314,
+   "end": 35.774,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ışık",
+   "start": 35.774,
+   "end": 36.154,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ve",
+   "start": 36.154,
+   "end": 36.214,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "kamera",
+   "start": 36.214,
+   "end": 36.474,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "görevlerini",
+   "start": 36.474,
+   "end": 36.954,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ayrı",
+   "start": 36.954,
+   "end": 37.334,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ayrı",
+   "start": 37.334,
+   "end": 37.534,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ajanlara",
+   "start": 37.534,
+   "end": 37.894,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "verdi.",
+   "start": 37.894,
+   "end": 38.114,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Her",
+   "start": 38.777,
+   "end": 39.114,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ajan",
+   "start": 39.114,
+   "end": 39.394,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "yalnızca",
+   "start": 39.394,
+   "end": 39.834,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "kendi",
+   "start": 39.834,
+   "end": 40.074,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "işine",
+   "start": 40.074,
+   "end": 40.394,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "odaklandı",
+   "start": 40.394,
+   "end": 40.974,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "ve",
+   "start": 40.974,
+   "end": 41.194,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "yöneticisine",
+   "start": 41.211,
+   "end": 41.894,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "kısa",
+   "start": 41.894,
+   "end": 42.274,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 42.274,
+   "end": 42.354,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "rapor",
+   "start": 42.354,
+   "end": 42.634,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "sundu.",
+   "start": 42.634,
+   "end": 42.914,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Size",
+   "start": 43.505,
+   "end": 43.96,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "de",
+   "start": 43.96,
+   "end": 44.12,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "tavsiyem:",
+   "start": 44.12,
+   "end": 44.84,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "siz",
+   "start": 44.86,
+   "end": 45.32,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "de",
+   "start": 45.32,
+   "end": 45.48,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "büyük",
+   "start": 45.48,
+   "end": 45.74,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "işlerde",
+   "start": 45.74,
+   "end": 46.16,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "böyle",
+   "start": 46.16,
+   "end": 46.38,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "çalışın.",
+   "start": 46.38,
+   "end": 46.96,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "İşi",
+   "start": 47.414,
+   "end": 47.58,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "bölün,",
+   "start": 47.58,
+   "end": 47.92,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "yöneticinin",
+   "start": 47.96,
+   "end": 48.7,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "bağlamını",
+   "start": 48.7,
+   "end": 49.2,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "temiz",
+   "start": 49.2,
+   "end": 49.54,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "tutun.",
+   "start": 49.54,
+   "end": 49.82,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "Kendinizi",
+   "start": 50.7,
+   "end": 51.1,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "bunu",
+   "start": 51.1,
+   "end": 51.24,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "yaparken",
+   "start": 51.24,
+   "end": 51.7,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 51.7,
+   "end": 51.9,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "ordu",
+   "start": 51.9,
+   "end": 52.32,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "grubunu",
+   "start": 52.32,
+   "end": 52.64,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "yöneten",
+   "start": 52.64,
+   "end": 52.96,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 52.96,
+   "end": 53.12,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "başkomutan",
+   "start": 53.12,
+   "end": 53.7,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "gibi",
+   "start": 53.7,
+   "end": 53.86,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "düşünebilirsiniz.",
+   "start": 53.86,
+   "end": 54.48,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "Ana",
+   "start": 55.48,
+   "end": 55.56,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "ajanınız",
+   "start": 55.56,
+   "end": 56.02,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 56.02,
+   "end": 56.2,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "mareşal",
+   "start": 56.2,
+   "end": 56.72,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "olsun",
+   "start": 56.72,
+   "end": 56.88,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "ve",
+   "start": 56.88,
+   "end": 57.27,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "emrine",
+   "start": 57.514,
+   "end": 57.9,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "yönetebileceği",
+   "start": 57.9,
+   "end": 58.56,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "ordular",
+   "start": 58.56,
+   "end": 58.98,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "verin.",
+   "start": 58.98,
+   "end": 59.34,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "Peki,",
+   "start": 59.856,
+   "end": 60.134,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "normalde",
+   "start": 60.134,
+   "end": 60.814,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "yazılımcılara",
+   "start": 60.814,
+   "end": 61.614,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "yaptırabileceğiniz",
+   "start": 61.614,
+   "end": 62.374,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "böyle",
+   "start": 62.374,
+   "end": 62.634,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 62.634,
+   "end": 62.854,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "simülasyonu",
+   "start": 62.854,
+   "end": 63.574,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "modeller",
+   "start": 63.574,
+   "end": 64.374,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "nasıl",
+   "start": 64.374,
+   "end": 64.654,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "yapıyor?",
+   "start": 64.654,
+   "end": 65.054,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Modeller",
+   "start": 66.258,
+   "end": 66.514,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "aslında",
+   "start": 66.514,
+   "end": 66.774,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "bu",
+   "start": 66.774,
+   "end": 67.014,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "tarz",
+   "start": 67.014,
+   "end": 67.254,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "görüntü",
+   "start": 67.254,
+   "end": 67.634,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "içeren",
+   "start": 67.634,
+   "end": 67.894,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "işleri",
+   "start": 67.894,
+   "end": 68.334,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "kare",
+   "start": 68.334,
+   "end": 68.614,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "kare",
+   "start": 68.614,
+   "end": 68.814,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "üretiyor",
+   "start": 68.814,
+   "end": 69.314,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ilk",
+   "start": 69.314,
+   "end": 69.434,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "başta.",
+   "start": 69.611,
+   "end": 69.794,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Sonrasında",
+   "start": 70.572,
+   "end": 71.034,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ise",
+   "start": 71.034,
+   "end": 71.194,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "kendi",
+   "start": 71.194,
+   "end": 71.554,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ürettikleri",
+   "start": 71.554,
+   "end": 72.114,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "kareleri",
+   "start": 72.114,
+   "end": 72.574,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "inceleyerek",
+   "start": 72.574,
+   "end": 73.254,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ilerliyor.",
+   "start": 73.254,
+   "end": 73.618,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Bu",
+   "start": 74.251,
+   "end": 74.301,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "aslında",
+   "start": 74.543,
+   "end": 74.754,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "çok",
+   "start": 74.754,
+   "end": 74.954,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "şaşırtıcı.",
+   "start": 74.954,
+   "end": 75.474,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Konuyu",
+   "start": 76.401,
+   "end": 76.594,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "bilenler,",
+   "start": 76.594,
+   "end": 77.174,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ajan",
+   "start": 77.174,
+   "end": 77.694,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "orkestrasyonda",
+   "start": 77.694,
+   "end": 78.634,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "farklı",
+   "start": 78.634,
+   "end": 78.874,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "modelleri",
+   "start": 78.874,
+   "end": 79.534,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "general,",
+   "start": 79.534,
+   "end": 79.754,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "farklı",
+   "start": 79.974,
+   "end": 80.534,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "modelleri",
+   "start": 80.534,
+   "end": 81.154,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ise",
+   "start": 81.154,
+   "end": 81.234,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "oradaki",
+   "start": 81.234,
+   "end": 81.534,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "askerler",
+   "start": 81.534,
+   "end": 81.974,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "olarak",
+   "start": 81.974,
+   "end": 82.214,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "kullanabiliyor.",
+   "start": 82.214,
+   "end": 82.774,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Bense",
+   "start": 83.855,
+   "end": 83.994,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "burada",
+   "start": 83.994,
+   "end": 84.214,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "iki",
+   "start": 84.214,
+   "end": 84.414,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "farklı",
+   "start": 84.414,
+   "end": 84.674,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "senaryoyu",
+   "start": 84.674,
+   "end": 85.154,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "da",
+   "start": 85.154,
+   "end": 85.254,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "denedim.",
+   "start": 85.254,
+   "end": 85.654,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "İlkinde",
+   "start": 86.543,
+   "end": 86.834,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Opus'u",
+   "start": 86.834,
+   "end": 87.214,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "general",
+   "start": 87.214,
+   "end": 87.414,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "yaptım,",
+   "start": 87.414,
+   "end": 88.014,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Fable",
+   "start": 88.034,
+   "end": 88.414,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "askerdi.",
+   "start": 88.414,
+   "end": 88.954,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "İkincisini",
+   "start": 89.094,
+   "end": 89.754,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "de",
+   "start": 89.754,
+   "end": 89.914,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "tam",
+   "start": 89.914,
+   "end": 90.054,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "tersini",
+   "start": 90.054,
+   "end": 90.454,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "yaptım:",
+   "start": 90.454,
+   "end": 90.794,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Fable",
+   "start": 90.794,
+   "end": 91.054,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "general,",
+   "start": 91.054,
+   "end": 91.374,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Opus",
+   "start": 91.594,
+   "end": 91.788,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ise",
+   "start": 91.788,
+   "end": 91.934,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "askerdi.",
+   "start": 91.934,
+   "end": 92.414,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Sonuç",
+   "start": 93.305,
+   "end": 93.574,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ne",
+   "start": 93.574,
+   "end": 93.674,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "mi",
+   "start": 93.674,
+   "end": 93.774,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "oldu?",
+   "start": 93.774,
+   "end": 93.954,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Bana",
+   "start": 94.869,
+   "end": 94.934,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "göre",
+   "start": 94.934,
+   "end": 95.174,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "kazanan",
+   "start": 95.174,
+   "end": 95.514,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "açık:",
+   "start": 95.514,
+   "end": 95.754,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Fable'ın",
+   "start": 96.412,
+   "end": 96.754,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "yönettiği",
+   "start": 96.754,
+   "end": 97.174,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ekip",
+   "start": 97.174,
+   "end": 97.374,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "çok",
+   "start": 97.374,
+   "end": 97.494,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "daha",
+   "start": 97.494,
+   "end": 97.674,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "iyi",
+   "start": 97.674,
+   "end": 97.814,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "bir",
+   "start": 97.814,
+   "end": 97.914,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "sonuç",
+   "start": 97.914,
+   "end": 98.134,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "ortaya",
+   "start": 98.134,
+   "end": 98.434,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "çıkarttı.",
+   "start": 98.434,
+   "end": 98.748,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Burada",
+   "start": 99.323,
+   "end": 99.507,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "sonuçlardan",
+   "start": 99.507,
+   "end": 100.067,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "şunu",
+   "start": 100.067,
+   "end": 100.367,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "söylemem",
+   "start": 100.367,
+   "end": 100.827,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "mümkün.",
+   "start": 100.827,
+   "end": 101.327,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Size",
+   "start": 102.278,
+   "end": 102.607,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "de",
+   "start": 102.607,
+   "end": 102.807,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "akışlarınızda",
+   "start": 102.807,
+   "end": 103.667,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Fable'ın",
+   "start": 103.667,
+   "end": 104.167,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "general,",
+   "start": 104.167,
+   "end": 104.447,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Opus'un",
+   "start": 104.707,
+   "end": 105.387,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "asker",
+   "start": 105.387,
+   "end": 105.707,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "olduğu",
+   "start": 105.707,
+   "end": 105.847,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "senaryoyu",
+   "start": 105.847,
+   "end": 106.387,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "öneriyorum.",
+   "start": 106.387,
+   "end": 106.787,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Ayrıca",
+   "start": 107.761,
+   "end": 108.027,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Fable'ın",
+   "start": 108.027,
+   "end": 108.467,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "yönettiği",
+   "start": 108.467,
+   "end": 108.867,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Opus",
+   "start": 108.867,
+   "end": 109.027,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "ekibi",
+   "start": 109.027,
+   "end": 109.327,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "bu",
+   "start": 109.327,
+   "end": 109.447,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "işi",
+   "start": 109.447,
+   "end": 109.607,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "90",
+   "start": 109.607,
+   "end": 109.787,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "dolara",
+   "start": 109.787,
+   "end": 110.227,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "yaparken,",
+   "start": 110.227,
+   "end": 110.607,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Opus'un",
+   "start": 110.767,
+   "end": 111.647,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "yönettiği",
+   "start": 111.647,
+   "end": 112.107,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Fable",
+   "start": 112.107,
+   "end": 112.347,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "ordusu",
+   "start": 112.347,
+   "end": 112.727,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "bu",
+   "start": 112.727,
+   "end": 112.887,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "işi",
+   "start": 112.887,
+   "end": 113.047,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "150",
+   "start": 113.047,
+   "end": 113.307,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "dolara",
+   "start": 113.307,
+   "end": 113.647,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "yaptı.",
+   "start": 113.647,
+   "end": 114.007,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Bu",
+   "start": 114.529,
+   "end": 114.622,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "açıdan",
+   "start": 114.622,
+   "end": 114.899,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "da",
+   "start": 114.899,
+   "end": 115.079,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "iş",
+   "start": 115.079,
+   "end": 115.219,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "akışlarınızı",
+   "start": 115.219,
+   "end": 115.839,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "gözden",
+   "start": 115.839,
+   "end": 116.119,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "geçirmenizi",
+   "start": 116.119,
+   "end": 116.599,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "tavsiye",
+   "start": 116.599,
+   "end": 117.039,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "ediyorum",
+   "start": 117.039,
+   "end": 117.239,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "ve",
+   "start": 117.239,
+   "end": 117.452,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "sizi",
+   "start": 117.729,
+   "end": 117.899,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "şimdi",
+   "start": 117.899,
+   "end": 118.159,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "sonuçla",
+   "start": 118.159,
+   "end": 118.699,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "baş",
+   "start": 118.699,
+   "end": 118.959,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "başa",
+   "start": 118.959,
+   "end": 119.259,
+   "clip": "7.mp3"
+  },
+  {
+   "text": "bırakıyorum.",
+   "start": 119.259,
+   "end": 119.559,
+   "clip": "7.mp3"
+  }
+ ],
+ "sentences": [
+  {
+   "text": "Burası neresi?",
+   "start": 0.12,
+   "end": 0.71,
+   "w0": 0,
+   "w1": 1,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Tanıyabildiniz mi?",
+   "start": 0.71,
+   "end": 1.45,
+   "w0": 2,
+   "w1": 3,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Bir dakika ya.",
+   "start": 2.781,
+   "end": 3.25,
+   "w0": 4,
+   "w1": 6,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Burası çok tanıdık.",
+   "start": 3.41,
+   "end": 4.709,
+   "w0": 7,
+   "w1": 9,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Evet, burası her gün yüz binlerce insanın geçtiği Mecidiyeköy.",
+   "start": 5.757,
+   "end": 9.19,
+   "w0": 10,
+   "w1": 18,
+   "clip": "1.mp3"
+  },
+  {
+   "text": "Evet, bu güzel ve kaotik semtin simülasyonunu Claude Code kullanarak gerçekleştirdim.",
+   "start": 9.695,
+   "end": 13.972,
+   "w0": 19,
+   "w1": 29,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Üstelik bunu nasıl yaptığım, ortaya çıkan sonuç kadar ilginç.",
+   "start": 14.924,
+   "end": 17.572,
+   "w0": 30,
+   "w1": 38,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Sonucu görmek için videonun sonuna kadar bekle.",
+   "start": 18.246,
+   "end": 20.041,
+   "w0": 39,
+   "w1": 45,
+   "clip": "2.mp3"
+  },
+  {
+   "text": "Bunu yaparken tek bir sohbette, tek bir modelle yazdırmadım.",
+   "start": 20.733,
+   "end": 24.281,
+   "w0": 46,
+   "w1": 54,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Çünkü iş büyüdükçe, bildiğiniz gibi, modelin bağlamı şişer.",
+   "start": 24.919,
+   "end": 27.694,
+   "w0": 55,
+   "w1": 62,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Bağlam şiştikçe de model saçmalamaya başlar.",
+   "start": 27.714,
+   "end": 30.254,
+   "w0": 63,
+   "w1": 68,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Onun yerine bir ekip kurdum.",
+   "start": 30.78,
+   "end": 32.054,
+   "w0": 69,
+   "w1": 73,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Yönetici model işi böldü: veri, şehir, kuleler, ışık ve kamera görevlerini ayrı ayrı ajanlara verdi.",
+   "start": 32.78,
+   "end": 38.114,
+   "w0": 74,
+   "w1": 88,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Her ajan yalnızca kendi işine odaklandı ve yöneticisine kısa bir rapor sundu.",
+   "start": 38.777,
+   "end": 42.914,
+   "w0": 89,
+   "w1": 100,
+   "clip": "3.mp3"
+  },
+  {
+   "text": "Size de tavsiyem: siz de büyük işlerde böyle çalışın.",
+   "start": 43.505,
+   "end": 46.96,
+   "w0": 101,
+   "w1": 109,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "İşi bölün, yöneticinin bağlamını temiz tutun.",
+   "start": 47.414,
+   "end": 49.82,
+   "w0": 110,
+   "w1": 115,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "Kendinizi bunu yaparken bir ordu grubunu yöneten bir başkomutan gibi düşünebilirsiniz.",
+   "start": 50.7,
+   "end": 54.48,
+   "w0": 116,
+   "w1": 126,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "Ana ajanınız bir mareşal olsun ve emrine yönetebileceği ordular verin.",
+   "start": 55.48,
+   "end": 59.34,
+   "w0": 127,
+   "w1": 136,
+   "clip": "4.mp3"
+  },
+  {
+   "text": "Peki, normalde yazılımcılara yaptırabileceğiniz böyle bir simülasyonu modeller nasıl yapıyor?",
+   "start": 59.856,
+   "end": 65.054,
+   "w0": 137,
+   "w1": 146,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Modeller aslında bu tarz görüntü içeren işleri kare kare üretiyor ilk başta.",
+   "start": 66.258,
+   "end": 69.794,
+   "w0": 147,
+   "w1": 158,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Sonrasında ise kendi ürettikleri kareleri inceleyerek ilerliyor.",
+   "start": 70.572,
+   "end": 73.618,
+   "w0": 159,
+   "w1": 165,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Bu aslında çok şaşırtıcı.",
+   "start": 74.251,
+   "end": 75.474,
+   "w0": 166,
+   "w1": 169,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Konuyu bilenler, ajan orkestrasyonda farklı modelleri general, farklı modelleri ise oradaki askerler olarak kullanabiliyor.",
+   "start": 76.401,
+   "end": 82.774,
+   "w0": 170,
+   "w1": 183,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Bense burada iki farklı senaryoyu da denedim.",
+   "start": 83.855,
+   "end": 85.654,
+   "w0": 184,
+   "w1": 190,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "İlkinde Opus'u general yaptım, Fable askerdi.",
+   "start": 86.543,
+   "end": 88.954,
+   "w0": 191,
+   "w1": 196,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "İkincisini de tam tersini yaptım: Fable general, Opus ise askerdi.",
+   "start": 89.094,
+   "end": 92.414,
+   "w0": 197,
+   "w1": 206,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Sonuç ne mi oldu?",
+   "start": 93.305,
+   "end": 93.954,
+   "w0": 207,
+   "w1": 210,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Bana göre kazanan açık: Fable'ın yönettiği ekip çok daha iyi bir sonuç ortaya çıkarttı.",
+   "start": 94.869,
+   "end": 98.748,
+   "w0": 211,
+   "w1": 224,
+   "clip": "5.mp3"
+  },
+  {
+   "text": "Burada sonuçlardan şunu söylemem mümkün.",
+   "start": 99.323,
+   "end": 101.327,
+   "w0": 225,
+   "w1": 229,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Size de akışlarınızda Fable'ın general, Opus'un asker olduğu senaryoyu öneriyorum.",
+   "start": 102.278,
+   "end": 106.787,
+   "w0": 230,
+   "w1": 239,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Ayrıca Fable'ın yönettiği Opus ekibi bu işi 90 dolara yaparken, Opus'un yönettiği Fable ordusu bu işi 150 dolara yaptı.",
+   "start": 107.761,
+   "end": 114.007,
+   "w0": 240,
+   "w1": 258,
+   "clip": "6.mp3"
+  },
+  {
+   "text": "Bu açıdan da iş akışlarınızı gözden geçirmenizi tavsiye ediyorum ve sizi şimdi sonuçla baş başa bırakıyorum.",
+   "start": 114.529,
+   "end": 119.559,
+   "w0": 259,
+   "w1": 274,
+   "clip": "7.mp3"
+  }
+ ],
+ "corrections": [
+  "1.mp3: yüzbinlerce → yüz binlerce",
+  "1.mp3: 'Bir' sessizlikten çıkarıldı → 4.21",
+  "2.mp3: Cloudy → Claude",
+  "5.mp3: Opusisi → Opus ise",
+  "7.mp3: sonuçta → sonuçla",
+  "7.mp3: 'Bu' sessizlikten çıkarıldı → 1.25"
+ ]
+}

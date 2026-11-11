@@ -1,0 +1,82 @@
+{
+ "note": "Saniye. final.duration tek ayar noktasıdır (end hesaplanır). Sınırları elle oynatırsan tools/build-timeline.mjs yeniden çalıştırma.",
+ "fps": 30,
+ "width": 1080,
+ "height": 1920,
+ "voice": "work/voice.wav",
+ "voiceDuration": 119.866,
+ "totalDuration": 152.0667,
+ "scenes": [
+  {
+   "id": "hook",
+   "start": 0,
+   "end": 5.5667,
+   "owner": "sahne-ajani-1",
+   "said": "Burası neresi? Tanıyabildiniz mi? Bir dakika ya. Burası çok tanıdık."
+  },
+  {
+   "id": "gercek",
+   "start": 5.5667,
+   "end": 9.5,
+   "owner": "sahne-ajani-1",
+   "said": "Evet, burası her gün yüz binlerce insanın geçtiği Mecidiyeköy."
+  },
+  {
+   "id": "vaat",
+   "start": 9.5,
+   "end": 20.5333,
+   "owner": "sahne-ajani-1",
+   "said": "Evet, bu güzel ve kaotik semtin simülasyonunu Claude Code kullanarak gerçekleştirdim. Üstelik bunu nasıl yaptığım, ortaya çıkan sonuç kadar ilginç. Sonucu görmek için videonun sonuna kadar bekle."
+  },
+  {
+   "id": "baglam",
+   "start": 20.5333,
+   "end": 30.5667,
+   "owner": "sahne-ajani-2",
+   "said": "Bunu yaparken tek bir sohbette, tek bir modelle yazdırmadım. Çünkü iş büyüdükçe, bildiğiniz gibi, modelin bağlamı şişer. Bağlam şiştikçe de model saçmalamaya başlar."
+  },
+  {
+   "id": "ekip",
+   "start": 30.5667,
+   "end": 43.3,
+   "owner": "sahne-ajani-2",
+   "said": "Onun yerine bir ekip kurdum. Yönetici model işi böldü: veri, şehir, kuleler, ışık ve kamera görevlerini ayrı ayrı ajanlara verdi. Her ajan yalnızca kendi işine odaklandı ve yöneticisine kısa bir rapor sundu."
+  },
+  {
+   "id": "maresal",
+   "start": 43.3,
+   "end": 59.6667,
+   "owner": "sahne-ajani-2",
+   "said": "Size de tavsiyem: siz de büyük işlerde böyle çalışın. İşi bölün, yöneticinin bağlamını temiz tutun. Kendinizi bunu yaparken bir ordu grubunu yöneten bir başkomutan gibi düşünebilirsiniz. Ana ajanınız bir mareşal olsun ve emrine yönetebileceği ordular verin."
+  },
+  {
+   "id": "dongu",
+   "start": 59.6667,
+   "end": 76.2,
+   "owner": "sahne-ajani-2",
+   "said": "Peki, normalde yazılımcılara yaptırabileceğiniz böyle bir simülasyonu modeller nasıl yapıyor? Modeller aslında bu tarz görüntü içeren işleri kare kare üretiyor ilk başta. Sonrasında ise kendi ürettikleri kareleri inceleyerek ilerliyor. Bu aslında çok şaşırtıcı."
+  },
+  {
+   "id": "senaryo",
+   "start": 76.2,
+   "end": 93.1,
+   "owner": "sahne-ajani-3",
+   "said": "Konuyu bilenler, ajan orkestrasyonda farklı modelleri general, farklı modelleri ise oradaki askerler olarak kullanabiliyor. Bense burada iki farklı senaryoyu da denedim. İlkinde Opus'u general yaptım, Fable askerdi. İkincisini de tam tersini yaptım: Fable general, Opus ise askerdi."
+  },
+  {
+   "id": "sonuc",
+   "start": 93.1,
+   "end": 120.0667,
+   "owner": "sahne-ajani-3",
+   "said": "Sonuç ne mi oldu? Bana göre kazanan açık: Fable'ın yönettiği ekip çok daha iyi bir sonuç ortaya çıkarttı. Burada sonuçlardan şunu söylemem mümkün. Size de akışlarınızda Fable'ın general, Opus'un asker olduğu senaryoyu öneriyorum. Ayrıca Fable'ın yönettiği Opus ekibi bu işi 90 dolara yaparken, Opus'un yönettiği Fable ordusu bu işi 150 dolara yaptı. Bu açıdan da iş akışlarınızı gözden geçirmenizi tavsiye ediyorum ve sizi şimdi sonuçla baş başa bırakıyorum."
+  },
+  {
+   "id": "final",
+   "start": 120.06666666666666,
+   "duration": 32,
+   "owner": "sahne-ajani-3",
+   "silent": true,
+   "said": "(sessiz) yan yana kıyas 8–10 sn, sonra Fable videosundan en iyi 20–25 sn; son kare kapak"
+  }
+ ]
+}

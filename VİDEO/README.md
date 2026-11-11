@@ -37,4 +37,4 @@
   Miks kuralı (`tools/mix.mjs` başı): `gain` niyettir; çatı her efekti ses altı bir banda çeker, konuşmada kısar; master −14 LUFS / −1,5 dBTP. `node tools/mix.mjs --list | --report`.
 **Denetim:** `node tools/shot.mjs 0 2.5 5 --scene vaat --out out/<ajan> --sheet` (yerel sn; `--full` 1080×1920, `--safe`, `--every 1`, `--only vaat`)
   · `node tools/check.mjs --scene vaat 1 3 5 [--only vaat]` (determinizm; GPU yuvarlaması ≤3 seviye/‰1 piksel "≈" diye geçer, `--strict` kapatır)
-  · `node tools/render.mjs --draft --from 9.5 --to 20.6` (sesli taslak, out/draft/). **Zaman:** `work/timeline.json` (final süresi: `final.duration`), `work/transcript.json` (kelimeler, voice.wav saati). Varlıklar `comp/assets/<id>/` + SOURCES.md.
+  · `node tools/render.mjs --draft --from 9.5 --to 20.6` (sesli taslak, out/draft/). **Zaman:** `work/timeline.json` (final süresi: `final.duration`), `work/transcript.json` (kelimeler, voice.wav saati); ses kurgusu (sözcük kesme, zaman düzeltme): `node tools/edit-voice.mjs` (özgünler `work/*.orig.*`). Varlıklar `comp/assets/<id>/` + SOURCES.md.

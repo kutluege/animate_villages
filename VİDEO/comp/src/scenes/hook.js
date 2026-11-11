@@ -1,252 +1,262 @@
-// hook — "Burası neresi? Tanıyabildiniz mi?  Bir dakika ya. Burası çok tanıdık."
-// Gizemli harita (animate_villages2 verisinden yeniden çizim: assets/hook/map.jpg), yavaş itiş; pembe simge yapılar tek tek
-// parlar ve adları daktilo gibi yazılır. Harita `gercek` sahnesi boyunca da (extend.after) altta kalır: fotoğraf kartları
-// bu haritaya iğnelenir; `vaat` başlarken ortak topografya fonuna erir. Her şey t'nin saf fonksiyonu.
-import { C, FONT, SAFE, SUB_HI, W, H, alpha, clamp, ease, lerp, range } from '../theme.js';
-import { h, s, scaleBar } from '../kit.js';
+// hook — SEÇENEK C "TESPİT": harita bir keşif ekranına dönüşür.
+// İlk kare: koyulaştırılmış harita, merkezden dönen tarama kolu (geçtiği yer bir an aydınlanır), mesafe halkaları, arayan üç nişangâh,
+// akan koordinatlar ve "Burası neresi?". Soru boyunca tarama kolu pembe alanların üstünden geçtikçe "temas" bip'i; nişangâhlar arar.
+// Sessizlikte (1,45–2,78) üç nişangâh sırayla kilitlenir (kilit sesi), adlar okunur. "Bir dakika ya." ile üç alan nirengi
+// çizgileriyle bağlanır, koordinatlar oturur; "tanıdık."ta "EŞLEŞME" (onay akoru) — ad yine söylenmez: cevabı `gercek` verir.
+// Harita `gercek` boyunca altta kalır (extend.after). Her şey t'nin saf fonksiyonu.
+import { C, FONT, SAFE, SUB_HI, W, H, alpha, clamp, ease, hash01, lerp, range } from '../theme.js';
+import { h } from '../kit.js';
+import { loadWorld, camera, cpuCanvas, snap } from './hook.kit.js';
 
-// ---- ortak kamera (gercek.js de kullanır): t = global saniye ----
-/** Harita kamerası: s = ekran pikseli / metre, (cx, cz) = ekran merkezindeki nokta (metre; x doğu, z güney). */
-// Kadraj, haritanın dolu kısmının (veri sınırı: x −900…946, z −842…1038 m) İÇİNDE kalır: ilk kareden itibaren ekranın
-// tamamı şehir dokusuyla dolu, altta/üstte boş arazi bandı yok. Üç pembe alan ekranın orta-alt kısmında, yazılar üstte.
-const DATA_Z1 = 1034;
-export function camAt(t) {
-  const e = 1 - Math.pow(1 - clamp(t / 10), 1.5);
-  const f = e / 0.7048;                       // hook sonunda (5,57 sn) 1
-  const s = 1.04 + 0.06 * f;
-  return { s, cx: 380 + 12 * f, cz: Math.min(100 + 65 * f, DATA_Z1 - 960 / s) };
-}
-export const toScreen = (cam, x, z) => [W / 2 + (x - cam.cx) * cam.s, H / 2 + (z - cam.cz) * cam.s];
-
-// Pembe alanlar: build_data.py LANDMARK_IDS; adlar OSM etiketlerinden (Trump Alışveriş Merkezi + Residence/Office Tower →
-// wikipedia "Trump Towers"; "Torun Center"; "İstanbul Cevahir AVM", loc_name "Cevahir AVM").
-const LANDMARKS = [
-  // Parlama anları konuşma aralarına denk getirildi (ses efekti sözün üstüne binmesin): 1,45–2,78 sn duraklama, 3,25–3,41 sn nefes.
-  { key: 'trump', label: 'TRUMP TOWERS', T: 1.5, side: 'right', dy: 52, gain: 1 },   // etiket alanın altına doğru: üstteki başlıktan uzak
-  { key: 'torun', label: 'TORUN CENTER', T: 2.2, side: 'left', gain: 1 },
-  { key: 'cevahir', label: 'CEVAHİR AVM', T: 3.28, side: 'right', dy: -46, gain: 0.5 },
-];
-const CPS = 30;            // daktilo hızı (harf/sn)
-/** Tam ekran katman solması: 1'e/0'a çok yakın saydamlıklar tam değere yuvarlanır (GPU harmanlama yuvarlaması kareyi oynatmasın). */
-const snap = (o) => (o > 0.985 ? 1 : o < 0.015 ? 0 : o);
-const TYPE_DELAY = 0.2;    // parlamadan sonra yazının başlaması
+const PERIOD = 1.3;                 // tarama kolunun turu (sn)
+const LOCK_T = [1.68, 2.02, 2.36];  // kilitlenme anları (söz boşluğu: 1,57–2,77)
+const TRI_T = 2.8;                  // nirengi ("Bir dakika ya.")
+const MATCH_T = 4.8;                // eşleşme ("tanıdık." bittikten sonra; voice.wav ~4,75)
 
 export async function create(ctx) {
-  const [map, img, tl] = await Promise.all([
-    ctx.json('comp/assets/hook/map.json'), ctx.image('map.jpg'), ctx.json('work/timeline.json').catch(() => null),
-  ]);
-  const gEnd = tl?.scenes?.find((x) => x.id === 'gercek')?.end ?? 9.5;   // haritanın eridiği an (global)
-  const END = ctx.duration;                                              // hook'un kendi sonu
-  const FADE = 0.5;
-  const { x0, z0 } = map.window, MS = map.scale;
-  const m2 = ([px, pz]) => [px / MS + x0, pz / MS + z0];
+  const [world, tl] = await Promise.all([loadWorld(ctx), ctx.json('work/timeline.json').catch(() => null)]);
+  const gEnd = tl?.scenes?.find((x) => x.id === 'gercek')?.end ?? 9.5;
+  const END = ctx.duration, FADE = 0.5;
+  const LM = world.landmarks;
+
+  const camAt = (t) => {
+    const k = range(t, 0, END + 4, (x) => x);
+    const kick = LOCK_T.reduce((a, T) => a + (t >= T ? 0.012 * Math.exp(-(t - T) * 10) : 0), 0) + (t >= MATCH_T ? 0.02 * Math.exp(-(t - MATCH_T) * 6) : 0);
+    return camera({ s: lerp(0.95, 1.12, k) * (1 + kick), cx: 398, cz: 176, rot: 0, py: 1010 });
+  };
+  const SC = [540, 1010];           // tarama merkezi (ekran; üç alanın ortası)
+  const sweepAng = (t) => -Math.PI * 0.62 + (2 * Math.PI * t) / PERIOD;
+  const angOf = (p) => Math.atan2(p[1] - SC[1], p[0] - SC[0]);
+  /** son geçişten bu yana süre (kol bu açıdan en son ne zaman geçti) */
+  const sinceSweep = (t, a) => { const d = (((sweepAng(t) - a) % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI); const s = d / (2 * Math.PI) * PERIOD; return s <= t ? s : 99; };
 
   const el = h('div', { class: 'scene' });
-
-  // ---- harita ----
-  // Harita <img> + CSS transform ile değil, yazılım tuvaline (CPU) her karede yeniden örneklenerek çizilir: tarayıcının görsel
-  // önbelleği / mip seçimi kareler arasında durum taşımaz → aynı t her zaman aynı pikselleri verir. Alt piksel kayma korunur.
-  const src = h('canvas', { width: img.naturalWidth, height: img.naturalHeight });
-  src.getContext('2d', { willReadFrequently: true }).drawImage(img, 0, 0);
-  const mapLayer = h('canvas', { width: W, height: H, style: { position: 'absolute', left: '0', top: '0', width: W + 'px', height: H + 'px' } });
-  const mg = mapLayer.getContext('2d', { willReadFrequently: true, alpha: false });
+  const [mapCv, mg] = cpuCanvas(W, H);
+  const [dkCv, dg] = cpuCanvas(W, H);
+  const [lmCv, lg] = cpuCanvas(W, H);
+  const [hudCv, hg] = cpuCanvas(W, H);
   const shade = h('div', { class: 'abs', style: { inset: '0', background: [
-    `linear-gradient(180deg, ${alpha(C.night, 0.74)} 0px, ${alpha(C.night, 0.5)} 300px, ${alpha(C.night, 0)} 620px)`,
-    `linear-gradient(0deg, ${alpha(C.night, 0.5)} 0px, ${alpha(C.night, 0)} 380px)`,
-    `radial-gradient(85% 66% at 50% 50%, ${alpha(C.night, 0)} 50%, ${alpha(C.night, 0.3)} 100%)`,
-    `linear-gradient(${alpha(C.night, 0.1)}, ${alpha(C.night, 0.1)})`,
+    `linear-gradient(180deg, ${alpha(C.night, 0.8)} 0px, ${alpha(C.night, 0.5)} 320px, ${alpha(C.night, 0)} 640px)`,
+    `linear-gradient(0deg, ${alpha(C.night, 0.55)} 0px, ${alpha(C.night, 0)} 420px)`,
   ].join(',') } });
-  const sweep = h('div', { class: 'abs', style: { left: '0', top: '0', width: W + 'px', height: '260px',
-    background: `linear-gradient(180deg, ${alpha(C.ink, 0)} 0%, ${alpha(C.ink, 0.1)} 82%, ${alpha(C.ink, 0.34)} 100%)`, borderBottom: `2px solid ${alpha(C.ink, 0.5)}` } });
+  // ince tarama satırları (ekran dokusu; sabit)
+  const lines = h('div', { class: 'abs', style: { inset: '0', backgroundImage: `repeating-linear-gradient(0deg, ${alpha(C.night, 0.16)} 0px, ${alpha(C.night, 0.16)} 1px, transparent 1px, transparent 4px)` } });
 
-  // ---- pembe alanlar: ekran uzayında, her karede kameradan yeniden çizilir. Yazılım tuvali (willReadFrequently → CPU raster):
-  // poligon kenarları ve parıltı GPU kenar yumuşatmasına bağlı kalmaz, kare bit düzeyinde tekrarlanabilir. ----
-  const mkSvg = (style = {}) => s('svg', { width: W, height: H, viewBox: `0 0 ${W} ${H}`, style: { position: 'absolute', left: '0', top: '0', overflow: 'visible', ...style } });
-  const cv = h('canvas', { width: W, height: H, style: { position: 'absolute', left: '0', top: '0', width: W + 'px', height: H + 'px' } });
-  const g2 = cv.getContext('2d', { willReadFrequently: true });
-  const svgMain = mkSvg();
-  const svgLine = mkSvg();
-  const groups = LANDMARKS.map((L, i) => {
-    const parts = (map.landmarks[L.key] || []).slice().sort((a, b) => a.height - b.height);
-    const rings = parts.map((b) => b.ring.map(m2));
-    const all = rings.flat();
-    const xs = all.map((p) => p[0]), zs = all.map((p) => p[1]);
-    const bb = { x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs) };
-    const c = [(bb.x0 + bb.x1) / 2, (bb.z0 + bb.z1) / 2];
-    let anchor = [bb.x1, lerp(bb.z0, bb.z1, 0.42)];
-    if (L.side === 'left') { // ana kütlenin (yüksek blokların) en batıdaki köşesi — kenardaki ince ek yapı değil
-      const tall = rings.filter((_, j) => parts[j].height >= 100);
-      const west = tall.sort((a, b) => Math.min(...a.map((p) => p[0])) - Math.min(...b.map((p) => p[0])))[0] || all;
-      const wz = west.map((p) => p[1]);
-      anchor = [Math.min(...west.map((p) => p[0])), lerp(Math.min(...wz), Math.max(...wz), 0.35)];
-    }
-    const pulses = [0, 1].map(() => s('circle', { fill: 'none', stroke: C.pink, 'stroke-width': 3 }));
-    svgMain.append(...pulses);
-    // çağrı çizgisi + etiket plakası
-    const leader = s('path', { fill: 'none', stroke: C.ink, 'stroke-width': 2.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
-    const dot = s('circle', { r: 6, fill: C.ink, stroke: C.pink, 'stroke-width': 3 });
-    svgLine.append(leader, dot);
-    const num = h('span', { style: { color: C.pink, marginRight: '16px', fontWeight: '600' } }, `0${i + 1}`);
-    const typed = h('span'), cursor = h('span', { style: { color: C.pink } }, '▌'), rest = h('span', { style: { visibility: 'hidden' } });
-    const plate = h('div', { class: 'abs', lang: 'tr', style: { left: '0', top: '0', whiteSpace: 'nowrap', padding: '16px 4px 16px 20px',
-      background: C.glassStrong, border: `1.5px solid ${C.hair}`, borderLeft: `6px solid ${C.pink}`, borderRadius: '4px',
-      font: `700 42px/1 ${FONT.mono}`, letterSpacing: '0.03em', color: C.ink, boxShadow: `0 18px 50px ${C.shadow}`, transformOrigin: L.side === 'right' ? '0 50%' : '100% 50%' } },
-    num, typed, cursor, rest);
-    return { ...L, rings, bb, c, anchor, pulses, leader, dot, plate, typed, cursor, rest, pw: 0, ph: 0 };
-  });
+  // ---- üst bant: durum + akan koordinat ----
+  const dot = h('span', { class: 'dot' });
+  const status = h('span', { class: 't-num' }, 'KONUM ARANIYOR');
+  const chipS = h('div', { class: 'chip abs', lang: 'tr', style: { left: SAFE.left + 'px', top: SAFE.top + 18 + 'px', background: C.glassStrong, font: `600 26px/1 ${FONT.mono}`, letterSpacing: '0.08em' } }, dot, status);
+  const coordEl = h('div', { class: 'abs t-num', lang: 'tr', style: { right: W - SAFE.right + 'px', top: SAFE.top + 22 + 'px', textAlign: 'right', font: `600 26px/1.35 ${FONT.mono}`, letterSpacing: '0.06em', color: C.ink } });
+  const latEl = h('div'), lonEl = h('div', { style: { color: C.dim } });
+  coordEl.append(latEl, lonEl);
 
-  // ---- arayüz: soru etiketi, ipucu sayacı, koordinat, ölçek ----
-  const qMarks = h('span', { style: { color: C.pink, letterSpacing: '0.16em' } }, '???');
-  const chipQ = h('div', { class: 'chip abs', style: { left: SAFE.left + 'px', top: SAFE.top + 18 + 'px', background: C.glassStrong } },
-    h('span', { class: 'dot' }), 'KONUM', qMarks);
-  const cnt = h('span', { class: 't-num', style: { color: C.pink } }, '0');
-  const chipN = h('div', { class: 'chip abs', lang: 'tr', style: { right: W - SAFE.right + 'px', top: SAFE.top + 18 + 'px', background: C.glassStrong, transformOrigin: '100% 50%' } },
-    'İPUCU', h('span', {}, cnt, h('span', { style: { color: C.dim } }, '/3')));
-  const sbar = scaleBar({ w: 200, label: '200 m' });
-  sbar.style.color = C.ink; sbar.style.alignItems = 'flex-end'; sbar.style.fontSize = '24px';
-  const scale = h('div', { class: 'abs', style: { right: W - SAFE.right + 'px', top: '1440px' } }, sbar);
-  const ui = h('div', { class: 'abs', style: { inset: '0' } }, chipQ, chipN);
-  const mapUi = h('div', { class: 'abs', style: { inset: '0' } }, scale);
-  const plates = h('div', { class: 'abs', style: { inset: '0' } }, groups.map((g) => g.plate));
-
-  // ---- soru: ilk kareden itibaren büyük puntoyla ekranda (kaydıranı durduran şey); kelimeler söylenirken vurgulanır.
-  // Bu sırada çatı altyazısı kapalıdır (aynı söz iki kez yazılmasın); "Bir dakika ya" ile altyazı aynı yerde devam eder. ----
-  const shadow = `0 4px 0 ${alpha(C.night, 0.55)}, 0 10px 34px ${alpha(C.night, 0.8)}`;
-  const qw = ctx.words.filter((w) => w.start < 1.6);                       // Burası · neresi? · Tanıyabildiniz · mi?
+  // ---- soru ----
+  const qw = ctx.words.filter((w) => w.start < 1.6);
   const mkW = (w) => { const sp = h('span', { style: { display: 'inline-block', transformOrigin: '50% 70%' } }, w.text); sp.w = w; return sp; };
   const l1 = qw.slice(0, 2).map(mkW), l2 = qw.slice(2).map(mkW);
   const sep = (arr) => arr.flatMap((x, i) => (i ? [' ', x] : [x]));
   const q1 = h('div', { lang: 'tr', style: { font: `850 116px/1 ${FONT.display}`, letterSpacing: '-0.035em', whiteSpace: 'nowrap' } }, sep(l1));
   const q2 = h('div', { lang: 'tr', style: { marginTop: '10px', font: `800 68px/1 ${FONT.display}`, letterSpacing: '-0.02em', whiteSpace: 'nowrap' } }, sep(l2));
-  const question = h('div', { class: 'abs', style: { left: SAFE.left + 'px', width: SAFE.width + 'px', top: '300px', textAlign: 'center', color: C.ink, textShadow: shadow, transformOrigin: '50% 40%' } }, q1, q2);
-  const Q_OUT = 2.32;                                                      // soru çekilir, çatı altyazısı devralır
+  const question = h('div', { class: 'abs', style: { left: SAFE.left + 'px', width: SAFE.width + 'px', top: '330px', textAlign: 'center', color: C.ink,
+    textShadow: `0 4px 0 ${alpha(C.night, 0.55)}, 0 10px 34px ${alpha(C.night, 0.8)}` } }, q1, q2);
+  const Q_OUT = 2.55;
 
-  el.append(mapLayer, shade, sweep, cv, svgMain, svgLine, mapUi, plates, question, ui);
+  // ---- kilit etiketleri (DOM: keskin yazı) ----
+  const tags = LM.map((L, i) => {
+    const name = h('span'), rest = h('span', { style: { visibility: 'hidden' } }, L.name);
+    const pct = h('span', { class: 't-num', style: { color: C.pink, marginLeft: '14px' } });
+    const el2 = h('div', { class: 'abs', lang: 'tr', style: { left: '0', top: '0', whiteSpace: 'nowrap', padding: '10px 16px 10px 14px', background: C.glassStrong,
+      border: `1.5px solid ${alpha(C.pink, 0.8)}`, borderRadius: '3px', font: `700 34px/1 ${FONT.mono}`, letterSpacing: '0.04em', color: C.ink } },
+    h('span', { style: { color: C.pink, marginRight: '12px' } }, `0${i + 1}`), name, rest, pct);
+    return { L, T: LOCK_T[i], el: el2, name, rest, pct, w: 0, hh: 0, side: ['right', 'left', 'right'][i] };
+  });
+  const tagBox = h('div', { class: 'abs', style: { inset: '0' } }, tags.map((x) => x.el));
+
+  el.append(mapCv, dkCv, lmCv, lines, shade, hudCv, tagBox, question, chipS, coordEl);
 
   // ---- ses ----
-  // Düzeyler seslendirmenin altında tutulur; sözle çakışanlar (3. ipucu) ayrıca kısılır.
-  const sfx = [{ t: 0.0, name: 'hit', gain: 0.22 }];
-  for (const g of groups) {
-    sfx.push({ t: g.T, name: 'ping', gain: 0.5 * g.gain }, { t: g.T - 0.05, name: 'pop', gain: 0.32 * g.gain });
-    for (let i = 0; i < g.label.length; i += 2) sfx.push({ t: +(g.T + TYPE_DELAY + i / CPS).toFixed(3), name: `type-${(i / 2) % 3 + 1}`, gain: 0.34 * g.gain });
-  }
-  sfx.push({ t: 4.72, name: 'riser', gain: 0.22 });   // "tanıdık." bittikten sonraki duraklamada
+  const sfx = [];
+  for (let k = 0; k * PERIOD < MATCH_T; k++) sfx.push({ t: +(k * PERIOD).toFixed(3), name: 'hook-c-sweep', gain: k === 0 ? 0.9 : 0.5 });
+  // temas bip'leri: kol bir pembe alanın üstünden geçtiğinde (arama evresi)
+  const cam0 = camAt(0.5);
+  const lmAng = LM.map((L) => angOf(world.project(cam0, L.c[0], L.c[1])));
+  const contacts = [];
+  LM.forEach((L, i) => { for (let t = 0.02; t < LOCK_T[0] - 0.05; t += 1 / 120) if (sinceSweep(t, lmAng[i]) < 1 / 120) { contacts.push({ t, i }); t += 0.3; } });
+  for (const c of contacts) sfx.push({ t: +c.t.toFixed(3), name: 'hook-c-blip', gain: 0.65 });
+  sfx.push({ t: 0.04, name: 'hook-c-data', gain: 0.55 });
+  LOCK_T.forEach((T) => sfx.push({ t: T - 0.11, name: 'hook-c-lock', gain: 0.85 }));
+  sfx.push({ t: TRI_T, name: 'hook-c-data', gain: 0.5 }, { t: MATCH_T, name: 'hook-c-match', gain: 0.9 });
+
+  // ---- nişangâh arama yolu (tohumlu) ----
+  const hunt = (i, t) => {
+    const step = 0.2 + 0.05 * i, n = Math.floor(t / step), f = (t - n * step) / step;
+    const pt = (k) => [lerp(140, 940, hash01(k * 3 + 1, 70 + i)), lerp(640, 1420, hash01(k * 3 + 2, 70 + i)), lerp(90, 170, hash01(k * 3 + 3, 70 + i))];
+    const a = pt(n), b = pt(n + 1), e = ease.outExpo(clamp(f * 1.6));
+    return [lerp(a[0], b[0], e), lerp(a[1], b[1], e), lerp(a[2], b[2], e)];
+  };
+  const bracket = (g, x0, y0, x1, y1, len, col, lw) => {
+    g.strokeStyle = col; g.lineWidth = lw; g.lineCap = 'square'; g.beginPath();
+    for (const [x, y, sx, sy] of [[x0, y0, 1, 1], [x1, y0, -1, 1], [x0, y1, 1, -1], [x1, y1, -1, -1]]) { g.moveTo(x, y + sy * len); g.lineTo(x, y); g.lineTo(x + sx * len, y); }
+    g.stroke();
+  };
+
+  const target = { lat: world.map.lat0, lon: world.map.lon0 };
+  const fmt = (v, hemi, t, seed, settleT) => {
+    // derece° dakika.binde′ — rakamlar soldan sağa sırayla oturur (önce akar)
+    const a = Math.abs(v), d = Math.floor(a), m = ((a - d) * 60).toFixed(3).padStart(6, '0');
+    const s = `${String(d).padStart(2, '0')}°${m}′${hemi}`;
+    const fi = Math.floor(t * 30);
+    let out = '', di = 0;
+    for (const ch of s) {
+      if (/\d/.test(ch)) { const fixAt = di < 2 ? -1 : settleT + (di - 2) * 0.17; /* derece hep sabit (41° / 28°): dakikalar akar */ out += t >= fixAt ? ch : String(Math.floor(hash01(fi * 13 + di, seed) * 10)); di++; }
+      else out += ch;
+    }
+    return out;
+  };
 
   let measured = false;
   function update(t) {
-    if (!measured) { for (const g of groups) { g.rest.textContent = g.label; g.pw = g.plate.offsetWidth; g.ph = g.plate.offsetHeight; } measured = true; }
-    const cam = camAt(t);
-    const P = (p) => toScreen(cam, p[0], p[1]);
-
-    // harita: çevir + ölçekle; vaat başlarken erir
+    if (!measured) { for (const x of tags) { x.rest.textContent = x.L.name; x.w = x.el.offsetWidth; x.hh = x.el.offsetHeight; } measured = true; }
     const out = range(t, gEnd, gEnd + FADE, ease.inOutCubic);
     const vis = snap(1 - out);
     el.style.opacity = vis.toFixed(4);
     el.style.display = vis <= 0 ? 'none' : '';
     if (vis <= 0) return;
-    const k = cam.s / MS;                                   // ekran pikseli / harita pikseli
-    mg.fillStyle = C.night; mg.fillRect(0, 0, W, H);
-    mg.imageSmoothingEnabled = true; mg.imageSmoothingQuality = 'high';
-    mg.drawImage(src, (cam.cx - x0) * MS - W / (2 * k), (cam.cz - z0) * MS - H / (2 * k), W / k, H / k, 0, 0, W, H);
+    const cam = camAt(t);
+    world.drawMap(mg, cam);
+    const uiOut = range(t, END - 0.2, END + 0.15, ease.inCubic);
+    const hudOn = 1 - uiOut;
+    const found = range(t, MATCH_T, MATCH_T + 0.6, ease.outCubic);
 
-    // tarama çizgisi (ilk saniye)
-    const sw = range(t, 0.0, 1.35, ease.inOutCubic);
-    sweep.style.transform = `translateY(${lerp(-40, H + 20, sw).toFixed(1)}px)`;
-    sweep.style.opacity = (Math.min(1, range(t, 0, 0.2) * 1.2) * (1 - range(t, 1.1, 1.35))).toFixed(4);
-
-    // arayüzün hook'a ait kısmı: sahne sonunda çekilir
-    const uiOut = range(t, END - 0.22, END + 0.12, ease.inCubic);
-    ui.style.opacity = (1 - uiOut).toFixed(4);
-    plates.style.opacity = (1 - uiOut).toFixed(4);
-    svgLine.style.opacity = (1 - uiOut).toFixed(4);
-    mapUi.style.opacity = (1 - range(t, END + 0.1, END + 0.5)).toFixed(4);
-    sbar.firstChild.style.width = (200 * cam.s).toFixed(1) + 'px';
-
-    let lit = 0;
-    g2.clearRect(0, 0, W, H);
-    g2.lineJoin = 'round';
-    // nirengi üçgeni: üçüncü ipucu yazıldıktan sonra üç alan birbirine bağlanır ("konum kilitlendi") — pembe alanların altında
-    const T3 = groups[2].T + 0.75;
-    const tp = range(t, T3, T3 + 0.7, ease.inOutCubic);
-    if (tp > 0 && uiOut < 1) {
-      const c3 = groups.map((g) => P(g.c));
-      g2.save(); g2.globalAlpha = 1 - uiOut;
-      g2.beginPath(); c3.forEach((p, i) => (i ? g2.lineTo(p[0], p[1]) : g2.moveTo(p[0], p[1]))); g2.closePath();
-      g2.fillStyle = alpha(C.pink, 0.08 * range(t, T3 + 0.5, T3 + 1.0)); g2.fill();
-      let remain = tp * c3.reduce((acc, p, i) => acc + Math.hypot(p[0] - c3[(i + 1) % 3][0], p[1] - c3[(i + 1) % 3][1]), 0);
-      g2.setLineDash([3, 11]); g2.lineCap = 'round'; g2.lineWidth = 2.5; g2.strokeStyle = alpha(C.ink, 0.75);
-      g2.beginPath(); g2.moveTo(c3[0][0], c3[0][1]);
-      for (let i = 0; i < 3 && remain > 0; i++) {
-        const a = c3[i], b = c3[(i + 1) % 3], L = Math.hypot(b[0] - a[0], b[1] - a[1]), f = Math.min(1, remain / L);
-        g2.lineTo(a[0] + (b[0] - a[0]) * f, a[1] + (b[1] - a[1]) * f); remain -= L;
-      }
-      g2.stroke(); g2.restore();
+    // koyulaştırma: tarama kolunun arkasında aydınlık iz; eşleşmede harita normale döner
+    const th = sweepAng(t), trail = 1.7;
+    dg.setTransform(1, 0, 0, 1, 0, 0); dg.globalCompositeOperation = 'source-over'; dg.clearRect(0, 0, W, H);
+    dg.fillStyle = alpha(C.night, lerp(0.66, 0.12, Math.max(found, uiOut))); dg.fillRect(0, 0, W, H);
+    if (hudOn > 0) {
+      dg.globalCompositeOperation = 'destination-out';
+      const cg = dg.createConicGradient(th - trail, SC[0], SC[1]);
+      const fr = trail / (2 * Math.PI);
+      cg.addColorStop(0, 'rgba(0,0,0,0)'); cg.addColorStop(fr * 0.6, 'rgba(0,0,0,0.25)'); cg.addColorStop(fr, `rgba(0,0,0,${(0.9 * hudOn * (1 - found)).toFixed(3)})`);
+      cg.addColorStop(Math.min(1, fr + 0.0005), 'rgba(0,0,0,0)'); cg.addColorStop(1, 'rgba(0,0,0,0)');
+      dg.fillStyle = cg; dg.fillRect(0, 0, W, H);
+      dg.globalCompositeOperation = 'source-over';
     }
-    groups.forEach((g, gi) => {
-      const dt = t - g.T;
-      const on = range(dt, 0, 0.16, ease.outCubic);
-      if (dt >= 0) lit++;
-      const breath = 0.5 + 0.5 * Math.sin((t - g.T) * 3.4);
-      const pop = 1 + 0.07 * Math.sin(clamp(dt / 0.42) * Math.PI) * (dt >= 0 ? 1 : 0);
-      const cs = P(g.c);
-      const trace = (edge = false) => { // grubun bütün halkaları tek yol (her halka ayrı alt yol; sarım yönü fark etmesin diye tek tek doldurulur)
-        for (const r of g.rings) {
-          g2.beginPath();
-          r.forEach((p, j) => { const q = P(p); const X = cs[0] + (q[0] - cs[0]) * pop, Y = cs[1] + (q[1] - cs[1]) * pop; if (j) g2.lineTo(X, Y); else g2.moveTo(X, Y); });
-          g2.closePath(); g2.fill();
-          if (edge) g2.stroke();
-        }
-      };
-      // ilk saniyede üç alan sırayla bir kez "nabız" atar: göz pembeye gitsin (ipuçları henüz açılmadan)
-      const beat = Math.sin(clamp((t - 0.12 - gi * 0.16) / 0.7) * Math.PI) ** 2;
-      const fillA = lerp(0.62 + 0.05 * Math.sin(t * 2.2 + gi * 2.1) + 0.3 * beat, 1, on);
-      const glowA = dt < 0 ? 0.14 + 0.6 * beat : lerp(1, 0.62 + 0.22 * breath, range(dt, 0.15, 0.9));
-      const flashA = dt < 0 ? 0 : 0.95 * (1 - range(dt, 0.02, 0.5, ease.outCubic));
-      // 1) parıltı (gölge bulanıklığı), 2) dolgu + ince krem kontur, 3) beyaz parlama
-      g2.save(); g2.globalAlpha = glowA; g2.shadowColor = C.pink; g2.shadowBlur = 46; g2.fillStyle = C.pink; g2.strokeStyle = 'transparent'; trace(); g2.restore();
-      g2.save(); g2.globalAlpha = fillA; g2.fillStyle = C.pink; g2.strokeStyle = on > 0 ? alpha(C.ink, 0.55 * on) : 'transparent'; g2.lineWidth = 1.5; trace(on > 0); g2.restore();
-      if (flashA > 0) { g2.save(); g2.globalAlpha = flashA; g2.fillStyle = C.ink; g2.strokeStyle = 'transparent'; trace(); g2.restore(); }
-      g.pulses.forEach((c, i) => {
-        const pd = dt - i * 0.22, p = range(pd, 0, 0.9, ease.outCubic);
-        c.setAttribute('cx', cs[0].toFixed(1)); c.setAttribute('cy', cs[1].toFixed(1));
-        c.setAttribute('r', (30 + 250 * p).toFixed(1));
-        c.setAttribute('opacity', (pd < 0 ? 0 : 0.85 * (1 - p)).toFixed(4));
-        c.setAttribute('stroke-width', lerp(5, 1, p).toFixed(2));
-      });
 
-      // çağrı çizgisi + plaka
-      const a = P(g.anchor);
-      let px, py, pts;
-      if (g.side === 'right') {
-        const dy = g.dy ?? -46;
-        px = a[0] + 86; py = a[1] + dy - g.ph / 2;
-        pts = [[a[0] + 4, a[1]], [a[0] + 50, a[1] + dy], [px, a[1] + dy]];
-      } else {
-        px = a[0] - 86 - g.pw; py = a[1] - 46 - g.ph / 2;
-        pts = [[a[0] - 4, a[1]], [a[0] - 50, a[1] - 46], [px + g.pw, a[1] - 46]];
-      }
-      const lp = range(dt, 0.06, 0.24, ease.outCubic);
-      const len = pts.slice(1).reduce((acc, p, i) => acc + Math.hypot(p[0] - pts[i][0], p[1] - pts[i][1]), 0);
-      g.leader.setAttribute('d', 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L'));
-      g.leader.setAttribute('stroke-dasharray', `${len.toFixed(1)} ${len.toFixed(1)}`);
-      g.leader.setAttribute('stroke-dashoffset', (len * (1 - lp)).toFixed(2));
-      g.leader.setAttribute('opacity', dt < 0.06 ? 0 : 1);
-      g.dot.setAttribute('cx', a[0].toFixed(1)); g.dot.setAttribute('cy', a[1].toFixed(1));
-      g.dot.setAttribute('opacity', range(dt, 0.02, 0.1).toFixed(3));
-      const pin = range(dt, 0.14, 0.3, ease.outCubic);
-      g.plate.style.transform = `translate(${px.toFixed(1)}px, ${py.toFixed(1)}px) scaleX(${lerp(0.82, 1, pin).toFixed(4)})`;
-      g.plate.style.opacity = pin.toFixed(4);
-      const n = clamp(Math.floor((dt - TYPE_DELAY) * CPS), 0, g.label.length);
-      g.typed.textContent = g.label.slice(0, n);
-      g.rest.textContent = g.label.slice(n);             // görünmez kalan → plaka genişliği sabit
-      const after = dt - TYPE_DELAY - g.label.length / CPS; // yazı bittikten sonra geçen süre
-      g.cursor.style.visibility = dt > 0.14 && (after < 0 || (after < 0.9 && after % 0.4 < 0.22)) ? 'visible' : 'hidden';
+    // pembe alanlar: arama evresinde sönük; kol geçince "temas" parlaması; kilitte tam pembe
+    lg.setTransform(1, 0, 0, 1, 0, 0); lg.clearRect(0, 0, W, H);
+    LM.forEach((L, i) => {
+      const lk = t - LOCK_T[i];
+      const ss = sinceSweep(t, lmAng[i]);
+      const ping = lk < 0 ? Math.exp(-ss * 4) : 0;
+      const locked = range(lk, 0, 0.12, ease.outCubic);
+      const breath = 0.5 + 0.5 * Math.sin(t * 3.2 + i);
+      world.drawLandmark(lg, cam, L, {
+        fill: lerp(0.38 + 0.55 * ping, 1, locked), glow: lerp(0.15 + 0.8 * ping, 0.55 + 0.3 * breath, locked) + (lk >= 0 ? 0.5 * (1 - range(lk, 0, 0.4)) : 0),
+        flash: lk >= 0 ? 0.7 * (1 - range(lk, 0, 0.25, ease.outCubic)) : 0.35 * ping * ping, edge: 0.5 });
     });
+
+    // HUD
+    hg.setTransform(1, 0, 0, 1, 0, 0); hg.clearRect(0, 0, W, H);
+    hg.globalAlpha = hudOn;
+    // mesafe halkaları + eksenler
+    const mPx = cam.s;                                   // px / m
+    hg.strokeStyle = alpha(C.ink, 0.22); hg.lineWidth = 1.5; hg.setLineDash([2, 8]);
+    for (const r of [250, 500, 750]) { hg.beginPath(); hg.arc(SC[0], SC[1], r * mPx, 0, Math.PI * 2); hg.stroke(); }
+    hg.setLineDash([]);
+    hg.strokeStyle = alpha(C.ink, 0.14);
+    hg.beginPath(); hg.moveTo(SC[0], 230); hg.lineTo(SC[0], 1700); hg.moveTo(40, SC[1]); hg.lineTo(W - 40, SC[1]); hg.stroke();
+    hg.font = `600 22px ${FONT.mono}`; hg.fillStyle = alpha(C.ink, 0.5); hg.textAlign = 'left';
+    for (const r of [250, 500]) hg.fillText(`${r} m`, SC[0] + 8, SC[1] - r * mPx - 8);
+    // tarama kolu (eşleşmede söner) + kolun arkasında pembe ışık izi
+    const armA = hudOn * (1 - found);
+    if (armA > 0) {
+      const pg = hg.createConicGradient(th - 0.9, SC[0], SC[1]), fr2 = 0.9 / (2 * Math.PI);
+      pg.addColorStop(0, alpha(C.pink, 0)); pg.addColorStop(fr2, alpha(C.pink, 0.13 * armA)); pg.addColorStop(Math.min(1, fr2 + 0.0005), alpha(C.pink, 0)); pg.addColorStop(1, alpha(C.pink, 0));
+      hg.fillStyle = pg; hg.fillRect(0, 0, W, H);
+      const R = 1500;
+      hg.save(); hg.globalAlpha = armA;
+      hg.strokeStyle = alpha(C.ink, 0.85); hg.lineWidth = 2.5; hg.shadowColor = C.pink; hg.shadowBlur = 18;
+      hg.beginPath(); hg.moveTo(SC[0], SC[1]); hg.lineTo(SC[0] + Math.cos(th) * R, SC[1] + Math.sin(th) * R); hg.stroke();
+      hg.restore();
+      hg.globalAlpha = hudOn;
+    }
+    // merkez
+    hg.fillStyle = C.pink; hg.beginPath(); hg.arc(SC[0], SC[1], 6, 0, Math.PI * 2); hg.fill();
+    // nirengi: üç alan birbirine bağlanır, merkez işaretlenir
+    const ctr = LM.map((L) => world.project(cam, L.c[0], L.c[1], L.top * 0.5));
+    const tp = range(t, TRI_T, TRI_T + 0.6, ease.inOutCubic);
+    if (tp > 0) {
+      hg.strokeStyle = alpha(C.pink, 0.9); hg.lineWidth = 2.5; hg.setLineDash([10, 8]);
+      let remain = tp * 3;
+      hg.beginPath(); hg.moveTo(ctr[0][0], ctr[0][1]);
+      for (let i = 0; i < 3 && remain > 0; i++) { const a = ctr[i], b = ctr[(i + 1) % 3], f = Math.min(1, remain); hg.lineTo(lerp(a[0], b[0], f), lerp(a[1], b[1], f)); remain -= 1; }
+      hg.stroke(); hg.setLineDash([]);
+      const cx = (ctr[0][0] + ctr[1][0] + ctr[2][0]) / 3, cy = (ctr[0][1] + ctr[1][1] + ctr[2][1]) / 3;
+      const cp = range(t, TRI_T + 0.5, TRI_T + 0.8, ease.outBack);
+      if (cp > 0) {
+        hg.save(); hg.translate(cx, cy); hg.scale(cp, cp);
+        hg.strokeStyle = C.ink; hg.lineWidth = 3;
+        hg.beginPath(); hg.arc(0, 0, 26, 0, Math.PI * 2); hg.moveTo(-44, 0); hg.lineTo(-14, 0); hg.moveTo(14, 0); hg.lineTo(44, 0); hg.moveTo(0, -44); hg.lineTo(0, -14); hg.moveTo(0, 14); hg.lineTo(0, 44); hg.stroke();
+        hg.restore();
+      }
+      // eşleşme halkası
+      if (found > 0) {
+        hg.strokeStyle = alpha(C.pink, 0.9 * (1 - found)); hg.lineWidth = 4;
+        hg.beginPath(); hg.arc(cx, cy, 30 + 420 * found, 0, Math.PI * 2); hg.stroke();
+      }
+    }
+    // nişangâhlar
+    LM.forEach((L, i) => {
+      const lk = t - LOCK_T[i];
+      const box = world.screenBox(cam, L);
+      const pad = 22;
+      const T0 = [box.x0 - pad, box.y0 - pad, box.x1 + pad, box.y1 + pad];
+      const hp = hunt(i, t);
+      const H0 = [hp[0] - hp[2] / 2, hp[1] - hp[2] / 2, hp[0] + hp[2] / 2, hp[1] + hp[2] / 2];
+      const k = range(lk, -0.16, 0, ease.inOutCubic);
+      const tight = lk >= 0 ? 1 + 0.12 * Math.exp(-lk * 12) * Math.cos(lk * 40) : 1;
+      const cxB = lerp((H0[0] + H0[2]) / 2, (T0[0] + T0[2]) / 2, k), cyB = lerp((H0[1] + H0[3]) / 2, (T0[1] + T0[3]) / 2, k);
+      const hw = lerp((H0[2] - H0[0]) / 2, (T0[2] - T0[0]) / 2, k) * tight, hh2 = lerp((H0[3] - H0[1]) / 2, (T0[3] - T0[1]) / 2, k) * tight;
+      const appear = range(t, 0.0 + i * 0.08, 0.12 + i * 0.08);
+      hg.globalAlpha = hudOn * appear;
+      const col = lk >= 0 ? C.pink : alpha(C.ink, 0.85);
+      bracket(hg, cxB - hw, cyB - hh2, cxB + hw, cyB + hh2, Math.min(28, hw * 0.5), col, lk >= 0 ? 4 : 2.5);
+      if (lk < 0) { // arama artısı
+        hg.strokeStyle = alpha(C.ink, 0.6); hg.lineWidth = 1.5; hg.beginPath();
+        hg.moveTo(cxB - 10, cyB); hg.lineTo(cxB + 10, cyB); hg.moveTo(cxB, cyB - 10); hg.lineTo(cxB, cyB + 10); hg.stroke();
+      }
+      hg.globalAlpha = hudOn;
+      // etiket
+      const tg = tags[i];
+      if (lk < 0.05) { tg.el.style.display = 'none'; return; }
+      tg.el.style.display = '';
+      const x = tg.side === 'right' ? cxB + hw + 16 : cxB - hw - 16 - tg.w;
+      const y = clamp(cyB - hh2 + 4, SAFE.top + 350, SAFE.bottom - 120);
+      tg.el.style.transform = `translate(${clamp(x, 30, W - 30 - tg.w).toFixed(1)}px, ${y.toFixed(1)}px)`;
+      tg.el.style.opacity = (range(lk, 0.05, 0.12) * hudOn).toFixed(4);
+      const n = clamp(Math.floor((lk - 0.08) * 40), 0, L.name.length);
+      tg.name.textContent = L.name.slice(0, n); tg.rest.textContent = L.name.slice(n);
+      const pc = Math.round(lerp(61, [97, 94, 98][i], range(lk, 0.08, 0.5, ease.outCubic)));
+      tg.pct.textContent = `%${pc}`;
+    });
+    hg.globalAlpha = 1;
+
+    // üst bant
+    const phase = t < LOCK_T[0] - 0.1 ? 0 : t < MATCH_T ? 1 : 2;
+    status.textContent = ['KONUM ARANIYOR', 'KİLİTLENİYOR', 'EŞLEŞME BULUNDU'][phase];
+    status.style.color = phase === 2 ? C.pink : C.ink;
+    dot.style.opacity = (phase === 2 ? 1 : 0.35 + 0.65 * (Math.floor(t * 4) % 2)).toFixed(2);
+    chipS.style.opacity = hudOn.toFixed(4);
+    chipS.style.transform = `scale(${(1 + (t >= MATCH_T ? 0.12 * Math.sin(clamp((t - MATCH_T) / 0.35) * Math.PI) : 0)).toFixed(4)})`;
+    chipS.style.transformOrigin = '0 50%';
+    latEl.textContent = fmt(target.lat, 'K', t, 11, LOCK_T[0]);
+    lonEl.textContent = fmt(target.lon, 'D', t, 12, LOCK_T[1] + 0.1);
+    coordEl.style.opacity = hudOn.toFixed(4);
 
     // soru
     const qOut = range(t, Q_OUT - 0.22, Q_OUT, ease.inCubic);
     question.style.opacity = (1 - qOut).toFixed(4);
-    question.style.transform = `translateY(${(-18 * qOut).toFixed(2)}px) scale(${lerp(1.045, 1, range(t, 0, 0.7, ease.outCubic)).toFixed(5)})`;
+    question.style.transform = `translateY(${(-18 * qOut).toFixed(2)}px) scale(${lerp(1.04, 1, range(t, 0, 0.6, ease.outCubic)).toFixed(5)})`;
     q2.style.opacity = range(t, l2[0].w.start - 0.16, l2[0].w.start + 0.02, ease.outCubic).toFixed(4);
     q2.style.transform = `translateY(${((1 - range(t, l2[0].w.start - 0.16, l2[0].w.start + 0.06, ease.outCubic)) * 18).toFixed(2)}px)`;
     const qAll = [...l1, ...l2];
@@ -258,15 +268,8 @@ export async function create(ctx) {
       sp.style.color = a > 0 ? `color-mix(in srgb, ${SUB_HI} ${(a * 100).toFixed(1)}%, ${C.ink})` : C.ink;
       sp.style.transform = a > 0 ? `translateY(${(-4 * a).toFixed(2)}px) scale(${(1 + 0.04 * a).toFixed(4)})` : 'none';
     });
-
-    // sayaç
-    cnt.textContent = String(lit);
-    const lastT = lit ? groups[lit - 1].T : -9;
-    chipN.style.transform = `scale(${(1 + 0.16 * Math.sin(clamp((t - lastT) / 0.36) * Math.PI)).toFixed(4)})`;
-    qMarks.style.opacity = (0.55 + 0.45 * (0.5 + 0.5 * Math.cos(t * 4.2))).toFixed(3);
-
   }
 
   return { el, update, sfx, backdrop: false, extend: { after: gEnd - ctx.end + FADE },
-    subtitles: (tl) => tl >= Q_OUT, subtitleY: 360 };
+    subtitles: (tl) => tl >= Q_OUT - 0.05, subtitleY: 400 };
 }

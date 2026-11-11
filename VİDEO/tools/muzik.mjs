@@ -1,28 +1,33 @@
-// Fon müziği seçenekleri: work/audio.wav (ses + efekt, salt okunur) + muzik/kaynak/<parça> → muzik/miks-N.wav + out/secenekler/muzik-N.mp4
-//   node tools/muzik.mjs --secenek 1            (1 | 2 | 3 | 1,2,3)
-//   node tools/muzik.mjs --secenek 2 --video out/onceki/icerik.mp4   (görüntü kaynağını elle seç)
-//   node tools/muzik.mjs --secenek 3 --yalniz-ses                    (mp4 üretme)
-// Görüntü yeniden render EDİLMEZ: video akışı -c:v copy ile kopyalanır. Varsayılan kaynak out/icerik.mp4; dosya yoksa ya da
-// son 60 sn içinde yazılmışsa (render sürüyor) out/onceki/icerik.mp4.
-// Yalnız şunlara yazar: muzik/miks-N.wav, muzik/ara/*, muzik/olcum-N.json, out/secenekler/muzik-N.mp4.
+// Fon müziği: work/audio.wav (ses + efekt, salt okunur) + muzik/kaynak/<parça> → muzik/miks-N.wav (+ video paketleme)
+//   node tools/muzik.mjs --secenek 1               SEÇİLEN (Galactic Rap): miks + SON VİDEO PAKETLEME:
+//        render'ın müziksiz çıktısı out/icerik.mp4 → out/icerik-muziksiz.mp4 olarak saklanır, görüntüsü -c:v copy ile
+//        müzikli sesle paketlenip out/icerik.mp4 olur (AAC ≥192k, +faststart). Tekrar çalıştırmak güvenli: out/icerik.mp4 zaten
+//        bu betiğin çıktısıysa (comment etiketi) müziksiz kopya korunur ve ondan yeniden paketlenir. Render 60 sn içinde yazılmışsa durur.
+//   node tools/muzik.mjs --secenek 1 --yalniz-ses  yalnız muzik/miks-1.wav + ölçüm (video dosyalarına dokunmaz)
+//   node tools/muzik.mjs --secenek 2|3 [--video yol] [--yalniz-ses]   eski önizlemeler → out/secenekler/muzik-N.mp4
+//   node tools/muzik.mjs --secenek 1 --onizleme     seçenek 1'i son video yerine out/secenekler/'e önizleme olarak yazar
+// Görüntü yeniden render EDİLMEZ. Zamanlar her çalıştırmada work/timeline.json (final.start) ve work/transcript.json'dan okunur.
 //
 // MİKS KURALI
-//   - Müzik yalnız 0 → MUSIC_END (≈119,95 sn) arasında; 120,07 sn'den (final sahnesi) sonra tam dijital sıfır.
+//   - Müzik, son kelimeden en geç 0,4 sn sonra (ve final'den ≥0,1 sn önce) biten 2,35 sn'lik kosinüs sönüşle biter;
+//     timeline'daki final.start'tan dosya sonuna kadar tam dijital sıfır.
 //   - Konuşma (transkriptteki kelimeler, 120 ms önden / 200 ms arkadan genişletilmiş, < 0,6 sn boşluklar doldurulmuş) varken müzik
 //     GAP_OPEN dB kısık; ayrıca ses hecelerine bağlı hafif yan zincir (en çok SC_MAX dB). Taban kazanç kalibre edilir:
 //     konuşma pencerelerinde (400 ms, K-ağırlıklı) ses − müzik ortancası = TARGET_SPEECH_GAP dB (16–20 dB bandının ortası).
+//   - Efekt yan zinciri: efekt yolu (audio.wav − ölçeklenmiş voice.wav) yükseldiğinde müzik kısılır (açılışta en çok opt.sfxDuck.hook,
+//     sonra opt.sfxDuck.max dB). Açılış sahnesinde (opt.hook) müzik ayrıca sabit kısık ve süzgeçli: efektlere yer açar.
 //   - Müzikte sabit EQ: 30 Hz altı kesik, 1,2 kHz −1,5 dB, 2,8 kHz −3 dB (konuşmanın anlaşılırlık bandına yer açar).
 //   - Master: toplam −14 LUFS; gerçek tepe (4× aşırı örnekleme) TP_CEIL dBTP tavanında ileri bakışlı sınırlayıcı; kırpılma yok.
 import { spawnSync } from 'node:child_process';
-import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const SR = 48000;
 const P = (...a) => join(ROOT, ...a);
-const FINAL_START = 120.0667;      // timeline.json → final.start (müzik kesin olarak bunun öncesinde biter)
-const MUSIC_END = 119.95;          // son kelime 119,56'da biter; söniş bu ana kadar tamamlanır
+let FINAL_START, MUSIC_END, FADE_OUT; // loadTiming() doldurur (timeline.json + transcript.json)
+const SELECTED = '1';              // kullanıcının seçtiği seçenek → son video paketlemesi
 const TARGET_SPEECH_GAP = 18;      // dB, konuşmada ses − müzik (ortanca)
 const GAP_OPEN = 4.5;              // dB, konuşma boşluğunda müzik bu kadar açılır
 const SC_MAX = 2;                  // dB, hece yan zinciri en fazla
@@ -36,10 +41,14 @@ const EQ = 'highpass=f=30,equalizer=f=1200:t=q:w=1.0:g=-1.5,equalizer=f=2800:t=q
 export const OPTIONS = {
   1: {
     name: 'Galactic Rap — Kevin MacLeod', file: 'muzik/kaynak/kmac-galactic-rap.mp3',
-    // 120 bpm, ızgara 0,025 + 0,5k. Parça baştan çalar; 1:34'teki ton değişimi (≈95,9 sn) "Bana göre kazanan açık:" sonrasına düşer.
-    segs: [{ at: 0, src: 0 }], fadeIn: 0.4,
-    sweep: { t0: 0, t1: 5.6, f0: 380, f1: 16000 },   // kanca: boğuk/uzaktan başlar, "Evet, burası…" (5,76) ile tam açılır
-    rise: [[0, 0], [84, 0], [95.5, 2.0], [117.6, 2.0]],
+    // 120 bpm, ızgara 0,025 + 0,5k. Ton değişimi (kroma C → G/D) parça zamanında 96,0'daki ölçü başında; geçiş akoru (F/B♭) 95,0–96,0.
+    // Parça 0,6 sn'den başlatılır (video t = parça t − 0,6): yeni ton videoda ≈95,43'te, "kazanan açık:" (biter 95,354) ile
+    // "Fable'ın" (96,012) arasındaki boşluğa düşer; geçiş akoru "Bana göre kazanan açık" sözünün altında.
+    segs: [{ at: 0, src: 0.6 }], fadeIn: 0.4,
+    sweep: { t0: 0, t1: 5.6, f0: 380, f1: 16000 },   // açılış: boğuk/uzaktan başlar, "Evet, burası…" (5,76) ile tam açılır
+    hook: { until: 5.3, to: 5.9, dB: -5 },            // açılış efektleri (tarama/kilitlenme/eşleşme) için ek sabit kısma
+    sfxDuck: { hook: 6, max: 2, hookEnd: 5.9 },
+    rise: [[0, 0], [83.5, 0], [95.4, 2.0], [999, 2.0]],
   },
   2: {
     name: 'Deep Haze — Kevin MacLeod', file: 'muzik/kaynak/kmac-deep-haze.mp3',
@@ -47,20 +56,30 @@ export const OPTIONS = {
     // (+16 sn = 32 vuruş; o noktada iki kopyanın spektral benzerliği 0,905). Çapraz geçiş 60 ms ve vuruştan önceki sessizlikte
     // (orijinalde −18 dB çukur), böylece 42,0'daki vuruş tek kopyadan gelir, ikiye katlanmaz.
     // Sonuç: vurmalılar videoda ≈63,5'te (döngü sahnesi) girer, tepe ≈88–112 (senaryo sonu + hüküm), çekilme ≈113 (maliyet cümlesi).
-    segs: [{ at: 0, src: 0 }, { at: 41.95, src: 25.95 }], xf: 0.06, fadeIn: 0.15,
+    // (9,66'daki 0,4 sn kesinti sonrası parça 0,4 sn geç başlatıldı → 10 sn sonrası eski hizada; seçilmedi, yeniden denetlenmedi)
+    segs: [{ at: 0, src: 0.4 }, { at: 41.55, src: 25.95 }], xf: 0.06, fadeIn: 0.15,
     // yükseliş parçanın kendi kurgusunda (vurmalı tepe zaten senaryo/hükümde); konuşma farkı 16 dB altına inmesin diye ek kazanç yok,
     // yalnız tepeden sonraki çekilmede (maliyet cümlesi) +1 dB ile alttaki pad taşınır
-    rise: [[0, 0], [110, 0], [114, 1.0], [117.6, 1.0]],
+    rise: [[0, 0], [109.6, 0], [113.6, 1.0], [999, 1.0]],
   },
   3: {
     name: 'Roof Tops — HoliznaCC0', file: 'muzik/kaynak/holizna-roof-tops.mp3',
     // 80 bpm, ölçü 3 sn (ızgara 0'dan). 2,98 sn'den başlar: ilk akor videonun ilk karesinde, davul 9,0'da ("Evet, bu güzel ve kaotik semt…"),
     // ara (break) 57–69 (mareşal → "Peki…"), sonra dolgunlaşarak hükme akar.
-    segs: [{ at: 0, src: 2.98 }], fadeIn: 0.02,
-    rise: [[0, 0], [86, 0], [100, 1.5], [117.6, 1.5]],
+    segs: [{ at: 0, src: 3.38 }], fadeIn: 0.02,   // (0,4 sn kesinti sonrası eski hiza; seçilmedi, yeniden denetlenmedi)
+    rise: [[0, 0], [85.6, 0], [99.6, 1.5], [999, 1.5]],
   },
 };
-const FADE_OUT = [117.6, MUSIC_END];
+function loadTiming() {
+  const tl = JSON.parse(readFileSync(P('work', 'timeline.json'), 'utf8'));
+  const fin = tl.scenes.find((s) => s.id === 'final');
+  const words = JSON.parse(readFileSync(P('work', 'transcript.json'), 'utf8')).words;
+  const lastEnd = Math.max(...words.map((w) => w.end));
+  FINAL_START = fin.start;
+  MUSIC_END = Math.min(lastEnd + 0.4, FINAL_START - 0.1);
+  FADE_OUT = [MUSIC_END - 2.35, MUSIC_END];
+  return { lastEnd, total: tl.totalDuration };
+}
 
 // ---------- yardımcılar ----------
 const dB = (x) => 20 * Math.log10(Math.max(x, 1e-12));
@@ -208,7 +227,7 @@ function buildMusic(opt, n) {
   return out;
 }
 /** 1 ms çözünürlüklü kazanç eğrisi (dB, taban hariç) */
-function gainCurve(opt, nb, mask, voice) {
+function gainCurve(opt, nb, mask, voice, sfxMono) {
   const g = new Float64Array(nb);
   // 1) konuşma boşluğunda açılma (konuşmaya girerken 40 ms, çıkarken 300 ms)
   let s = 0;
@@ -232,7 +251,28 @@ function gainCurve(opt, nb, mask, voice) {
     r += (want - r) * (1 - Math.exp(-1 / tc));
     g[i] -= r;
   }
-  // 3) yükseliş, giriş/söniş
+  // 3) efekt yan zinciri: efekt yolu 10 ms RMS (10 ms ileri bakış), kendi %95 düzeyinin 18 dB altından itibaren 0,5 dB/dB kısma
+  if (opt.sfxDuck && sfxMono) {
+    const el = new Float64Array(nb);
+    for (let i = 0; i < nb; i++) {
+      let p = 0, c = 0;
+      for (let j = Math.max(0, i * 48 - W / 2); j < Math.min(sfxMono.length, i * 48 + W / 2); j++) { p += sfxMono[j] * sfxMono[j]; c++; }
+      el[i] = c ? 10 * Math.log10(p / c + 1e-15) : -150;
+    }
+    const ref = quant([...el].filter((v) => v > -80), 0.95);
+    let q = 0;
+    for (let i = 0; i < nb; i++) {
+      const t = i / 1000, cap = t < opt.sfxDuck.hookEnd ? opt.sfxDuck.hook : opt.sfxDuck.max;
+      const want = Math.min(cap, Math.max(0, (el[Math.min(nb - 1, i + 10)] - (ref - 18)) * 0.5)), tc = want > q ? 5 : 250;
+      q += (want - q) * (1 - Math.exp(-1 / tc));
+      g[i] -= q;
+    }
+  }
+  if (opt.hook) { // açılışta sabit ek kısma, `until`'den `to`'ya doğrusal açılır
+    const { until, to, dB: hd } = opt.hook;
+    for (let i = 0; i < nb; i++) { const t = i / 1000; if (t >= to) break; g[i] += t <= until ? hd : hd * (1 - (t - until) / (to - until)); }
+  }
+  // 4) yükseliş, giriş/söniş
   const rise = opt.rise;
   for (let i = 0; i < nb; i++) {
     const t = i / 1000;
@@ -278,12 +318,43 @@ function truePeakLimit(chs, ceilDb, tmpDir) {
   return { out: chs.map((c) => c.map((v, i) => v * g[i])), gain: g, limitedMs: hits / 48, maxGr: -dB(minG) };
 }
 
+// ---------- son video paketleme (seçilen seçenek) ----------
+const ffprobeJson = (f) => JSON.parse(spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration:format_tags=comment', '-of', 'json', f]).stdout.toString() || '{}');
+const TAG = 'muzik-secenek-1 (tools/muzik.mjs)';
+function paketle(wav, args) {
+  const main = P('out', 'icerik.mp4'), dry = P('out', 'icerik-muziksiz.mp4'), tmp = P('out', 'icerik.muzik-tmp.mp4');
+  if (!existsSync(main)) throw new Error('out/icerik.mp4 yok (render bitmedi mi?)');
+  const age = (Date.now() - statSync(main).mtimeMs) / 1000;
+  if (age < 60 && !args.zorla) throw new Error(`out/icerik.mp4 ${age.toFixed(0)} sn önce yazıldı; render sürüyor olabilir (--zorla ile geç)`);
+  const ours = ffprobeJson(main).format?.tags?.comment === TAG;
+  if (!ours) { copyFileSync(main, dry + '.tmp'); renameSync(dry + '.tmp', dry); console.log('   render çıktısı → out/icerik-muziksiz.mp4'); }
+  else if (!existsSync(dry)) throw new Error('out/icerik.mp4 zaten müzikli ama out/icerik-muziksiz.mp4 yok');
+  else console.log('   out/icerik.mp4 zaten müzikli; out/icerik-muziksiz.mp4 kaynağından yeniden paketleniyor');
+  const vd = +ffprobeJson(dry).format.duration;
+  const ad = +spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', wav]).stdout.toString();
+  if (Math.abs(vd - ad) > 0.05) throw new Error(`süre uyuşmuyor: video ${vd} sn, miks ${ad} sn (work/audio.wav ve miks güncel mi?)`);
+  let m4, br;
+  for (br of ['192k', '256k', '320k']) { // yerleşik AAC 192k'da bazen tepe taşması üretiyor → ≤ −1,5 dBTP olan ilk bit hızı
+    ff(['-y', '-i', dry, '-i', wav, '-map', '0:v:0', '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac', '-b:a', br, '-ar', String(SR),
+      '-t', vd.toFixed(4), '-metadata', `comment=${TAG}`, '-movflags', '+faststart', tmp]);
+    m4 = ebur(tmp);
+    if (m4.TP <= -1.5) break;
+  }
+  if (m4.TP > -1.5) throw new Error(`AAC sonrası gerçek tepe ${m4.TP} dBTP; out/icerik.mp4 değiştirilmedi`);
+  const dec = deinterleave(decode(tmp, 2), 2); let t4 = 0;
+  for (const c of dec) for (let i = Math.ceil((FINAL_START + 0.05) * SR); i < c.length; i++) t4 = Math.max(t4, Math.abs(c[i]));
+  renameSync(tmp, main);
+  console.log(`   paketlendi → out/icerik.mp4 (AAC ${br}, ${m4.I} LUFS, ${m4.TP} dBTP)`);
+  return { cikti: 'out/icerik.mp4', muziksiz: 'out/icerik-muziksiz.mp4', aac_bit_hizi: br, mp4_LUFS: m4.I, mp4_true_peak_dBTP: m4.TP, mp4_final_sonrasi_max: t4, sure_sn: vd };
+}
+
 // ---------- ana akış ----------
 async function run(id, args) {
   const opt = OPTIONS[id];
   if (!opt) throw new Error(`bilinmeyen seçenek: ${id}`);
   const ara = P('muzik', 'ara'); mkdirSync(ara, { recursive: true }); mkdirSync(P('out', 'secenekler'), { recursive: true });
-  console.log(`\n== Seçenek ${id}: ${opt.name}`);
+  const timing = loadTiming();
+  console.log(`\n== Seçenek ${id}: ${opt.name}  (final.start ${FINAL_START.toFixed(4)}, son kelime ${timing.lastEnd}, söniş ${FADE_OUT.map((v) => v.toFixed(2)).join('→')})`);
   const audio = deinterleave(decode(P('work', 'audio.wav'), 2), 2);
   const n = audio[0].length, nb = Math.floor(n / 48);
   const voiceM = decode(P('work', 'voice.wav'), 1);
@@ -294,8 +365,10 @@ async function run(id, args) {
   const sfx = audio.map((a, c) => a.map((v, i) => v - vSt[c][i]));
   const { mask, words } = speechMask(nb);
 
+  const sfxMono = sfx[0].map((v, i) => 0.5 * (v + sfx[1][i]));
+  console.log(`   ses kanal kazançları ${gch.map((g) => g.toFixed(4)).join(' / ')}; süre ${(n / SR).toFixed(4)} sn`);
   const music = buildMusic(opt, n);
-  const gdb = gainCurve(opt, nb, mask, voice);
+  const gdb = gainCurve(opt, nb, mask, voice, sfxMono);
   // taban kalibrasyonu: konuşma pencerelerinde ses − müzik ortancası = TARGET_SPEECH_GAP
   const speechWin = (m) => { // momentary dizisinde, pencere merkezi bir kelimenin içinde olanlar
     const idx = [];
@@ -337,11 +410,11 @@ async function run(id, args) {
   let sp = 0, clip = 0, tailMax = 0; const fi = Math.ceil(FINAL_START * SR);
   for (const c of fin) for (let i = 0; i < c.length; i++) { const a = Math.abs(c[i]); if (a > sp) sp = a; if (a >= 0.99997) clip++; if (i >= fi && a > tailMax) tailMax = a; }
   const { mm, d } = diffs(mus);
-  const gapIdx = []; for (let i = 3; i < mm.length; i++) { const tc = i * 0.1 - 0.1; if (tc < 119.6 && !mask[Math.floor(tc * 1000)] && mm[i] > -70) gapIdx.push(i); }
+  const gapIdx = []; for (let i = 3; i < mm.length; i++) { const tc = i * 0.1 - 0.1; if (tc < MUSIC_END - 0.3 && !mask[Math.floor(tc * 1000)] && mm[i] > -70) gapIdx.push(i); }
   const sfxMom = momentary(kBlocks(sfx));
   // efekt anları: tahmini efekt yolunun (audio − ses) anlık yüksekliği kendi üst çeyreğinde ve konuşma yokken ya da varken fark etmeksizin
   const sfxThr = quant([...sfxMom].filter((v) => v > -70), 0.75);
-  const sfxIdx = []; for (let i = 3; i < sfxMom.length; i++) if (i * 0.1 < 119.6 && sfxMom[i] > sfxThr && mm[i] > -70) sfxIdx.push(i);
+  const sfxIdx = []; for (let i = 3; i < sfxMom.length; i++) if (i * 0.1 < MUSIC_END && sfxMom[i] > sfxThr && mm[i] > -70) sfxIdx.push(i);
   const mIntAll = mm; // müzik anlık (master öncesi; fark ölçümleri ölçek bağımsız)
   const tlj = JSON.parse(readFileSync(P('work', 'timeline.json'), 'utf8'));
   const scenes = tlj.scenes.filter((s) => s.id !== 'final').map((s) => {
@@ -359,11 +432,17 @@ async function run(id, args) {
     konusmada_muzik_LUFS_p10_p50_p90: [0.1, 0.5, 0.9].map((q) => +(quant(sIdx.map((i) => mm[i]), q) + G).toFixed(1)),
     bosluk_ses_ortancasi_eksi_muzik_dB: +(quant(sIdx.map((i) => vMom[i]), 0.5) - quant(gapIdx.map((i) => mm[i]), 0.5)).toFixed(1),
     efekt_eksi_muzik_dB_ortanca: +quant(sfxIdx.map((i) => sfxMom[i] - mm[i]), 0.5).toFixed(1),
+    acilis_efekt_eksi_muzik_dB_ortanca: (() => { const h = sfxIdx.filter((i) => i * 0.1 - 0.1 < 5.9); return h.length ? +quant(h.map((i) => sfxMom[i] - mm[i]), 0.5).toFixed(1) : null; })(),
+    acilis_efekt_pencere_sayisi: sfxIdx.filter((i) => i * 0.1 - 0.1 < 5.9).length,
+    sure_sn: +(fin[0].length / SR).toFixed(4), final_baslangic_sn: FINAL_START, sonis: FADE_OUT.map((v) => +v.toFixed(3)),
+    sifir_olmayan_ornek_final_sonrasi: fin.reduce((a, c) => { let k = 0; for (let i = fi; i < c.length; i++) if (c[i] !== 0) k++; return a + k; }, 0),
     sinirlayici: { calisan_ms: Math.round(lim.limitedMs), en_fazla_kisma_dB: +lim.maxGr.toFixed(2) },
     sahne_basina_muzik_LUFS: scenes,
   };
 
-  if (!args['yalniz-ses']) {
+  if (!args['yalniz-ses'] && id === SELECTED && !args.onizleme) {
+    res.paket = paketle(out, args);
+  } else if (!args['yalniz-ses']) {
     const v = pickVideo(args.video);
     const mp4 = P('out', 'secenekler', `muzik-${id}.mp4`);
     const vd = +spawnSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', v.file]).stdout.toString();
@@ -377,8 +456,8 @@ async function run(id, args) {
       if (mm4.TP <= -1.5) break;
     }
     const dec = deinterleave(decode(mp4, 2), 2); let t4 = 0;
-    for (const c of dec) for (let i = Math.ceil(120.3 * SR); i < c.length; i++) t4 = Math.max(t4, Math.abs(c[i]));
-    res.video = { kaynak: v.why, cikti: `out/secenekler/muzik-${id}.mp4`, aac_bit_hizi: br, mp4_LUFS: mm4.I, mp4_true_peak_dBTP: mm4.TP, mp4_120_3sn_sonrasi_max: t4 };
+    for (const c of dec) for (let i = Math.ceil((FINAL_START + 0.05) * SR); i < c.length; i++) t4 = Math.max(t4, Math.abs(c[i]));
+    res.video = { kaynak: v.why, cikti: `out/secenekler/muzik-${id}.mp4`, aac_bit_hizi: br, mp4_LUFS: mm4.I, mp4_true_peak_dBTP: mm4.TP, mp4_final_sonrasi_max: t4 };
     console.log(`   video: ${v.why} → out/secenekler/muzik-${id}.mp4`);
   }
   writeFileSync(P('muzik', `olcum-${id}.json`), JSON.stringify(res, null, 1));
@@ -386,5 +465,5 @@ async function run(id, args) {
 }
 
 const args = parseArgs(process.argv.slice(2));
-if (!args.secenek) { console.log('kullanım: node tools/muzik.mjs --secenek 1|2|3 [--video yol] [--yalniz-ses]'); process.exit(1); }
+if (!args.secenek) { console.log('kullanım: node tools/muzik.mjs --secenek 1|2|3 [--yalniz-ses] [--onizleme] [--video yol] [--zorla]'); process.exit(1); }
 for (const id of String(args.secenek).split(',')) await run(id.trim(), args);

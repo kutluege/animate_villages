@@ -1,6 +1,6 @@
 {
  "file": "work/voice.wav",
- "duration": 119.866,
+ "duration": 119.466,
  "sampleRate": 48000,
  "loudnorm": {
   "target": {
@@ -70,7 +70,7 @@
    "srcStart": 0.883,
    "srcEnd": 11.721,
    "outStart": 9.575,
-   "outEnd": 20.413,
+   "outEnd": 20.013,
    "speechOn": 1.003,
    "speechOff": 11.541,
    "silences": [
@@ -97,8 +97,8 @@
    "srcDur": 24.552,
    "srcStart": 0.379,
    "srcEnd": 22.951,
-   "outStart": 20.613,
-   "outEnd": 43.185,
+   "outStart": 20.213,
+   "outEnd": 42.785,
    "speechOn": 0.499,
    "speechOff": 22.771,
    "silences": [
@@ -153,8 +153,8 @@
    "srcDur": 17.016,
    "srcStart": 0.225,
    "srcEnd": 16.377,
-   "outStart": 43.385,
-   "outEnd": 59.536,
+   "outStart": 42.985,
+   "outEnd": 59.136,
    "speechOn": 0.345,
    "speechOff": 16.197,
    "silences": [
@@ -193,8 +193,8 @@
    "srcDur": 40.728,
    "srcStart": 0.642,
    "srcEnd": 40.028,
-   "outStart": 59.736,
-   "outEnd": 99.123,
+   "outStart": 59.336,
+   "outEnd": 98.723,
    "speechOn": 0.762,
    "speechOff": 39.848,
    "silences": [
@@ -277,8 +277,8 @@
    "srcDur": 15.72,
    "srcStart": 0.656,
    "srcEnd": 15.543,
-   "outStart": 99.323,
-   "outEnd": 114.209,
+   "outStart": 98.923,
+   "outEnd": 113.809,
    "speechOn": 0.776,
    "speechOff": 15.363,
    "silences": [
@@ -317,8 +317,8 @@
    "srcDur": 7.416,
    "srcStart": 1.13,
    "srcEnd": 6.586,
-   "outStart": 114.409,
-   "outEnd": 119.866,
+   "outStart": 114.009,
+   "outEnd": 119.466,
    "speechOn": 1.25,
    "speechOff": 6.406,
    "silences": [
@@ -335,6 +335,21 @@
      7.416
     ]
    ]
+  }
+ ],
+ "original": {
+  "file": "work/voice.orig.wav",
+  "duration": 119.866
+ },
+ "edits": [
+  {
+   "type": "cut",
+   "word": "Evet,",
+   "wordIndex": 19,
+   "from": 9.656,
+   "to": 10.056,
+   "removed": 0.4,
+   "xfade": 0.008
   }
  ]
 }
