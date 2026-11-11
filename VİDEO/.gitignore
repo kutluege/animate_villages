@@ -4,6 +4,18 @@ out/*
 !out/icerik.mp4
 !out/kapak.*
 !out/icerik-kapak.*
+# Seçenekler: yalnız notlar ve küçük önizleme kopyaları (asıl büyük mp4'ler dışarıda)
+!out/secenekler/
+out/secenekler/*
+!out/secenekler/HOOK.md
+!out/secenekler/MUZIK.md
+!out/secenekler/onizleme/
+out/secenekler/onizleme/*
+!out/secenekler/onizleme/hook-*.mp4
+!out/secenekler/onizleme/muzik-*.mp4
+# Müzik: SOURCES.md + kaynak parçalar içeride; miksler ve ara sesler yeniden üretilebilir (node tools/muzik.mjs)
+muzik/miks-*.wav
+muzik/ara/
 # Kare dizileri (tools/frames.mjs çıktısı; manifest.json + SOURCES.md içeride kalır → README "Kare dizisi" satırı)
 comp/assets/**/f[0-9][0-9][0-9][0-9][0-9].jpg
 # Ses ara ürünleri: audio.wav ← node tools/mix.mjs ; voice-raw.wav ← node tools/build-voice.mjs

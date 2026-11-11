@@ -39,3 +39,24 @@ Yeniden üretmek: `node comp/assets/baglam/make-anlatim-sfx.mjs`.
 | anlatim-reel | 1.8 | hızlanan film makarası ("kare kare") |
 | kapanis-counter | 0.95 | sayaç: hızlı başlayıp yavaşlayan, perdesi yükselen tıkırtılar ($90 / $150 rakamı otururken) — `node sfx/kapanis-make.mjs` |
 | kapanis-curtain | 1.25 | perde: yumuşak hava kabarması (final çerçeveleri açılırken) — `node sfx/kapanis-make.mjs` |
+
+## hook-* (açılış seçenekleri A/B/C — hook laboratuvarı)
+
+`tools/hook-lab-sfx.mjs` ile **kodla sentezlendi** (tohumlu; dışarıdan örnek yok; DSP kiti make-sfx.mjs kopyası). Lisans: projeye ait, serbest kullanım.
+Yeniden üretmek: `node tools/hook-lab-sfx.mjs`.
+
+| ad | süre | ne zaman |
+|---|---|---|
+| hook-a-cut | 0.5 | A: kesme vuruşu (kuru gövde + tık) |
+| hook-a-whip | 0.26 | A: geri fırlama / geçiş emmesi |
+| hook-a-impact | 2.2 | A: iniş vuruşu ("mi?" sonu) |
+| hook-a-stamp-1/2/3 | 0.95 | A: ad plakası damgası (yükselen üç nota) |
+| hook-b-rise | 1.55 | B: tek uzun yükseliş (sonu vuruşa denk) |
+| hook-b-boom | 4.6 | B: tek güçlü vuruş + yankı kuyruğu |
+| hook-b-glint | 1.5 | B: ad belirirken ince çan parıltısı |
+| hook-b-dive | 1.05 | B: dalış havası (gercek'e bağlanır) |
+| hook-c-sweep | 1.6 | C: tarama kolu geçişi |
+| hook-c-blip | 1.0 | C: temas bip'i |
+| hook-c-lock | 0.8 | C: nişangâh kilidi (üç bip + tık) |
+| hook-c-data | 0.7 | C: veri/koordinat tıkırtısı |
+| hook-c-match | 2.5 | C: eşleşme onay akoru |

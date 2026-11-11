@@ -1,0 +1,86 @@
+{
+ "secenek": "1",
+ "parca": "Galactic Rap — Kevin MacLeod",
+ "integrated_LUFS": -14,
+ "true_peak_dBTP": -1.8,
+ "LRA": 2.9,
+ "sample_peak_dBFS": -1.8,
+ "kirpilan_ornek": 0,
+ "final_sonrasi_max": 0,
+ "konusma_ses_eksi_muzik_dB": {
+  "ortanca": 18,
+  "p10": 10.8,
+  "p90": 22.1
+ },
+ "konusmada_ses_LUFS_p10_p50_p90": [
+  -20.4,
+  -14.1,
+  -11.7
+ ],
+ "konusmada_muzik_LUFS_p10_p50_p90": [
+  -35.3,
+  -32.2,
+  -29.8
+ ],
+ "bosluk_ses_ortancasi_eksi_muzik_dB": 15.6,
+ "efekt_eksi_muzik_dB_ortanca": 8.7,
+ "sinirlayici": {
+  "calisan_ms": 980,
+  "en_fazla_kisma_dB": 0.32
+ },
+ "sahne_basina_muzik_LUFS": [
+  {
+   "id": "hook",
+   "muzik_LUFS": -31.2,
+   "konusma_farki_dB": 16.6
+  },
+  {
+   "id": "gercek",
+   "muzik_LUFS": -31.8,
+   "konusma_farki_dB": 16.7
+  },
+  {
+   "id": "vaat",
+   "muzik_LUFS": -31.7,
+   "konusma_farki_dB": 17.8
+  },
+  {
+   "id": "baglam",
+   "muzik_LUFS": -32.2,
+   "konusma_farki_dB": 17.8
+  },
+  {
+   "id": "ekip",
+   "muzik_LUFS": -31.6,
+   "konusma_farki_dB": 18.7
+  },
+  {
+   "id": "maresal",
+   "muzik_LUFS": -32.6,
+   "konusma_farki_dB": 18.9
+  },
+  {
+   "id": "dongu",
+   "muzik_LUFS": -31.7,
+   "konusma_farki_dB": 18.6
+  },
+  {
+   "id": "senaryo",
+   "muzik_LUFS": -31.3,
+   "konusma_farki_dB": 17.4
+  },
+  {
+   "id": "sonuc",
+   "muzik_LUFS": -30.4,
+   "konusma_farki_dB": 17.6
+  }
+ ],
+ "video": {
+  "kaynak": "out/icerik.mp4 (hazır)",
+  "cikti": "out/secenekler/muzik-1.mp4",
+  "aac_bit_hizi": "320k",
+  "mp4_LUFS": -14,
+  "mp4_true_peak_dBTP": -1.8,
+  "mp4_120_3sn_sonrasi_max": 0
+ }
+}
